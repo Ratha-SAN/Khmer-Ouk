@@ -249,7 +249,11 @@
     #camControls { top: 12px; }
     #boardTitle { font-size: 20px; top: 68px; }
     #hud { font-size: 11px; }
-    #movelist { top: 54px; width: 150px; font-size: 11px; }
+    /* cap to ~4 visible lines (line-height 1.7em/line) instead of the
+       desktop 26vh, which on a phone showed far more history than fits
+       comfortably over the board -- older moves still reachable by
+       scrolling within the fade mask. */
+    #movelist { top: 54px; width: 150px; font-size: 11px; max-height: 6.8em; }
     #mobileToolbar {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 16; max-height: 100%;
       display: flex; justify-content: space-around; align-items: center;
@@ -477,7 +481,7 @@
   </div>
 </div>
 
-<div id="loginScreen" class="fullOverlay">
+<div id="loginScreen" class="fullOverlay" style="display:none">
   <div class="box">
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
     <p>ចូលគណនី — Sign in to sync your settings, or continue as a guest</p>
@@ -500,7 +504,7 @@
   </div>
 </div>
 
-<div id="startScreen" class="fullOverlay" style="display:none">
+<div id="startScreen" class="fullOverlay">
   <div class="box">
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
     <p>ល្បែងអុកខ្មែរបែបប្រពៃណី — Traditional Cambodian chess</p>
@@ -4094,7 +4098,13 @@ document.getElementById('loginPassword').addEventListener('keydown', (e) => {
 // sign-in at all) is capped to the first two real choices in Theme,
 // Background, Music, and Lighting. A neutral/free choice ('auto' / 'none')
 // doesn't count as one of the two, since it isn't really "a feature."
-let accessTier = 'guest'; // 'guest' | 'full'
+// LOGIN_ENABLED is a temporary kill switch: with the login screen hidden
+// (see startScreen/loginScreen above) there is currently no in-app way to
+// sign in, so gating is also disabled and everyone gets full access --
+// flip this back to true to restore both the login screen and the guest
+// cap together.
+const LOGIN_ENABLED = false;
+let accessTier = LOGIN_ENABLED ? 'guest' : 'full'; // 'guest' | 'full'
 const GUEST_SELECT_LIMITS = {
   themeSel: { free: [], allowed: 2 },
   bgSel: { free: ['auto'], allowed: 2 },
@@ -4164,6 +4174,10 @@ Object.keys(GUEST_SELECT_LIMITS).forEach(gateSelect);
 GUEST_LOCKED_BUTTONS.forEach(gateButton);
 applyAccessTier();
 window.__oukAuth.onChange((s) => {
+  // While the login screen is disabled, Firebase's own auth-state callback
+  // still fires (typically with "signed out") and must not downgrade the
+  // forced-full access set above -- there is no UI path to sign back in.
+  if (!LOGIN_ENABLED) return;
   accessTier = (s.signedIn && s.tier === 'full') ? 'full' : 'guest';
   applyAccessTier();
 });
@@ -4204,6 +4218,7 @@ window.__ouk = {
   guideAnswerVisible: () => document.getElementById('guideAnswerBtn').style.display !== 'none',
   guidePlayAnswer: () => document.getElementById('guideAnswerBtn').click(),
   guideFlagShown: () => !!document.querySelector('#lessonText .gflag'),
+  loginEnabled: () => LOGIN_ENABLED,
   showPieceNames: () => showPieceNames,
   pieceNamePosition: () => pieceNamePosition,
   pieceNameLang: () => pieceNameLang,
