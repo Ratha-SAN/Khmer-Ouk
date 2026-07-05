@@ -172,6 +172,22 @@
     padding: 10px 12px; font-size: 14px; line-height: 1.9; min-height: 120px;
   }
   #lessonText .en { display: block; margin-top: 8px; font-size: 12px; color: #b7a687; line-height: 1.5; }
+  /* strategy-guide worked examples */
+  #lessonText .gterm { font-size: 17px; color: var(--accent); font-weight: 600; }
+  #lessonText .gpron { color: #b7a687; font-size: 12px; font-style: italic; margin-left: 6px; }
+  #lessonText .glit { display: block; font-size: 12px; color: #cdbfa0; margin-top: 2px; }
+  #lessonText .gfen {
+    display: block; font-family: "Courier New", monospace; font-size: 11px; color: #9c8b6d;
+    background: #17110b; border-radius: 6px; padding: 6px 8px; margin: 8px 0;
+    word-break: break-all;
+  }
+  #lessonText .gmove { display: block; color: var(--ok); font-weight: 600; margin: 6px 0 2px; }
+  #lessonText .gwhy { display: block; font-size: 12.5px; color: #d8cbb2; line-height: 1.6; margin-top: 4px; }
+  #lessonText .gavoid { display: block; font-size: 12.5px; color: #d89a8a; line-height: 1.6; margin-top: 6px; }
+  #lessonText .gflag {
+    display: block; font-size: 11.5px; color: #e0b45d; background: rgba(224,180,93,.08);
+    border: 1px solid rgba(224,180,93,.35); border-radius: 6px; padding: 5px 8px; margin-top: 8px; line-height: 1.5;
+  }
   /* modal */
   #modal {
     position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none;
@@ -562,6 +578,18 @@
       </div>
       <div class="btnrow" style="margin-top:8px">
         <button id="lessonReset">ចាប់ផ្ដើមឡើងវិញ Reset</button>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>ក្បួនអុក — Strategy guide (worked examples)</legend>
+      <div class="subtabs">
+        <button id="guideTier1">កម្រិត១<br>Basics</button>
+        <button id="guideTier2">កម្រិត២<br>Tactics</button>
+        <button id="guideTier3">កម្រិត៣<br>Endgame</button>
+      </div>
+      <div class="piecebtns" id="guideBtns" style="margin-top:8px"></div>
+      <div class="btnrow" style="margin-top:8px">
+        <button id="guideAnswerBtn" style="display:none">▶ ដើរចម្លើយ Play the answer</button>
       </div>
     </fieldset>
     <div id="lessonText"></div>
@@ -3091,8 +3119,9 @@ function describeStatus() {
 
 function refreshStatus() {
   if (uiMode === 'train') {
-    const n = NAMES[lessonType];
-    statusEl.innerHTML = 'រៀន Training — ' + n.kh + ' ' + n.tr +
+    const g = typeof currentGuideExample === 'function' ? currentGuideExample() : null;
+    const label = g ? g.kh : (NAMES[lessonType].kh + ' ' + NAMES[lessonType].tr);
+    statusEl.innerHTML = 'រៀន Training — ' + label +
       (flashMsg ? ' <span class="flash">' + flashMsg + '</span>' : '');
     bannerEl.style.display = 'none';
     return;
@@ -3380,6 +3409,9 @@ const LESSONS = {
 const LESSON_ORDER = [E.PAWN, E.ROOK, E.KNIGHT, E.BISHOP, E.QUEEN, E.KING];
 
 function loadLesson() {
+  guideKey = null; // leaving the strategy guide, if it was active
+  document.getElementById('guideAnswerBtn').style.display = 'none';
+  markGuideButtons();
   const l = LESSONS[lessonType][lessonLevel];
   state = E.emptyState(currentVariant());
   const put = (name, t, c) => { state.board[E.sqIndex(name)] = E.mk(t, c); };
@@ -3415,7 +3447,264 @@ function markTrainButtons() {
 }
 document.getElementById('subBasic').onclick = () => { lessonLevel = 'basic'; markTrainButtons(); loadLesson(); };
 document.getElementById('subAdv').onclick = () => { lessonLevel = 'adv'; markTrainButtons(); loadLesson(); };
-document.getElementById('lessonReset').onclick = () => loadLesson();
+document.getElementById('lessonReset').onclick = () => { if (guideKey) loadGuideExample(guideTier, guideKey); else loadLesson(); };
+
+// ---------- strategy guide: three tiers of worked examples ----------
+// Sources: the named openings, phalanx/valuation principles, counting
+// rules, and the advanced endgame techniques (Stoun/Kae Stoun, Snouk
+// Kandol, Trey Khos Chrong, decoy sacrifice) follow the user-supplied
+// "Strategic Architecture of Ouk Chaktrang" guide document. The Tier-2
+// tactic names were supplied by the user; where a Khmer spelling or a
+// traditional name could not be verified, the example says so explicitly
+// instead of presenting it as settled. Every position, tactical line,
+// checkmate, and the stalemate trap below was verified against this
+// app's rules engine before inclusion (see the guide verification test).
+const GUIDE = {
+  t1: [
+    {
+      key: 'values', btn: 'តម្លៃ<br>Values', kh: 'តម្លៃកូនអុក', pron: 'tamlai kaun ouk',
+      lit: 'the value of the pieces', initial: true, answer: null,
+      why: 'Touk 5.0 › Ses 3.0–3.5 › Koul 2.75–3.0 › Neang &amp; Trey Bork 1.5–2.0 › Trey 1.0. The Neang is nearly the weakest piece here — it steps a single square diagonally — the exact opposite of the international queen. With no long-range diagonal pieces on the board at all, real power concentrates in the Touk (the only long-range piece) and the Ses (the only jumper). The Neang’s job is harassment, bait, and timely sacrifice — never a piece to hoard.',
+      avoid: 'Valuing pieces by chess habit. Trading a Touk or Ses for a Neang is mathematically ruinous; conversely, never fear offering the Neang where it wins time or structure.'
+    },
+    {
+      key: 'sehtym', btn: 'សេះទឹម<br>Seh Tym', kh: 'សេះទឹម', pron: 'seh tɨm',
+      lit: 'yoked knights (side-by-side)', initial: true,
+      tweak(mv) { mv('b1', 'd2'); mv('g1', 'e2'); mv('b8', 'd7'); mv('g8', 'e7'); },
+      answer: { from: 'e3', to: 'e4' },
+      why: 'The classical, symmetric system: both Ses centralize onto the second rank directly behind the Trey wall, yoked side by side. From there the plan is slow and methodical: e3-e4 advances the center with the d2-Ses and d3-Trey both guarding the arrival square, so every exchange can be met with a recapture. The yoked knights restrict the opponent while the structure stays unassailable from the front.',
+      avoid: 'Absolute passivity — the yoked knights redeploy slowly against a flank attack; and premature central pushes, which sever the knights’ mutual support and invite Trey kicks.'
+    },
+    {
+      key: 'sdam', btn: 'ចងស្តាំ<br>Chong Sdam', kh: 'សេះចងស្តាំ', pron: 'seh chɑng sdam',
+      lit: 'right-tied knights', initial: true,
+      tweak(mv) { mv('b1', 'e2'); mv('g1', 'f4'); mv('b8', 'd7'); mv('g8', 'e7'); },
+      answer: { from: 'g3', to: 'g4' },
+      why: 'A deliberately unbalanced assault formation: the lead Ses posts aggressively at f4 with the second Ses “tied” behind it on e2 for defense. g3-g4 begins prying open the right-side files behind them — the Touk on h1 slides across next to support. The guide notes AI analysis validates this as a premier weapon against passive setups: the supported lead knight is a battering ram against one sector.',
+      avoid: 'Overextension. Committing the minor pieces rightward leaves the left flank thin — if the assault is absorbed and the structure locks, the right-side pieces end up geometrically stranded.'
+    },
+    {
+      key: 'chveng', btn: 'ចងឆ្វេង<br>Chong Chveng', kh: 'សេះចងឆ្វេង', pron: 'seh chɑng chveng',
+      lit: 'left-tied knights', initial: true,
+      tweak(mv) { mv('b1', 'c4'); mv('g1', 'd2'); mv('b8', 'd7'); mv('g8', 'e7'); },
+      answer: { from: 'b3', to: 'b4' },
+      why: 'The mirror formation, tied on the left: lead Ses c4, support Ses d2, and b3-b4 gaining space behind them. Its character depends entirely on where the Angs sit: on the wing away from your Ang it is a pure assault; on your Ang’s own wing the same structure packs material around the king as a fortified shield. Chong Chveng vs Chong Sdam battles are sharp opposite-flank races — the first attack to land wins.',
+      avoid: 'Racing on one wing while your own Ang’s wing empties out; count the tempi of both attacks before committing.',
+      flag: 'Orientation note: the source document seats the Ang on each player’s left; this app uses the offset-kings layout (White Ang starts e1, right of center). The formation’s logic is unchanged — mirror it as needed.'
+    },
+    {
+      key: 'snaeng', btn: 'ស្នែង<br>Seh Snaeng', kh: 'សេះស្នែង', pron: 'seh snaeng',
+      lit: 'the horned knight', initial: true,
+      tweak(mv) { mv('g1', 'h4'); mv('b8', 'd7'); mv('g8', 'e7'); },
+      answer: { from: 'g3', to: 'g4' },
+      why: 'A provocative specialty system: one Ses is thrust to the rim (the “horn” on h4), always paired with calculated Trey advances — here g3-g4 — to control the squares beside it. Stepping outside classical symmetry disrupts the opponent’s preparation and their counting math, posing immediate questions their Koul and Neang placement may not answer. The guide notes engines use exactly this to punish rote play.',
+      avoid: 'Playing the horn without its supporting pawn work — a rim Ses reaches only a few squares, and unsupported it is simply a stranded piece.',
+      flag: 'The source document gives two spellings for this opening: សេះស្នែក and សេះស្នែង.'
+    },
+    {
+      key: 'thumb', btn: 'គោលការណ៍<br>Principles', kh: 'គោលការណ៍សំខាន់ៗ', pron: 'kolakar samkhan',
+      lit: 'key principles (descriptive title, not a traditional term)', initial: true,
+      answer: { from: 'f1', to: 'e2' },
+      why: 'What to look for: overlapping clusters — Koul f1-e2 develops into the protection of the Neang d1 and Ang e1, and this is how Koul and Neang must always travel (the phalanx habit); centralize the Ses early — with everything else short-ranged they are main forces here, not minor pieces; earn open files before activating Touks; hunt for Ses outposts your Trey guard and enemy Trey cannot kick; keep the back rank guarded.',
+      avoid: 'Early lone Neang forays; a lone Koul pushed deep (it can never step straight backward — the guide calls it structurally doomed); blocking your own central Trey; and letting an enemy Touk align with your Ang — under this app’s optional rook rule that alignment permanently revokes the Ang’s one knight-leap.'
+    }
+  ],
+  t2: [
+    {
+      key: 'sidenh', btn: 'ស៊ីដេញ<br>Si Denh', kh: 'ស៊ីដេញ', pron: 'si dəñ',
+      lit: 'capture-and-chase (eat while threatening bigger)',
+      setup(put) { put('g1', E.KING, E.WHITE); put('e4', E.KNIGHT, E.WHITE); put('g8', E.KING, E.BLACK); put('d6', E.PAWN, E.BLACK); put('b7', E.ROOK, E.BLACK); },
+      answer: { from: 'e4', to: 'd6' },
+      why: 'Ses ×d6 eats the Trey — and the landing square simultaneously attacks the 5-point Touk on b7. Black has no time to punish anything: the Touk must deal with the threat, so the capture costs zero tempo. One move, two jobs.',
+      avoid: '“Quiet” captures that hand the opponent a free move. When two captures are available, prefer the one whose landing square creates the next threat.',
+      flag: 'Term from your supplied list; ស៊ីដេញ is a plain-Khmer rendering (ស៊ី eat + ដេញ chase) — traditional orthography unverified. Position is an original engine-verified demonstration.'
+    },
+    {
+      key: 'sipir', btn: 'ស៊ីពីរ<br>Si Pir', kh: 'ស៊ីពីរ', pron: 'si pii',
+      lit: 'eat two (give one piece to win two)',
+      setup(put) { put('c1', E.KING, E.WHITE); put('g5', E.QUEEN, E.WHITE); put('h2', E.KNIGHT, E.WHITE); put('g7', E.KING, E.BLACK); put('f6', E.PAWN, E.BLACK); put('e5', E.ROOK, E.BLACK); },
+      answer: { from: 'g5', to: 'f6' },
+      why: 'Neang ×f6 sacrifices the cheapest piece with check. If the Ang recaptures, Ses h2-g4+ forks Ang and Touk — you gave ~1.5 points and ate a Trey plus a Touk (~6). If Black declines the recapture and steps aside, the Neang simply eats the Touk on e5 itself. Every branch was verified: the Touk can neither answer the check nor escape the fork.',
+      avoid: 'Sacrificing on hope. Si Pir only works when the follow-up is forced — count the material at the end of the line, not at the moment of the sacrifice.'
+    },
+    {
+      key: 'sipaay', btn: 'Si Paay', kh: 'ស៊ីប៉ាយ (?)', pron: 'si paay',
+      lit: 'removal capture — removing the guard',
+      setup(put) { put('a1', E.KING, E.WHITE); put('d1', E.ROOK, E.WHITE); put('f4', E.KNIGHT, E.WHITE); put('d8', E.KING, E.BLACK); put('e6', E.BISHOP, E.BLACK); put('d5', E.KNIGHT, E.BLACK); },
+      answer: { from: 'f4', to: 'e6' },
+      why: 'The Koul e6 is the only guard of the Ses d5. Ses ×e6 removes that guard with check — a knight check can be neither blocked nor recaptured here, so Black may only move the Ang, and then Touk d1×d5 collects the piece the guard was protecting. Two pieces for nothing.',
+      avoid: 'Grabbing the guarded piece first: Touk ×d5?? loses the Touk to the Koul. Always eat the guard before the guarded.',
+      flag: 'Term and definition as supplied in your request; the Khmer spelling ស៊ីប៉ាយ is a guess and unverified. Position is an original engine-verified demonstration.'
+    },
+    {
+      key: 'betouk', btn: 'បិទអុក<br>Bet Ouk', kh: 'បិទ / បិទអុក', pron: 'bət ouk',
+      lit: 'block / block-the-check (a block that counter-checks)',
+      setup(put) { put('d1', E.KING, E.WHITE); put('e2', E.QUEEN, E.WHITE); put('c2', E.PAWN, E.WHITE); put('c4', E.KING, E.BLACK); put('d6', E.ROOK, E.BLACK); },
+      answer: { from: 'e2', to: 'd3' },
+      why: 'White is in check from the Touk on d6. Neang e2-d3 blocks the file — and the same square checks the Black Ang on c4 diagonally. The tables turn in one move: the Ang cannot take the Neang (the Trey c2 guards d3), and if the Touk takes it, Trey ×d3 recaptures — Black has traded a Touk for a Neang.',
+      avoid: 'Blocking with an unguarded piece: the same idea backfires — the checker simply eats your blocker and checks again. A Bet Ouk block must be defended.'
+    },
+    {
+      key: 'cheubang', btn: 'Cheub Ang', kh: '(អក្ខរាវិរុទ្ធមិនទាន់ផ្ទៀងផ្ទាត់)', pron: 'cheub ang',
+      lit: 'discovered check on the Ang (via a Touk behind)',
+      setup(put) { put('b2', E.KING, E.WHITE); put('e1', E.ROOK, E.WHITE); put('e5', E.KNIGHT, E.WHITE); put('e8', E.KING, E.BLACK); put('c6', E.ROOK, E.BLACK); },
+      answer: { from: 'e5', to: 'c6' },
+      why: 'The Ses on e5 is the only thing between the Touk e1 and the Black Ang. Ses ×c6 steps off the file WITH a capture — the discovered check means Black must attend to the Ang first, so nothing recaptures on c6, and the Ses even denies d8 to the fleeing king. A whole Touk, free: during a discovery, the moving piece is momentarily untouchable.',
+      avoid: 'Spending the discovery on a move that gains nothing. The uncovered check buys exactly one free tempo for the moving piece — cash it in for the biggest capture or threat available.',
+      flag: 'Term from your supplied list; I could not verify the Khmer spelling of “Cheub” and have left it flagged rather than guessed. Position is an original engine-verified demonstration.'
+    },
+    {
+      key: 'denh', btn: 'ដេញ<br>Denh', kh: 'ដេញ', pron: 'dəñ',
+      lit: 'chase / hunt (the lesser piece hunts the greater)',
+      setup(put) { put('b1', E.KING, E.WHITE); put('c4', E.QUEEN, E.WHITE); put('a4', E.PAWN, E.WHITE); put('h8', E.KING, E.BLACK); put('c6', E.ROOK, E.BLACK); },
+      answer: { from: 'c4', to: 'b5' },
+      why: 'The 1.5-point Neang steps to b5 and attacks the 5-point Touk, standing safely under the Trey a4’s protection. The Touk cannot capture back (Touks move only straight) and cannot afford to be traded for a Neang — so it retreats, and every forced retreat is a free tempo. This is the guide’s core middlegame engine: the Neang (or a Trey Bork) as a harassment vanguard that displaces major pieces for free.',
+      avoid: 'Chasing with a piece more valuable than the target, or chasing onto undefended squares. The hunt only profits while the hunter is expendable and protected.'
+    }
+  ],
+  t3: [
+    {
+      key: 'decoy', btn: 'ត្រីបក<br>Decoy', kh: 'ត្រីបក', pron: 'trei bɑk',
+      lit: 'the promoted Trey — attacker’s asset, defender’s decoy',
+      setup(put) { put('b2', E.KING, E.WHITE); put('c6', E.QUEEN, E.WHITE, true); put('e4', E.KING, E.BLACK); put('g3', E.ROOK, E.BLACK); put('f4', E.KNIGHT, E.BLACK); },
+      answer: { from: 'c6', to: 'd7' },
+      why: 'White is losing — and that is exactly when a surviving Trey Bork shines. Bork c6-d7 begins the march to the corner farthest from its own Ang. The attacker now faces the guide’s grim choice: spend Touk-and-Ses moves crossing the board to hunt it (burning the counting clock toward a draw) or leave it alive to harass and counter-check. For the stronger side the same piece is an attacking asset: it moves like a Neang and hunts for free (see Denh).',
+      avoid: 'As defender: keeping the Bork near your Ang, where one enemy move menaces both. As attacker: taking the bait — chasing the decoy across the board is precisely what the defender wants.',
+      flag: 'Spelling note: the source document writes ត្រីបក (Trey Bork); your request romanized it “Trey Bak” — same piece.'
+    },
+    {
+      key: 'count', btn: 'ការរាប់<br>Counting', kh: 'ការរាប់', pron: 'kar reap',
+      lit: 'counting — mate inside the move limit',
+      setup(put) { put('e2', E.KING, E.WHITE); put('a7', E.ROOK, E.WHITE); put('b1', E.ROOK, E.WHITE); put('d8', E.KING, E.BLACK); },
+      answer: { from: 'b1', to: 'b8' },
+      why: 'Two Touks vs a lone Ang is a piece’s-honor count with a limit of just 8 — and the count does not start at 1, so the real budget is a handful of moves. You must know the mate before the count starts. The ladder: one Touk seals rank 7 (a7), the other mates along rank 8 — Touk b8# ends it in one here. The guide also records the limit-extending sacrifice: an attacker with Touk + 2 Ses (limit 16) facing an elusive Ang can deliberately sacrifice the Touk to fall back to the 2-Ses limit of 32 moves — trading power for time.',
+      avoid: 'Starting the count with no concrete mating net, and aimless checks — every one is a move off the clock. Know the geometry first, count second.',
+      flag: 'Counting conventions differ slightly between sources: the guide document starts the spoken count at the current piece total, while this app starts it at pieces+1. The limit table itself (2 Touk=8, 1 Touk=16, 2 Koul=22, 2 Ses=32, 1 Koul=44, 1 Ses=64, Neang/Bork only=64) matches both.'
+    },
+    {
+      key: 'toukses', btn: 'ទូក+សេះ<br>Mate', kh: 'អុកងាប់ដោយទូក​និងសេះ', pron: 'ouk ngoap',
+      lit: 'checkmate with Touk + Ses (the corner net)',
+      setup(put) { put('c3', E.KING, E.WHITE); put('a7', E.ROOK, E.WHITE); put('f6', E.KNIGHT, E.WHITE); put('h8', E.KING, E.BLACK); },
+      answer: { from: 'a7', to: 'h7' },
+      why: 'The basic Touk + Ses net against a cornered Ang: the Ses on f6 covers g8 and guards h7, so Touk a7-h7 is mate — the Ang cannot capture (guarded), cannot reach g8 (covered), and g7 sits beside the Touk. Learn the net’s three jobs: knight covers the corner’s escape diagonal, Touk delivers along the edge, your Ang or the knight guards the Touk.',
+      avoid: 'Letting the defending Ang off the edge files. The net only exists while the king is boxed on the rim — herd first, mate second.',
+      flag: 'Known internationally as the “Arabian mate”; I have no verified Khmer name for this exact pattern, so none is claimed.'
+    },
+    {
+      key: 'kaestoun', btn: 'កែស្ទួន<br>Kae Stoun', kh: 'ស្ទួន / កែស្ទួន', pron: 'stuən / kae stuən',
+      lit: 'stalemate / untying the stalemate',
+      setup(put) { put('a6', E.KING, E.WHITE); put('c7', E.BISHOP, E.WHITE); put('c6', E.QUEEN, E.WHITE); put('a8', E.KING, E.BLACK); },
+      answer: { from: 'c6', to: 'b7' },
+      why: 'The endgame’s central discipline. Here Neang c6-b7 is checkmate: it checks a8 under the Ang’s protection while the Koul c7 seals b8. But look one move sideways: the natural-looking king move a6-b6?? leaves Black not in check with no legal move — ស្ទួន Stoun, stalemate, instant draw, the classic defensive swindle. Kae Stoun is the attacker’s counter-art: always leave the trapped Ang exactly one flight square (even retreating a piece to do so) until the moment mate is actually forced. Both branches of this position are engine-verified.',
+      avoid: 'Tightening the net one square too far. Before every quiet move in a mating attack, ask what the defender’s legal replies are — if the answer is “none, and no check,” you just drew a won game.'
+    },
+    {
+      key: 'snouk', btn: 'ស្នូកកណ្ដុរ<br>Mouse Trap', kh: 'ស្នូកកណ្ដុរ', pron: 'snook kɑndao',
+      lit: 'the mouse trap — Ses + one Trey Bork mate',
+      setup(put) { put('g6', E.KING, E.WHITE); put('h7', E.QUEEN, E.WHITE, true); put('e5', E.KNIGHT, E.WHITE); put('h8', E.KING, E.BLACK); },
+      answer: { from: 'e5', to: 'f7' },
+      why: 'The guide calls mating with one Ses and a single Trey Bork one of the hardest feats in the game. The trap’s anatomy: your Ang body-blocks from g6 (a knight’s-jump from the enemy Ang — the 3×3 configuration), the Bork on h7 covers the g8 diagonal, and Ses e5-f7 springs the mate. Notice how close it runs to disaster: if it were Black’s move in the starting position, it would be stalemate — the mouse trap and Kae Stoun timing are inseparable skills.',
+      avoid: 'Approaching with the wrong tempo. One careless waiting move here is stalemate; one slow move and the piece’s-honor count expires. Rehearse the final three moves before you commit the pieces.'
+    },
+    {
+      key: 'khoschrong', btn: 'ខុសជ្រុង<br>Wrong Corner', kh: 'ត្រីខុសជ្រុង', pron: 'trei khoh chrong',
+      lit: 'the Trey in the wrong corner (color-complex fortress)',
+      setup(put) { put('e6', E.KING, E.WHITE); put('f5', E.KNIGHT, E.WHITE); put('d4', E.QUEEN, E.WHITE, true); put('g8', E.KING, E.BLACK); },
+      answer: { from: 'f5', to: 'e7' },
+      why: 'A Trey Bork moves only diagonally, so it is bound to one color complex forever — engine-verified here: every move of the d4-Bork stays on its own complex. A corner square of the other complex is therefore an impregnable fortress: mate there is geometrically impossible. The skill is instant recognition plus the cure: Ses f5-e7+ begins herding the Ang along the rim, using Ses and Ang together to force the march to the corner the Bork CAN attack — a grueling trek the guide warns often tests the count’s limit.',
+      avoid: 'Auto-piloting the chase into the wrong corner. Every check you play before recognizing the fortress is a move off the count for nothing.',
+      flag: 'The full herding technique runs many moves; this example verifies the recognition step and the first herding check only.'
+    }
+  ]
+};
+
+let guideTier = null, guideKey = null;
+const GUIDE_LETTERS = { [E.KING]: 'a', [E.ROOK]: 't', [E.KNIGHT]: 's', [E.BISHOP]: 'k', [E.QUEEN]: 'n', [E.PAWN]: 'p' };
+function guideFen() {
+  const rows = [];
+  for (let r = 7; r >= 0; r--) {
+    let row = '', run = 0;
+    for (let f = 0; f < 8; f++) {
+      const p = state.board[r * 8 + f];
+      if (p === E.EMPTY) { run++; continue; }
+      if (run) { row += run; run = 0; }
+      const letter = E.isProm(p) ? 'b' : GUIDE_LETTERS[E.typeOf(p)];
+      row += E.colorOf(p) === E.WHITE ? letter.toUpperCase() : letter;
+    }
+    if (run) row += run;
+    rows.push(row);
+  }
+  return rows.join('/');
+}
+function currentGuideExample() {
+  return guideKey ? GUIDE[guideTier].find(e => e.key === guideKey) : null;
+}
+function loadGuideExample(tier, key) {
+  guideTier = tier; guideKey = key;
+  const ex = currentGuideExample();
+  if (ex.initial) {
+    state = E.initialState(currentVariant());
+    if (ex.tweak) ex.tweak((a, b) => { state.board[E.sqIndex(b)] = state.board[E.sqIndex(a)]; state.board[E.sqIndex(a)] = E.EMPTY; });
+  } else {
+    state = E.emptyState(currentVariant());
+    ex.setup((name, t, c, prom) => { state.board[E.sqIndex(name)] = E.mk(t, c, prom); });
+    state.kingMoved = [true, true]; state.queenMoved = [true, true];
+  }
+  state.turn = E.WHITE;
+  baselineCounts = countMultiset(state.board);
+  history = []; moveEntries = []; lastMove = null; flashMsg = '';
+  gameOver = false;
+  if (ex.answer) {
+    selected = E.sqIndex(ex.answer.from);
+    legalForSelected = E.genLegal(state, E.WHITE).filter(m => m.from === selected);
+  } else { selected = -1; legalForSelected = []; }
+  document.getElementById('guideAnswerBtn').style.display = ex.answer ? 'inline-block' : 'none';
+  const moveLine = ex.answer
+    ? '✔ ចម្លើយ Correct move: ' + ex.answer.from + ' → ' + ex.answer.to
+    : 'ℹ Concept example — study the position; there is no single move.';
+  document.getElementById('lessonText').innerHTML =
+    '<span class="gterm">' + ex.kh + ' <span class="gpron">(' + ex.pron + ')</span></span>' +
+    '<span class="glit">' + ex.lit + '</span>' +
+    '<span class="gfen">A=Ang T=Touk S=Ses K=Koul N=Neang P=Trey B=Bork · UPPERCASE=White · White to move<br>' + guideFen() + '</span>' +
+    '<span class="gmove">' + moveLine + '</span>' +
+    '<span class="gwhy">' + ex.why + '</span>' +
+    '<span class="gavoid">⚠ Avoid: ' + ex.avoid + '</span>' +
+    (ex.flag ? '<span class="gflag">⚠ ' + ex.flag + '</span>' : '');
+  document.querySelectorAll('#pieceBtns button').forEach(b => b.classList.remove('active'));
+  markGuideButtons();
+  refreshAll();
+  if (selected >= 0) showMarkers();
+}
+function buildGuideButtons() {
+  const holder = document.getElementById('guideBtns');
+  holder.innerHTML = '';
+  if (!guideTier) return;
+  GUIDE[guideTier].forEach(ex => {
+    const b = document.createElement('button');
+    b.innerHTML = ex.btn;
+    b.dataset.key = ex.key;
+    b.onclick = () => loadGuideExample(guideTier, ex.key);
+    holder.appendChild(b);
+  });
+  markGuideButtons();
+}
+function markGuideButtons() {
+  ['t1', 't2', 't3'].forEach((t, i) => document.getElementById('guideTier' + (i + 1)).classList.toggle('active', guideTier === t));
+  document.querySelectorAll('#guideBtns button').forEach(b => b.classList.toggle('active', b.dataset.key === guideKey));
+}
+['guideTier1', 'guideTier2', 'guideTier3'].forEach((id, i) => {
+  document.getElementById(id).onclick = () => {
+    guideTier = 't' + (i + 1);
+    buildGuideButtons();
+    loadGuideExample(guideTier, GUIDE[guideTier][0].key);
+  };
+});
+document.getElementById('guideAnswerBtn').onclick = () => {
+  const ex = currentGuideExample();
+  if (!ex || !ex.answer) return;
+  const mv = E.genLegal(state, E.WHITE).find(m => m.from === E.sqIndex(ex.answer.from) && m.to === E.sqIndex(ex.answer.to));
+  if (mv) applyTrainingMove(mv);
+};
 
 // ---------- play/train mode switching ----------
 function setUiMode(m) {
@@ -3909,6 +4198,12 @@ window.__ouk = {
   panelHidden: () => document.body.classList.contains('panel-hidden'),
   pieceLabelCount: () => pieceGroup.children.reduce((n, g) => n + g.children.filter(c => c.isSprite).length, 0),
   trackedEvents: () => oukTrackLog,
+  guideTiers: () => ({ t1: GUIDE.t1.map(e => e.key), t2: GUIDE.t2.map(e => e.key), t3: GUIDE.t3.map(e => e.key) }),
+  guideLoad: (tier, key) => loadGuideExample(tier, key),
+  guideCurrent: () => ({ tier: guideTier, key: guideKey }),
+  guideAnswerVisible: () => document.getElementById('guideAnswerBtn').style.display !== 'none',
+  guidePlayAnswer: () => document.getElementById('guideAnswerBtn').click(),
+  guideFlagShown: () => !!document.querySelector('#lessonText .gflag'),
   showPieceNames: () => showPieceNames,
   pieceNamePosition: () => pieceNamePosition,
   pieceNameLang: () => pieceNameLang,
