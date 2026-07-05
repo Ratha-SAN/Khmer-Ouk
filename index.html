@@ -256,6 +256,112 @@
      control) layered over the vanilla-JS/Three.js game below. -->
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<!-- window.__oukTrack (analytics events) and window.__oukEndSession (Firestore
+     session tracking) are no-op stubs until Firebase finishes loading below,
+     so game code can call them unconditionally without checking readiness. -->
+<script>
+  window.__oukTrack = function () {};
+  window.__oukEndSession = function () {};
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function () {
+  // Anonymous gameplay analytics + per-visit session tracking (Firebase
+  // compat build, plain <script> tags, no build step). Every call is
+  // wrapped in try/catch: a blocked network, an ad-blocker, or fully
+  // offline use (this is a single self-contained HTML file) must never
+  // affect gameplay -- it only means data collection is silently skipped.
+  var firebaseConfig = {
+    apiKey: "AIzaSyD_0A3MIkp4jRMFuyQZthgiZluMKmKJZlc",
+    authDomain: "khmer-ouk-datacollection.firebaseapp.com",
+    projectId: "khmer-ouk-datacollection",
+    storageBucket: "khmer-ouk-datacollection.firebasestorage.app",
+    messagingSenderId: "934007657564",
+    appId: "1:934007657564:web:fbbe5954d794c09f7cc299",
+    measurementId: "G-CJ9BNEYBLN"
+  };
+
+  var sessionRef = null;
+  var sessionStartMs = Date.now();
+  // Two separate guards: 'abandoned' is a best-effort guess that a later,
+  // authoritative result (checkmate/stalemate/resign) is allowed to
+  // overwrite; once that authoritative result lands, sessionEnded locks
+  // the document so a later tab-hide/close can't clobber it back to
+  // 'abandoned'.
+  var sessionEnded = false;
+  var abandonedSent = false;
+
+  try {
+    if (window.firebase && firebase.initializeApp) {
+      firebase.initializeApp(firebaseConfig);
+      if (firebase.analytics) {
+        var analytics = firebase.analytics();
+        window.__oukTrack = function (name, params) {
+          try { analytics.logEvent(name, params); } catch (e) {}
+        };
+      }
+      if (firebase.firestore) {
+        var db = firebase.firestore();
+        var sessionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+          : 'sess-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+        sessionRef = db.collection('sessions').doc(sessionId);
+        sessionRef.set({
+          sessionId: sessionId,
+          startTime: firebase.firestore.FieldValue.serverTimestamp(),
+          userAgent: navigator.userAgent
+        }).catch(function (err) { console.warn('Firestore session start failed:', err); });
+      }
+    }
+  } catch (err) {
+    console.warn('Firebase unavailable (offline or blocked) — continuing without data collection:', err);
+  }
+
+  // NOTE on requirement #3 (sendBeacon / synchronous-safe unload write):
+  // Firestore's SDK has no synchronous write and cannot use sendBeacon --
+  // sendBeacon only carries a single fire-and-forget HTTP POST, while
+  // Firestore writes are authenticated gRPC-over-HTTP/long-polling
+  // exchanges the beacon API can't perform. The closest achievable
+  // alternative within a single static HTML file (no backend) is what's
+  // implemented below: fire the update as early as possible on both
+  // 'visibilitychange' -> hidden and 'beforeunload', without awaiting it.
+  // This is still best-effort -- iOS Safari can and does drop the
+  // underlying network request when the page is torn down before it
+  // completes. A fully reliable version would need a tiny server endpoint
+  // (e.g. a Cloud Function) hit via navigator.sendBeacon, which then
+  // performs the Firestore write server-side with the Admin SDK; that's
+  // outside "one self-contained HTML file" so it isn't included here.
+  function endSession(result) {
+    if (sessionEnded || !sessionRef) return;
+    if (result === 'abandoned') {
+      if (abandonedSent) return;
+      abandonedSent = true;
+    } else {
+      sessionEnded = true;
+    }
+    var moveCount = (window.__ouk && window.__ouk.moves) ? window.__ouk.moves().length : 0;
+    try {
+      sessionRef.update({
+        endTime: firebase.firestore.FieldValue.serverTimestamp(),
+        durationSeconds: Math.round((Date.now() - sessionStartMs) / 1000),
+        result: result,
+        moveCount: moveCount
+      }).catch(function (err) { console.warn('Firestore session end failed:', err); });
+    } catch (err) {
+      console.warn('Firestore session end threw:', err);
+    }
+  }
+  window.__oukEndSession = endSession;
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') endSession('abandoned');
+  });
+  window.addEventListener('beforeunload', function () {
+    endSession('abandoned');
+  });
+})();
+</script>
 </head>
 <body>
 
@@ -1516,6 +1622,16 @@ const theme = () => THEMES[themeKey];
 let pieceStyleOverride = 'auto';
 const pieceStyle = () => pieceStyleOverride === 'auto' ? theme().style : pieceStyleOverride;
 
+// ---------- analytics ----------
+// window.__oukTrack is the Firebase-backed sender defined in <head> (a
+// no-op until/unless that module finishes loading); trackEvent also keeps
+// a local log so gameplay telemetry can be verified without live Firebase.
+const oukTrackLog = [];
+function trackEvent(name, params) {
+  oukTrackLog.push({ name, params });
+  window.__oukTrack(name, params);
+}
+
 // ---------- game state ----------
 let state = null;
 let history = [];        // {snap, entries, lastMove} snapshots before each move
@@ -1523,6 +1639,7 @@ let moveEntries = [];
 let mode = 'ai3';        // hotseat | ai1 | ai2 | ai3 | ai4 | ai5
 let humanSide = E.WHITE;
 let gameOver = false;
+let gameEndTracked = false; // guards against re-firing 'game_end' on every refreshAll() while the banner is showing
 let aiBusy = false;
 let selected = -1;
 let legalForSelected = [];
@@ -2866,8 +2983,22 @@ function refreshStatus() {
   }
   const d = describeStatus();
   statusEl.innerHTML = d.text;
-  if (d.banner) { bannerEl.innerHTML = d.banner + '<small>Press “New game” to play again</small>'; bannerEl.style.display = 'block'; }
-  else bannerEl.style.display = 'none';
+  if (d.banner) {
+    bannerEl.innerHTML = d.banner + '<small>Press “New game” to play again</small>'; bannerEl.style.display = 'block';
+    if (!gameEndTracked) {
+      gameEndTracked = true;
+      const st = E.gameStatus(state);
+      trackEvent('game_end', {
+        result: st.type,
+        winner: st.winner === undefined ? null : (st.winner === E.WHITE ? 'white' : 'black'),
+        mode, moves: moveEntries.length
+      });
+      // st.type is one of 'checkmate' | 'stalemate' | 'count-limit'; map to
+      // the win/loss/draw schema the Firestore session document uses.
+      const sessionResult = st.type === 'checkmate' ? (st.winner === humanSide ? 'win' : 'loss') : 'draw';
+      window.__oukEndSession(sessionResult);
+    }
+  } else bannerEl.style.display = 'none';
 }
 
 function refreshCountPanel() {
@@ -3241,7 +3372,9 @@ function resetGame() {
 function newGame() { resetGame(); }
 function startGameWithMode(modeStr, side) {
   mode = modeStr; humanSide = side;
+  gameEndTracked = false;
   resetGame();
+  trackEvent('game_start', { mode: modeStr, side: side === E.WHITE ? 'white' : 'black' });
 }
 function refreshModeReadout() {
   const el = document.getElementById('modeReadoutText');
@@ -3432,6 +3565,7 @@ window.__oukActions = {
 // console/debug hook (also used by the scripted browser test)
 window.__ouk = {
   state: () => state,
+  refreshStatus: () => refreshStatus(),
   moves: () => moveEntries.slice(),
   gameOver: () => gameOver,
   aiBusy: () => aiBusy,
@@ -3453,6 +3587,7 @@ window.__ouk = {
   camPosition: () => camera.position.clone(),
   panelHidden: () => document.body.classList.contains('panel-hidden'),
   pieceLabelCount: () => pieceGroup.children.reduce((n, g) => n + g.children.filter(c => c.isSprite).length, 0),
+  trackedEvents: () => oukTrackLog,
   showPieceNames: () => showPieceNames,
   pieceNamePosition: () => pieceNamePosition,
   pieceNameLang: () => pieceNameLang,
