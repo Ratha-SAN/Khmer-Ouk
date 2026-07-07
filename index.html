@@ -231,7 +231,7 @@
   #startScreen .box h1 { font-size: 30px; color: var(--accent); margin-bottom: 6px; }
   #startScreen .box p { font-size: 14px; color: #c9b891; margin-bottom: 24px; }
   #startScreen .box button {
-    font-size: 18px; padding: 14px 40px; background: var(--accent); color: #221a12;
+    font-size: 21px; padding: 17px 46px; background: var(--accent); color: #221a12;
     font-weight: 700; border: none;
   }
   #startScreen .box button:hover { background: #e6bd66; }
@@ -592,6 +592,49 @@
     0% { transform: translate(0, 0) scale(.4) rotate(0deg); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) scale(1) rotate(120deg); opacity: 0; }
   }
+
+  /* ============ Contra 1988 theme: run-and-gun motion effects ============
+     A bullet tracer + muzzle flash for a normal move, and a bigger
+     fireball/debris explosion for a capture -- grittier and more
+     "military action" than either the Magic themes' glowing neon or the
+     Mario theme's bright candy-colored blocks. */
+  .fx-contra-tracer {
+    position: absolute; height: 3px; border-radius: 1px; left: 0; top: 0;
+    transform-origin: 0 50%;
+    background: linear-gradient(90deg, transparent, #ffdd55 55%, #fff6c8);
+    box-shadow: 0 0 6px #ffcc33;
+    animation: fxContraTracerFade 180ms linear forwards;
+  }
+  @keyframes fxContraTracerFade { 0% { opacity: 1; } 100% { opacity: 0; } }
+  .fx-contra-muzzle {
+    position: absolute; width: 20px; height: 20px; left: -10px; top: -10px;
+    background: radial-gradient(circle, #fff6c8, #ffcc33 40%, transparent 70%);
+    border-radius: 50%;
+    animation: fxContraMuzzle 160ms ease-out forwards;
+  }
+  @keyframes fxContraMuzzle {
+    0% { transform: scale(.3); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  .fx-contra-explosion {
+    position: absolute; width: 44px; height: 44px; left: -22px; top: -22px; border-radius: 50%;
+    background: radial-gradient(circle, #fff2c8 0%, #ff8a2a 35%, #b3241a 60%, transparent 75%);
+    animation: fxContraExplosion 380ms ease-out forwards;
+  }
+  @keyframes fxContraExplosion {
+    0% { transform: scale(.25); opacity: 1; }
+    60% { opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .fx-contra-debris {
+    position: absolute; width: 5px; height: 5px; left: -2.5px; top: -2.5px; border-radius: 1px;
+    background: #4a4a44;
+    animation: fxContraDebris 420ms ease-out forwards;
+  }
+  @keyframes fxContraDebris {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(200deg); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -930,6 +973,7 @@
       <option value="glass">Glass — កញ្ចក់</option>
       <option value="marble">Marble — ថ្មម៉ាបល</option>
       <option value="mario">Super Ouk World — ពិភពម៉ារីយ៉ូ</option>
+      <option value="contra">Contra 1988 — ចម្បាំង១៩៨៨</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1018,7 +1062,7 @@
       <option value="none">No music</option>
       <optgroup label="Relaxing (5)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
-      <optgroup label="Arcade (1)"></optgroup>
+      <optgroup label="Arcade (2)"></optgroup>
     </select>
     <div class="btnrow" style="margin-top:6px">
       <button id="musicPlayBtn">▶ Play</button>
@@ -2254,6 +2298,26 @@ const THEMES = {
     // chunky than the jungle theme's default.
     pixelated: true, pixelScale: 0.64, marioBackdrop: true, brickTiles: true,
     marioFx: true
+  },
+  // Contra (1988)-inspired run-and-gun theme: Bill's steel blue vs. Lance's
+  // dark red (the two heroes' classic jersey colors) blocky soldiers, a
+  // khaki/jungle-green camo board, and a dark fogged jungle-night backdrop
+  // (contraBackdrop, buildContraBackdrop below). Reuses the same blocky
+  // voxel piece geometry as Pixel Jungle/Mario (style 'contra' routes to
+  // buildVoxelPiece in buildPiece; see there) but keeps Pixel Jungle's
+  // chunkier default resolution -- a grittier, lower-fi look than Mario's
+  // sharpened one fits an 8-bit war game better than a bright platformer.
+  // Its own SFX bank (SFX.contra) and motion effects (contraFx, see
+  // triggerContraEffect) swap the plain blip/no-motion-fx for gunfire,
+  // explosions, and a bullet-tracer/muzzle-flash move effect.
+  contra: {
+    name: 'Contra 1988', style: 'contra',
+    bg: 0x0c140c, fog: [14, 30],
+    frame: 0x3a3f2e, tileLight: 0x5a6b3c, tileDark: 0x2b3320,
+    pieceW: 0x35577a, pieceB: 0x8a2020, rough: 0.75, metal: 0.15,
+    labelInk: '#d8e0c8', tray: 0x22261c,
+    pixelated: true, contraBackdrop: true, brickTiles: true,
+    contraFx: true
   }
 };
 let themeKey = 'wood';
@@ -2633,7 +2697,7 @@ function buildPiece(type, color, promoted) {
     g.add(mesh);
     return mesh;
   };
-  if (style === 'pixel' || style === 'mario') return buildVoxelPiece(g, add, type, promoted, color);
+  if (style === 'pixel' || style === 'mario' || style === 'contra') return buildVoxelPiece(g, add, type, promoted, color);
   if (style === 'khmer') return buildKhmerPiece(g, add, type, promoted, color);
   if (style === 'crystal') return buildCrystalPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
@@ -2882,6 +2946,26 @@ const PIECE_TOP_Y = {
 function labelY(type) {
   return pieceNamePosition === 'base' ? 0.2 : PIECE_TOP_Y[type] + 0.07;
 }
+// Khmer script combines base consonants with subscript signs (Coeng +
+// a subordinate consonant, e.g. the cluster under "្រ") whose advance
+// width (what textAlign: 'center' centers on) is often noticeably
+// asymmetric from the actual inked glyph shape -- so a Khmer label drawn
+// with plain textAlign: 'center' can visibly sit off-center even though
+// the math is centered on paper. actualBoundingBoxLeft/Right measure the
+// real ink extent relative to the draw point, so centering on THAT
+// instead makes the visible glyphs sit centered regardless of the font's
+// internal advance-width asymmetry. Falls back to the old plain-center
+// behavior on any browser without those TextMetrics fields.
+function fillTextInkCentered(ctx, text, cx, y) {
+  const prevAlign = ctx.textAlign;
+  ctx.textAlign = 'left';
+  const m = ctx.measureText(text);
+  const x = (m.actualBoundingBoxLeft != null && m.actualBoundingBoxRight != null)
+    ? cx - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2
+    : cx - m.width / 2;
+  ctx.fillText(text, x, y);
+  ctx.textAlign = prevAlign;
+}
 function pieceLabelMaterial(type, color, lang) {
   const key = type + '_' + color + '_' + lang;
   if (pieceLabelMats[key]) return pieceLabelMats[key];
@@ -2900,7 +2984,7 @@ function pieceLabelMaterial(type, color, lang) {
   if (lang === 'kh') {
     ctx.fillStyle = pal.kh;
     ctx.font = '600 56px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
-    ctx.fillText(n.kh, 90, 68);
+    fillTextInkCentered(ctx, n.kh, 90, 68);
   } else if (lang === 'en') {
     ctx.fillStyle = pal.tr;
     ctx.font = '600 38px "Segoe UI",sans-serif';
@@ -2908,7 +2992,7 @@ function pieceLabelMaterial(type, color, lang) {
   } else {
     ctx.fillStyle = pal.kh;
     ctx.font = '600 46px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
-    ctx.fillText(n.kh, 90, 50);
+    fillTextInkCentered(ctx, n.kh, 90, 50);
     ctx.fillStyle = pal.tr;
     ctx.font = '600 30px "Segoe UI",sans-serif';
     ctx.fillText(n.tr, 90, 86);
@@ -3144,6 +3228,37 @@ function buildMarioBackdrop() {
   const tex = new THREE.CanvasTexture(cv);
   tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
   marioBackdropCache = tex;
+  return tex;
+}
+// A dark jungle-infiltration-at-night backdrop for the Contra theme: a
+// near-black sky, a distant enemy tower with a red alert light and a
+// sweeping searchlight beam, and a dense jungle canopy silhouette in the
+// foreground -- same hard-edged/NearestFilter technique as the other
+// pixel backdrops above, just a grittier night palette.
+let contraBackdropCache = null;
+function buildContraBackdrop() {
+  if (contraBackdropCache) return contraBackdropCache;
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 144;
+  const ctx = cv.getContext('2d');
+  const sky = ctx.createLinearGradient(0, 0, 0, 144);
+  sky.addColorStop(0, '#050a06'); sky.addColorStop(1, '#0e1a10');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, 256, 144);
+  // a faint sweeping searchlight beam, fanning up from the distant tower
+  ctx.fillStyle = 'rgba(200,230,180,0.08)';
+  ctx.beginPath(); ctx.moveTo(196, 92); ctx.lineTo(150, 0); ctx.lineTo(220, 0); ctx.closePath(); ctx.fill();
+  // distant guard tower silhouette with a red alert light on top
+  ctx.fillStyle = '#141d13';
+  ctx.fillRect(190, 60, 10, 40); ctx.fillRect(182, 50, 26, 12);
+  ctx.fillStyle = '#ff2a2a';
+  ctx.fillRect(193, 44, 4, 4);
+  // dense low jungle canopy silhouette across the whole width
+  ctx.fillStyle = '#0a140b';
+  ctx.beginPath(); ctx.moveTo(0, 144); ctx.lineTo(0, 108);
+  for (let x = 0; x <= 256; x += 10) ctx.lineTo(x, 108 - (Math.round(Math.sin(x / 18) * 6) + (x % 40 < 20 ? 10 : 0)));
+  ctx.lineTo(256, 144); ctx.closePath(); ctx.fill();
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  contraBackdropCache = tex;
   return tex;
 }
 // A small hard-edged brick/dirt pattern tinted to the tile's base color.
@@ -3479,6 +3594,7 @@ function updateBackground() {
   } else if (t.skyline) tex = buildSkylineTexture();
   else if (t.paintedBackdrop) tex = buildPaintingBackdrop();
   else if (t.marioBackdrop) tex = buildMarioBackdrop();
+  else if (t.contraBackdrop) tex = buildContraBackdrop();
   else tex = null;
   const fadeEl = document.getElementById('bgFade');
   // cancel any in-flight fade so rapid successive changes (theme, then
@@ -3655,17 +3771,19 @@ function applyTheme(key) {
   // theme uses, instead of leaving stale ones from the old theme on screen
   if (selected >= 0) showMarkers();
 }
+// Themes with their own signature track (see THEME_MUSIC_TRACK): picking
+// that theme from the dropdown also switches the music player to it --
+// only on an actual theme-dropdown change (not every applyTheme() call,
+// e.g. toggling the Khmer-board checkbox re-applies the current theme and
+// must never yank the user's music choice back on its own).
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
-  // Switching into the Mario theme also switches the music player to its
-  // own chiptune track -- only on an actual theme-dropdown change (not
-  // every applyTheme() call, e.g. toggling the Khmer-board checkbox
-  // re-applies the current theme and must never yank the user's music
-  // choice back to arcade1 on its own).
-  if (e.target.value === 'mario') {
-    document.getElementById('musicSel').value = 'arcade1';
-    if (musicPlaying) startMusic('arcade1');
-    else { playSource = 'builtin'; currentMusicKey = 'arcade1'; }
+  const track = THEME_MUSIC_TRACK[e.target.value];
+  if (track) {
+    document.getElementById('musicSel').value = track;
+    if (musicPlaying) startMusic(track);
+    else { playSource = 'builtin'; currentMusicKey = track; }
   }
 };
 document.getElementById('khmerBoardChk').onchange = (e) => { khmerBoardStyle = e.target.checked; applyTheme(themeKey); };
@@ -3825,6 +3943,20 @@ const SFX = {
       envOsc({ freq: 494, type: 'square', dur: 0.08, gain: 0.24, delay: 0.08 });
       envOsc({ freq: 587, type: 'square', dur: 0.08, gain: 0.24, delay: 0.16 });
       envOsc({ freq: 784, type: 'square', dur: 0.16, gain: 0.24, delay: 0.24 });
+    }
+  },
+  // Contra theme: a sharp gunshot crack for a move, a low rumbling boom
+  // for a capture, and an alternating two-tone alarm-siren wail for
+  // check -- grittier and noise-based rather than the Mario/Pixel
+  // themes' clean square-wave blips.
+  contra(kind) {
+    if (kind === 'move') { noiseBurst({ dur: 0.05, filterFreq: 2200, q: 6, gain: 0.3 }); envOsc({ freq: 180, type: 'square', dur: 0.04, gain: 0.15, freqTo: 90 }); }
+    else if (kind === 'capture') { noiseBurst({ dur: 0.22, filterFreq: 300, q: 1.2, gain: 0.5, filterType: 'lowpass' }); envOsc({ freq: 140, type: 'sawtooth', dur: 0.28, gain: 0.35, freqTo: 40 }); }
+    else {
+      envOsc({ freq: 700, type: 'square', dur: 0.1, gain: 0.28 });
+      envOsc({ freq: 500, type: 'square', dur: 0.1, gain: 0.28, delay: 0.1 });
+      envOsc({ freq: 700, type: 'square', dur: 0.1, gain: 0.28, delay: 0.2 });
+      envOsc({ freq: 500, type: 'square', dur: 0.14, gain: 0.28, delay: 0.3 });
     }
   }
 };
@@ -4371,6 +4503,49 @@ function triggerMarioEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) 
   }
 }
 
+// ============ Contra 1988 theme: run-and-gun motion effects ============
+// A bullet tracer + muzzle flash for a normal move, a fireball + flying
+// debris explosion for a capture. Fires only while contraFx is on --
+// same fire-and-forget, try/catch-wrapped, independently-called pattern
+// as fxOpponentTrace/triggerMarioEffect above.
+function fxContraShot(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  const dx = a.x - b.x, dy = a.y - b.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  fxSpawn(fxAt(b, 'fx-contra-tracer', { width: len + 'px', transform: `rotate(${ang}deg)` }), 180);
+  fxSpawn(fxAt(b, 'fx-contra-muzzle', {}), 160);
+  window.__oukFxLog.push({ tier: 1, key: 'contra_shot' });
+}
+function fxContraExplosion(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-contra-explosion', {}), 380);
+  for (let i = 0; i < 6; i++) {
+    const a2 = (i / 6) * Math.PI * 2;
+    fxSpawn(fxAt(pt, 'fx-contra-debris', { '--mx': (Math.cos(a2) * 34) + 'px', '--my': (Math.sin(a2) * 34) + 'px' }), 420);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'contra_explosion' });
+}
+function triggerContraEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.contraFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#ff8a2a');
+      else fxContraExplosion(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#ffcc33');
+      else fxContraShot(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake the Magic theme
+    // uses (see fxCheck above) -- a generic "you're in check" beat, not
+    // Magic-branded, so it fits Contra (an alarm/alert reads naturally
+    // the same way) without any change.
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('contra-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -4415,7 +4590,12 @@ const MUSIC_TRACKS = {
   // chiptune *feel* (square-wave voice, staccato skip pattern), not a
   // transcription of any specific existing melody.
   arcade1: { label: 'អាឃិត Arcade Hop (chiptune, solo)', instrument: 'chip', noteLen: 180, gain: 0.08,
-    notes: [392.00, 392.00, null, 392.00, null, 329.63, 392.00, null, 440.00, null, null, null, 220.00, null, null, null] }
+    notes: [392.00, 392.00, null, 392.00, null, 329.63, 392.00, null, 440.00, null, null, null, 220.00, null, null, null] },
+  // An original driving, tense minor-key arpeggio for the Contra theme --
+  // faster tempo and a darker scale than Arcade Hop's major-key bounce,
+  // evoking action-game urgency without transcribing any existing melody.
+  arcade2: { label: 'ចម្បាំង Contra Assault (chiptune, solo)', instrument: 'chip', noteLen: 140, gain: 0.08,
+    notes: [220.00, 220.00, 261.63, 220.00, 196.00, 220.00, 293.66, 261.63, 220.00, null, 174.61, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
@@ -4691,6 +4871,7 @@ function applyMove(m) {
   playMoveSound(isCheck ? 'check' : (captured !== E.EMPTY ? 'capture' : 'move'));
   triggerSkillEffect(m, mover, captured, isCheck, isCheckmate);
   triggerMarioEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerContraEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCountForAI();
   scheduleAI();
