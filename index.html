@@ -571,7 +571,7 @@
   }
   .fx-mario-coin {
     position: absolute; width: 18px; height: 18px; left: -9px; top: -9px;
-    background: #fbd000; border: 2px solid #a8720c; border-radius: 50%;
+    background: var(--coincol, #fbd000); border: 2px solid var(--coinborder, #a8720c); border-radius: 50%;
     box-shadow: inset 2px 2px 0 rgba(255,255,255,.6);
     animation: fxMarioCoin 420ms ease-in forwards;
   }
@@ -2249,7 +2249,10 @@ const THEMES = {
     frame: 0x7a4b28, tileLight: 0xfbd000, tileDark: 0xc84c0c,
     pieceW: 0xe52521, pieceB: 0x00a651, rough: 0.9, metal: 0.0,
     labelInk: '#ffffff', tray: 0x3a2c1a,
-    pixelated: true, marioBackdrop: true, brickTiles: true,
+    // Twice Pixel Jungle's default internal render resolution (see
+    // resize()'s pixelScale lookup) -- still retro/blocky, just less
+    // chunky than the jungle theme's default.
+    pixelated: true, pixelScale: 0.64, marioBackdrop: true, brickTiles: true,
     marioFx: true
   }
 };
@@ -3652,7 +3655,19 @@ function applyTheme(key) {
   // theme uses, instead of leaving stale ones from the old theme on screen
   if (selected >= 0) showMarkers();
 }
-document.getElementById('themeSel').onchange = (e) => applyTheme(e.target.value);
+document.getElementById('themeSel').onchange = (e) => {
+  applyTheme(e.target.value);
+  // Switching into the Mario theme also switches the music player to its
+  // own chiptune track -- only on an actual theme-dropdown change (not
+  // every applyTheme() call, e.g. toggling the Khmer-board checkbox
+  // re-applies the current theme and must never yank the user's music
+  // choice back to arcade1 on its own).
+  if (e.target.value === 'mario') {
+    document.getElementById('musicSel').value = 'arcade1';
+    if (musicPlaying) startMusic('arcade1');
+    else { playSource = 'builtin'; currentMusicKey = 'arcade1'; }
+  }
+};
 document.getElementById('khmerBoardChk').onchange = (e) => { khmerBoardStyle = e.target.checked; applyTheme(themeKey); };
 document.getElementById('pieceNameChk').onchange = (e) => {
   showPieceNames = e.target.checked;
@@ -4317,9 +4332,17 @@ function fxMarioBump(sq) {
   fxSpawn(fxAt(fxScreenPoint(sq), 'fx-mario-bump'), 260);
   window.__oukFxLog.push({ tier: 1, key: 'mario_bump' });
 }
-function fxMarioCoin(sq) {
+// Capturing side gets its own coin color: classic gold for White (Mario),
+// a Luigi-green coin for Black -- so a capture also reads as "whose turn
+// did that" at a glance, the same way FX_SIDE_COLOR does for Magic.
+const MARIO_COIN_STYLE = [
+  { col: '#fbd000', border: '#a8720c' }, // White: classic gold coin
+  { col: '#7ed957', border: '#2f7d32' }  // Black: Luigi-green coin
+];
+function fxMarioCoin(sq, side) {
   const pt = fxScreenPoint(sq);
-  fxSpawn(fxAt(pt, 'fx-mario-coin'), 420);
+  const c = MARIO_COIN_STYLE[side];
+  fxSpawn(fxAt(pt, 'fx-mario-coin', { '--coincol': c.col, '--coinborder': c.border }), 420);
   for (let i = 0; i < 5; i++) {
     const a2 = (i / 5) * Math.PI * 2;
     fxSpawn(fxAt(pt, 'fx-mario-star', { '--mx': (Math.cos(a2) * 30) + 'px', '--my': (Math.sin(a2) * 30) + 'px' }), 380);
@@ -4330,10 +4353,11 @@ function triggerMarioEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) 
   const t = theme();
   if (!t.marioFx) return;
   try {
+    const side = E.colorOf(moverPiece);
     const reduced = fxPrefersReducedMotion();
     if (capturedPiece !== E.EMPTY) {
-      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#fbd000');
-      else fxMarioCoin(m.to);
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), MARIO_COIN_STYLE[side].col);
+      else fxMarioCoin(m.to, side);
     } else {
       if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#fbd000');
       else fxMarioBump(m.to);
@@ -6148,7 +6172,12 @@ window.__ouk = {
 function resize() {
   const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
   if (pixelActive) {
-    const scale = 0.32;
+    // Themes can opt into a sharper (or blockier) internal render
+    // resolution than the Pixel Jungle default via their own pixelScale
+    // (e.g. Mario's is double Pixel Jungle's, for a less chunky look)
+    // while still rendering at a reduced, nearest-neighbor-upscaled
+    // resolution for the retro look.
+    const scale = theme().pixelScale || 0.32;
     const iw = Math.max(120, Math.round(w * scale)), ih = Math.max(90, Math.round(h * scale));
     renderer.setPixelRatio(1);
     renderer.setSize(iw, ih, false);
