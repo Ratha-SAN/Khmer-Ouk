@@ -33,10 +33,18 @@
   #hud {
     position: absolute; top: 14px; left: 16px; z-index: 3;
     color: #fff; font-family: "Courier New", monospace; font-weight: 700; letter-spacing: 1px;
-    font-size: 14px; line-height: 1.7; display: none;
+    font-size: 14px; display: none;
     text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.8), 2px 2px 0 rgba(0,0,0,.6);
   }
-  #hud b { color: #ffd23f; }
+  #hud .stat { display: flex; align-items: center; gap: 6px; }
+  #hud .stat + .stat { margin-top: 4px; }
+  /* The Khmer/English label stacks two short lines beside the number;
+     sized (0.7em per line, line-height 1) so the two-line label block's
+     total height matches the number's own height (1.4em), instead of
+     the label text dwarfing a same-size number the way a single
+     "ចលនា MOVES 2" line did before. */
+  #hud .lbl { display: inline-flex; flex-direction: column; line-height: 1; font-size: .7em; letter-spacing: 0; text-align: left; }
+  #hud b { color: #ffd23f; font-size: 1.4em; }
   /* Move list: a borderless, transparent overlay directly under the HUD's
      move-count/time readout (not a boxed panel section) whose top and
      bottom edges fade via a mask rather than clipping abruptly. */
@@ -274,7 +282,7 @@
     #panel button { padding: 11px 10px; min-height: 44px; }
     details.acc > summary { padding: 13px 12px; font-size: 14px; }
     #camControls { top: 12px; }
-    #boardTitle { font-size: 20px; top: 68px; }
+    #boardTitle { font-size: 20px; top: 14px; }
     #hud { font-size: 11px; }
     /* cap to ~4 visible lines (line-height 1.7em/line) instead of the
        desktop 26vh, which on a phone showed far more history than fits
@@ -5936,7 +5944,9 @@ function tickHud() {
   const secs = Math.floor(elapsed / 1000);
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
-  hud.innerHTML = 'ចលនា MOVES <b>' + moveEntries.length + '</b><br>ពេលវេលា TIME <b>' + mm + ':' + ss + '</b>';
+  hud.innerHTML =
+    '<div class="stat"><span class="lbl">ជើង<br>move</span><b>' + moveEntries.length + '</b></div>' +
+    '<div class="stat"><span class="lbl">ពេល<br>Time</span><b>' + mm + ':' + ss + '</b></div>';
 }
 setInterval(tickHud, 500);
 
