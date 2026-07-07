@@ -3003,6 +3003,7 @@ function buildGirlyPiece(g, add, type, promoted, color) {
       addBand(0.2);
       break;
     case E.PAWN:
+      addBand(0.09, 0.27); // sharp faceted rim right at the base's own equator
       add(new THREE.SphereGeometry(0.16, seg, 12), 0.26); // smooth sphere gem
       addGem(0.42, 0.045);
       addBand(0.14);
