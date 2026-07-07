@@ -550,6 +550,48 @@
   @media (prefers-reduced-motion: reduce) {
     #scene.fx-shake-big { animation: none; }
   }
+
+  /* ============ Mario theme: 8-bit arcade motion effects ============
+     A block-bump for a normal move (echoing a classic question-block
+     bump) and a spinning coin + star burst for a capture, at the same
+     hard, sub-600ms pacing as the Magic themes' effects above. Blocky,
+     hard-edged shapes (no blur/gradients) to match the theme's pixelated
+     rendering rather than the Magic themes' glowing/neon look. */
+  .fx-mario-bump {
+    position: absolute; width: 26px; height: 26px; left: -13px; top: -13px;
+    background: #fbd000; border: 3px solid #7a4b1a; border-radius: 3px;
+    box-shadow: inset -3px -3px 0 rgba(0,0,0,.35), inset 3px 3px 0 rgba(255,255,255,.55);
+    animation: fxMarioBump 260ms steps(1, end) forwards;
+  }
+  @keyframes fxMarioBump {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    35% { transform: translateY(-16px) scale(1.08); opacity: 1; }
+    70% { transform: translateY(2px) scale(.95); opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 0; }
+  }
+  .fx-mario-coin {
+    position: absolute; width: 18px; height: 18px; left: -9px; top: -9px;
+    background: #fbd000; border: 2px solid #a8720c; border-radius: 50%;
+    box-shadow: inset 2px 2px 0 rgba(255,255,255,.6);
+    animation: fxMarioCoin 420ms ease-in forwards;
+  }
+  @keyframes fxMarioCoin {
+    0% { transform: translateY(0) scaleX(1); opacity: 1; }
+    25% { transform: translateY(-22px) scaleX(.3); opacity: 1; }
+    50% { transform: translateY(-30px) scaleX(1); opacity: 1; }
+    75% { transform: translateY(-22px) scaleX(.3); opacity: 1; }
+    100% { transform: translateY(-4px) scaleX(1); opacity: 0; }
+  }
+  .fx-mario-star {
+    position: absolute; width: 8px; height: 8px; left: -4px; top: -4px;
+    background: #fff5c0;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: fxMarioStar 380ms ease-out forwards;
+  }
+  @keyframes fxMarioStar {
+    0% { transform: translate(0, 0) scale(.4) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(1) rotate(120deg); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -887,6 +929,7 @@
       <option value="magic2">Magic II — វេទមន្តខ្លាំង</option>
       <option value="glass">Glass — កញ្ចក់</option>
       <option value="marble">Marble — ថ្មម៉ាបល</option>
+      <option value="mario">Super Ouk World — ពិភពម៉ារីយ៉ូ</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -975,6 +1018,7 @@
       <option value="none">No music</option>
       <optgroup label="Relaxing (5)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
+      <optgroup label="Arcade (1)"></optgroup>
     </select>
     <div class="btnrow" style="margin-top:6px">
       <button id="musicPlayBtn">▶ Play</button>
@@ -2187,6 +2231,26 @@ const THEMES = {
     // this floor is applied) to a clearly distinct charcoal, while the
     // tile itself is nudged a touch darker for extra separation.
     pieceBFloor: 0.27
+  },
+  // Mario-inspired arcade theme: bright primary-color blocky pieces (a
+  // Mario red vs. a Luigi green, echoing the classic two-player palette)
+  // on a warm castle-brick board, under a classic "World 1-1" blue sky
+  // with a pixel-cloud/hill/pipe backdrop (marioBackdrop, buildMarioBackdrop
+  // below). Reuses the Pixel Jungle theme's blocky voxel piece geometry
+  // and hard-edged retro rendering (style: 'mario' still routes to
+  // buildVoxelPiece in buildPiece; see there) and its brick tile texture,
+  // but gets its own SFX bank (SFX.mario, keyed off this theme's own
+  // `style`) and motion effects (marioFx, see triggerMarioEffect) instead
+  // of Pixel Jungle's plain SFX/no motion-fx, so it reads as a distinct
+  // arcade identity rather than just a recolor.
+  mario: {
+    name: 'Super Ouk World', style: 'mario',
+    bg: 0x5c94fc, fog: null,
+    frame: 0x7a4b28, tileLight: 0xfbd000, tileDark: 0xc84c0c,
+    pieceW: 0xe52521, pieceB: 0x00a651, rough: 0.9, metal: 0.0,
+    labelInk: '#ffffff', tray: 0x3a2c1a,
+    pixelated: true, marioBackdrop: true, brickTiles: true,
+    marioFx: true
   }
 };
 let themeKey = 'wood';
@@ -2566,7 +2630,7 @@ function buildPiece(type, color, promoted) {
     g.add(mesh);
     return mesh;
   };
-  if (style === 'pixel') return buildVoxelPiece(g, add, type, promoted, color);
+  if (style === 'pixel' || style === 'mario') return buildVoxelPiece(g, add, type, promoted, color);
   if (style === 'khmer') return buildKhmerPiece(g, add, type, promoted, color);
   if (style === 'crystal') return buildCrystalPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
@@ -3045,6 +3109,40 @@ function buildSkylineTexture() {
   skylineTexCache = tex;
   return tex;
 }
+// A classic "World 1-1" backdrop for the Mario theme: flat blue sky, a
+// row of blocky pixel clouds, green hills, and a pipe silhouette --
+// same hard-edged/NearestFilter technique as buildSkylineTexture above,
+// just a different (brighter, daytime) palette and silhouette set.
+let marioBackdropCache = null;
+function buildMarioBackdrop() {
+  if (marioBackdropCache) return marioBackdropCache;
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 144;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#5c94fc'; ctx.fillRect(0, 0, 256, 144);
+  // blocky pixel clouds -- each cloud is three stacked/overlapping rectangles
+  ctx.fillStyle = '#ffffff';
+  const cloud = (x, y) => {
+    ctx.fillRect(x, y + 6, 32, 10);
+    ctx.fillRect(x + 6, y, 20, 6);
+    ctx.fillRect(x + 8, y + 16, 16, 4);
+  };
+  cloud(16, 18); cloud(110, 10); cloud(190, 26);
+  // rolling green hills
+  ctx.fillStyle = '#3aa03a';
+  ctx.beginPath(); ctx.moveTo(0, 144); ctx.lineTo(0, 118);
+  for (let x = 0; x <= 256; x += 8) ctx.lineTo(x, 118 - Math.round(Math.sin(x / 40) * 10 + 10));
+  ctx.lineTo(256, 144); ctx.closePath(); ctx.fill();
+  // a pipe silhouette, the theme's signature landmark
+  ctx.fillStyle = '#0a7d3a';
+  ctx.fillRect(196, 96, 40, 40);
+  ctx.fillRect(190, 88, 52, 12);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(196, 100, 6, 36); ctx.fillRect(190, 90, 6, 8);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  marioBackdropCache = tex;
+  return tex;
+}
 // A small hard-edged brick/dirt pattern tinted to the tile's base color.
 const brickTexCache = {};
 function buildBrickTexture(hex, key) {
@@ -3377,6 +3475,7 @@ function updateBackground() {
     tex = backgroundTexture(bgOverride, blur, stroke);
   } else if (t.skyline) tex = buildSkylineTexture();
   else if (t.paintedBackdrop) tex = buildPaintingBackdrop();
+  else if (t.marioBackdrop) tex = buildMarioBackdrop();
   else tex = null;
   const fadeEl = document.getElementById('bgFade');
   // cancel any in-flight fade so rapid successive changes (theme, then
@@ -3669,7 +3768,13 @@ function voiceGuitar(freq, dur, gain, filterHz) {
   envOsc({ freq, type: 'sawtooth', dur, gain, bus: musicGain, attack: 0.006, filterHz: filterHz || 1800 });
   envOsc({ freq: freq * 2.003, type: 'sine', dur: dur * 0.7, gain: gain * 0.18, bus: musicGain, attack: 0.008 });
 }
-const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck, guitar: voiceGuitar };
+function voiceChip(freq, dur, gain, filterHz) {
+  // A clean square wave with a near-instant attack -- the classic 8-bit
+  // "console pulse channel" timbre, plucky and bright rather than any of
+  // the softer/slower voices above, for the Mario theme's arcade track.
+  envOsc({ freq, type: 'square', dur, gain, bus: musicGain, attack: 0.002, filterHz: filterHz || 6000 });
+}
+const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck, guitar: voiceGuitar, chip: voiceChip };
 // One sound palette per board-theme style: wood thump, stone knock, soft
 // electronic tick, 8-bit blip — move/capture/check for each.
 const SFX = {
@@ -3692,6 +3797,20 @@ const SFX = {
     if (kind === 'move') envOsc({ freq: 440, type: 'square', dur: 0.07, gain: 0.2 });
     else if (kind === 'capture') { envOsc({ freq: 440, type: 'square', dur: 0.06, gain: 0.22 }); envOsc({ freq: 660, type: 'square', dur: 0.08, gain: 0.22, delay: 0.06 }); }
     else { envOsc({ freq: 523, type: 'square', dur: 0.09, gain: 0.22 }); envOsc({ freq: 659, type: 'square', dur: 0.09, gain: 0.22, delay: 0.09 }); envOsc({ freq: 784, type: 'square', dur: 0.14, gain: 0.22, delay: 0.18 }); }
+  },
+  // Mario theme: a rising jump-blip for a move, a two-note coin-collect
+  // ding for a capture, and a four-note ascending power-up fanfare for
+  // check -- distinct from Pixel Jungle's flat blips even though both
+  // share the same square-wave 8-bit timbre.
+  mario(kind) {
+    if (kind === 'move') envOsc({ freq: 300, type: 'square', dur: 0.1, gain: 0.22, freqTo: 520 });
+    else if (kind === 'capture') { envOsc({ freq: 988, type: 'square', dur: 0.05, gain: 0.26 }); envOsc({ freq: 1319, type: 'square', dur: 0.12, gain: 0.26, delay: 0.05 }); }
+    else {
+      envOsc({ freq: 392, type: 'square', dur: 0.08, gain: 0.24 });
+      envOsc({ freq: 494, type: 'square', dur: 0.08, gain: 0.24, delay: 0.08 });
+      envOsc({ freq: 587, type: 'square', dur: 0.08, gain: 0.24, delay: 0.16 });
+      envOsc({ freq: 784, type: 'square', dur: 0.16, gain: 0.24, delay: 0.24 });
+    }
   }
 };
 window.__oukSfxLog = [];
@@ -4186,6 +4305,48 @@ function triggerSkillEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) 
   }
 }
 
+// ============ Mario theme: 8-bit arcade motion effects ============
+// A block-bump for a normal move (echoing a classic question-block bump)
+// and a spinning coin + star burst for a capture, reusing the same
+// fxAt/fxSpawn/fxScreenPoint DOM-overlay primitives the Magic themes use
+// above. Fires only while marioFx is on -- guarded and try/catch-wrapped
+// the same fire-and-forget way, and called independently of
+// triggerSkillEffect (see the applyMove call site) so the two theme
+// families' effects never interact.
+function fxMarioBump(sq) {
+  fxSpawn(fxAt(fxScreenPoint(sq), 'fx-mario-bump'), 260);
+  window.__oukFxLog.push({ tier: 1, key: 'mario_bump' });
+}
+function fxMarioCoin(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-mario-coin'), 420);
+  for (let i = 0; i < 5; i++) {
+    const a2 = (i / 5) * Math.PI * 2;
+    fxSpawn(fxAt(pt, 'fx-mario-star', { '--mx': (Math.cos(a2) * 30) + 'px', '--my': (Math.sin(a2) * 30) + 'px' }), 380);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'mario_coin' });
+}
+function triggerMarioEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.marioFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#fbd000');
+      else fxMarioCoin(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#fbd000');
+      else fxMarioBump(m.to);
+    }
+    // reuses the same screen-level check vignette/shake the Magic theme
+    // uses (see fxCheck above) -- a generic "you're in check" beat, not
+    // Magic-branded, so it fits the Mario theme without any change.
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('mario-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -4225,17 +4386,22 @@ const MUSIC_TRACKS = {
     notes: [329.63, 587.33, 392.00, 493.88, 349.23, 440.00] },
   khmer5: { label: 'ភ្លេងខ្មែរ៥ Gong & Drone (pad + bell mix)', instrument: 'pad', instrument2: 'bell', noteLen: 1600, gain: 0.07,
     filterHz: 900, detune: 6,
-    notes: [261.63, 293.66, 349.23] }
+    notes: [261.63, 293.66, 349.23] },
+  // An original bouncy 8-bit arpeggio for the Mario theme -- an upbeat
+  // chiptune *feel* (square-wave voice, staccato skip pattern), not a
+  // transcription of any specific existing melody.
+  arcade1: { label: 'អាឃិត Arcade Hop (chiptune, solo)', instrument: 'chip', noteLen: 180, gain: 0.08,
+    notes: [392.00, 392.00, null, 392.00, null, 329.63, 392.00, null, 440.00, null, null, null, 220.00, null, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
   const groups = sel.querySelectorAll('optgroup');
-  const relaxGroup = groups[0], khmerGroup = groups[1];
+  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2];
   Object.keys(MUSIC_TRACKS).forEach(key => {
     const t = MUSIC_TRACKS[key];
     const opt = document.createElement('option');
     opt.value = key; opt.textContent = t.label;
-    (key.startsWith('khmer') ? khmerGroup : relaxGroup).appendChild(opt);
+    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : relaxGroup).appendChild(opt);
   });
   sel.value = 'khmer1';
 }
@@ -4500,6 +4666,7 @@ function applyMove(m) {
   const isCheckmate = !!(mateStatus && mateStatus.type === 'checkmate');
   playMoveSound(isCheck ? 'check' : (captured !== E.EMPTY ? 'capture' : 'move'));
   triggerSkillEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerMarioEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCountForAI();
   scheduleAI();
