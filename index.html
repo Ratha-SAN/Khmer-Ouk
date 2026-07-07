@@ -469,6 +469,24 @@
     100% { transform: rotate(200deg) scale(1.15); opacity: 0; }
   }
 
+  /* ---- Opponent magical indicator: replaces the plain move-trail line
+     for the AI opponent's own (non-capturing) moves with a materializing
+     rune glyph at the destination square -- paired with the origin-square
+     casting flourish above (fx-cast-rune) so an opponent move reads as two
+     conjured glyphs (cast -> arrival) end to end, instead of a dragged
+     line like the human's own moves get. ---- */
+  .fx-arrive-glyph {
+    position: absolute; width: 34px; height: 34px; left: -17px; top: -17px;
+    border-radius: 50%; border: 2px solid var(--fxcol, #7ef2ff);
+    box-shadow: 0 0 14px var(--fxcol, #7ef2ff);
+    animation: fxArriveGlyph 420ms ease-out forwards;
+  }
+  @keyframes fxArriveGlyph {
+    0% { transform: scale(.2) rotate(-40deg); opacity: 0; }
+    40% { opacity: 1; }
+    100% { transform: scale(1.3) rotate(20deg); opacity: 0; }
+  }
+
   /* ============ Magic II: louder, more extreme skill effects ============
      Reuses the same DOM/CSS primitives as Magic (.fx-fx, .fx-ring,
      .fx-mote, .fx-slash, .fx-beam, .fx-crescent, .fx-spark, .fx-diamond,
@@ -965,7 +983,7 @@
       <button id="musicStopBtn">⏹ Stop</button>
     </div>
     <label style="margin-top:6px">Volume កម្រិតតន្ត្រី
-      <input type="range" id="musicVolumeSlider" min="0" max="1" step="0.01" value="0.5" style="width:100%">
+      <input type="range" id="musicVolumeSlider" min="0" max="1" step="0.01" value="0.2" style="width:100%">
     </label>
     <div style="margin-top:8px;font-size:12px;color:#b7a687">
       ជួរអូនចម្រៀង Playback queue (your own files)
@@ -2044,13 +2062,16 @@ const THEMES = {
     // low checkerboard contrast -- so tileLight is brighter/more saturated
     // here, widening the gap while keeping the arcane violet identity.
     frame: 0x1c1030, tileLight: 0x6551a0, tileDark: 0x1c1338,
-    // A shinier, more chrome-like piece body (higher metalness, lower
-    // roughness than before) plus a slim gold accent ring near every
-    // piece's base (goldAccents, see buildPiece) reads as "enchanted
-    // metal", and clearcoat/envMapIntensity on the board itself (reusing
-    // the same procedural studio environment map the Glass/Marble themes
-    // use) makes the polished floor visibly reflect the pieces standing on it.
-    pieceW: 0xe8def5, pieceB: 0x2a1840, rough: 0.12, metal: 0.78,
+    // goldAccents (see buildPiece/MAT_BASE_*/MAT_ACCENT_*) gives every
+    // piece a subtly split finish instead of a uniform chrome body: the
+    // base gets a slight metal shine of its own, and the rest of the body
+    // gets its normal color blended a touch toward gold, with its own
+    // slight shine -- an "enchanted metal" hint rather than a full-chrome
+    // look or a hard gold ring. clearcoat/envMapIntensity on the board
+    // itself (reusing the same procedural studio environment map the
+    // Glass/Marble themes use) makes the polished floor visibly reflect
+    // the pieces standing on it.
+    pieceW: 0xe8def5, pieceB: 0x2a1840, rough: 0.4, metal: 0.08,
     labelInk: '#e6d9ff', tray: 0x160c28,
     clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 1.0,
     goldAccents: true,
@@ -2066,9 +2087,10 @@ const THEMES = {
     name: 'Magic II', style: 'minimal',
     bg: 0x05010a, fog: null,
     frame: 0x260a30, tileLight: 0x5a1a56, tileDark: 0x150414,
-    // Louder than Magic in every dimension here too: even shinier chrome
-    // pieces, a glossier reflective floor.
-    pieceW: 0xfff0c2, pieceB: 0x3a0a3a, rough: 0.08, metal: 0.85,
+    // Louder than Magic in every dimension here too: a glossier reflective
+    // floor (the base/accent split's own shine constants stay the same
+    // "slight" values as Magic -- see MAT_BASE_*/MAT_ACCENT_*).
+    pieceW: 0xfff0c2, pieceB: 0x3a0a3a, rough: 0.4, metal: 0.08,
     labelInk: '#ffe9b0', tray: 0x1c0620,
     clearcoat: 0.75, clearcoatRoughness: 0.15, envMapIntensity: 1.4,
     goldAccents: true,
@@ -2480,6 +2502,18 @@ function buildLabels() {
 const MAT_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
 const MAT_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
 const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.3, metalness: 0.6 });
+// Magic/Magic II accent materials (theme().goldAccents): replace the old
+// full-chrome body + separate solid gold trim ring with a subtler split --
+// the base gets its own slight metal shine, and the rest of the body gets
+// the piece's own color blended a little toward gold (a tint, not a hard
+// ring shape) plus a slight shine of its own. Colors are re-synced to the
+// current theme's piece colors in applyTheme(); roughness/metalness stay
+// fixed "slight shine" constants regardless of theme, since these two
+// materials are only ever used while goldAccents is active.
+const MAT_BASE_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.3, metalness: 0.45 });
+const MAT_BASE_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.3, metalness: 0.45 });
+const MAT_ACCENT_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.35, metalness: 0.22 });
+const MAT_ACCENT_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.35, metalness: 0.22 });
 // "Luminescent Pieces": each piece glows in its own hue, from off (0) up to
 // a strong inner glow -- reapplied whenever the theme (and so the piece
 // colors) changes, so the glow color always tracks the current set. A
@@ -2503,6 +2537,10 @@ function applyPieceLuminescence() {
   MAT_B.emissive.copy(glowTint(MAT_B.color));
   MAT_W.emissiveIntensity = pieceLuminescence;
   MAT_B.emissiveIntensity = pieceLuminescence;
+  for (const [mat, base] of [[MAT_BASE_W, MAT_W], [MAT_BASE_B, MAT_B], [MAT_ACCENT_W, MAT_W], [MAT_ACCENT_B, MAT_B]]) {
+    mat.emissive.copy(base.emissive);
+    mat.emissiveIntensity = pieceLuminescence;
+  }
 }
 applyPieceLuminescence();
 
@@ -2513,7 +2551,14 @@ function buildPiece(type, color, promoted) {
   const seg = style === 'carved' ? 6 : (style === 'minimal' ? 32 : 20);
   const wide = style === 'carved' ? 1.12 : (style === 'minimal' ? 0.88 : 1);
   const g = new THREE.Group();
-  const mat = color === E.WHITE ? MAT_W : MAT_B;
+  const goldAccents = theme().goldAccents;
+  // Magic/Magic II split the piece finish instead of a flat single color:
+  // the base gets its own slight metal shine (baseMat), the rest of the
+  // body gets the piece color blended a touch toward gold with its own
+  // slight shine (mat) -- replacing the old uniform-chrome body plus a
+  // separate solid gold trim ring.
+  const baseMat = goldAccents ? (color === E.WHITE ? MAT_BASE_W : MAT_BASE_B) : (color === E.WHITE ? MAT_W : MAT_B);
+  const mat = goldAccents ? (color === E.WHITE ? MAT_ACCENT_W : MAT_ACCENT_B) : (color === E.WHITE ? MAT_W : MAT_B);
   const add = (geom, y, m) => {
     const mesh = new THREE.Mesh(geom, m || mat);
     mesh.position.y = y;
@@ -2524,12 +2569,8 @@ function buildPiece(type, color, promoted) {
   if (style === 'pixel') return buildVoxelPiece(g, add, type, promoted, color);
   if (style === 'khmer') return buildKhmerPiece(g, add, type, promoted, color);
   if (style === 'crystal') return buildCrystalPiece(g, add, type, promoted, color);
-  add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07); // base
-  if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18); // collar
-  // Magic/Magic II's chrome-and-gold look: a slim gold trim ring around
-  // every piece's base collar, independent of (and in addition to) the
-  // separate gold ring a promoted piece already gets higher up.
-  if (theme().goldAccents) add(new THREE.TorusGeometry(0.31 * wide, 0.022, 8, seg), 0.14, MAT_GOLD).rotation.x = Math.PI / 2;
+  add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
+  if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
     case E.KING:
       add(new THREE.CylinderGeometry(0.2 * wide, 0.28 * wide, 0.5, seg), 0.39);
@@ -2721,6 +2762,28 @@ const pieceGroup = new THREE.Group();
 scene.add(pieceGroup);
 let pieceAt = {};
 
+// ---------- piece reflections on the board tiles ----------
+// A faded, heavily Y-squashed and slightly widened mirror-image copy of
+// each piece, positioned just above the tile surface (not below -- the
+// tiles are opaque boxes, so a true below-surface reflection would be
+// entirely hidden). Cheap flat MeshBasicMaterial, not a true
+// render-to-texture planar mirror (too fragile for this single-file,
+// no-build project) -- kept in a separate scene-level group (not nested
+// under pieceGroup) so it never interferes with pieceGroup-based
+// raycasting/picking. Applies to every theme, at a fixed subtle opacity.
+const reflectionGroup = new THREE.Group();
+scene.add(reflectionGroup);
+const REFLECT_MAT_W = new THREE.MeshBasicMaterial({ color: 0xe9dabb, transparent: true, opacity: 0.16, depthWrite: false });
+const REFLECT_MAT_B = new THREE.MeshBasicMaterial({ color: 0x6d2a18, transparent: true, opacity: 0.16, depthWrite: false });
+function buildPieceReflection(pieceGroupObj, color) {
+  const refl = pieceGroupObj.clone(true);
+  const mat = color === E.WHITE ? REFLECT_MAT_W : REFLECT_MAT_B;
+  refl.traverse((o) => { if (o.isMesh) { o.material = mat; o.castShadow = false; o.receiveShadow = false; } });
+  refl.scale.set(1.35, -0.1, 1.35);
+  refl.position.y = 0.004;
+  return refl;
+}
+
 // Piece-name billboards: a THREE.Sprite always faces the camera regardless
 // of how the board is orbited, and (since it's offset only along the local
 // Y axis) stays centered above a piece even when that piece's group is
@@ -2835,6 +2898,7 @@ function retrackPieceLabels() {
 }
 function rebuildPieces() {
   pieceGroup.clear();
+  reflectionGroup.clear();
   pieceAt = {};
   for (let sq = 0; sq < 64; sq++) {
     const p = state.board[sq];
@@ -2842,9 +2906,10 @@ function rebuildPieces() {
     const type = E.typeOf(p);
     const color = E.colorOf(p);
     const g = buildPiece(type, color, E.isProm(p));
-    if (showPieceNames) addPieceLabel(g, type, color);
     const pos = sqPos(sq);
     g.position.set(pos.x, 0, pos.z);
+    reflectionGroup.add(buildPieceReflection(g, color)); // built before the label is added, so the label sprite is never cloned into it
+    if (showPieceNames) addPieceLabel(g, type, color);
     pieceGroup.add(g);
     pieceAt[sq] = g;
   }
@@ -3375,12 +3440,14 @@ function applyTheme(key) {
   // Stone's charcoal) isn't dragged back toward gray.
   raiseMinLightness(MAT_B.color, t.pieceBFloor || 0.1);
   applyPieceLuminescence();
+  REFLECT_MAT_W.color.copy(MAT_W.color);
+  REFLECT_MAT_B.color.copy(MAT_B.color);
   // Glass/Marble-only physical properties (clearcoat, a stronger pull from
   // the procedural studio environment map above). These materials are
   // reused across every theme switch, so anything a previous theme turned
   // on must be explicitly reset here, not just conditionally set --
   // otherwise it would silently leak into the next theme.
-  for (const mat of [MAT_W, MAT_B, frameMat, trayMat]) {
+  for (const mat of [MAT_W, MAT_B, MAT_BASE_W, MAT_BASE_B, MAT_ACCENT_W, MAT_ACCENT_B, frameMat, trayMat]) {
     mat.ior = t.ior || 1.5;
     mat.clearcoat = t.clearcoat || 0;
     mat.clearcoatRoughness = t.clearcoatRoughness || 0;
@@ -3396,7 +3463,14 @@ function applyTheme(key) {
   // clearcoat/metalness/transparency, and independent of theme (Glass and
   // Marble both reproduced it), so this cap is a deliberate, verified-safe
   // ceiling rather than an arbitrary guess.
-  MAT_W.envMapIntensity = MAT_B.envMapIntensity = Math.min(t.envMapIntensity || 0.15, 0.3);
+  // 0.25 (not the board/frame's 0.15 default) so every theme's pieces pick
+  // up a clearly-intentional, still-subtle hint of environment reflection,
+  // independent of the per-theme envMapIntensity Glass/Marble/Magic opt
+  // into -- still comfortably under the 0.3 SwiftShader-safe ceiling above.
+  MAT_W.envMapIntensity = MAT_B.envMapIntensity =
+    MAT_BASE_W.envMapIntensity = MAT_BASE_B.envMapIntensity =
+    MAT_ACCENT_W.envMapIntensity = MAT_ACCENT_B.envMapIntensity =
+    Math.min(t.envMapIntensity || 0.25, 0.3);
   // transmission/thickness (real see-through refraction) are piece-only --
   // the board/frame should stay opaque -- and, like every other physical
   // property on these two shared materials, must be reset to "off" here on
@@ -3407,6 +3481,17 @@ function applyTheme(key) {
   MAT_W.opacity = MAT_B.opacity = pieceOpacity;
   MAT_W.transparent = MAT_B.transparent = pieceOpacity < 1;
   MAT_W.needsUpdate = MAT_B.needsUpdate = true;
+  // Magic/Magic II accent materials (see MAT_BASE_*/MAT_ACCENT_* above):
+  // base gets the theme's own piece color at a fixed slight-metal-shine
+  // roughness/metalness; the "rest of the body" gets that same color
+  // blended a little toward gold, at its own fixed slight-shine values.
+  // Only ever visibly used while goldAccents is on, but kept in sync every
+  // call regardless so nothing stale leaks in if a theme ever reuses them.
+  MAT_BASE_W.color.copy(MAT_W.color); MAT_BASE_B.color.copy(MAT_B.color);
+  const goldTint = new THREE.Color(0xd4a548);
+  MAT_ACCENT_W.color.copy(MAT_W.color).lerp(goldTint, 0.2);
+  MAT_ACCENT_B.color.copy(MAT_B.color).lerp(goldTint, 0.2);
+  MAT_BASE_W.needsUpdate = MAT_BASE_B.needsUpdate = MAT_ACCENT_W.needsUpdate = MAT_ACCENT_B.needsUpdate = true;
   // a texture's own baked-in pixels are multiplied by material.color, so
   // when a marble-vein texture supplies the real color, the material color
   // itself must be reset to white (the same pattern the board tiles below
@@ -4044,6 +4129,24 @@ function fxOpponentCast(fromSq, side) {
   }
 }
 
+// ---- Opponent magical indicator: replaces the plain move-trail line for
+// the AI opponent's own (non-capturing) moves with a materializing rune
+// glyph at the destination square, paired with fxOpponentCast's rotating
+// rune at the origin -- an opponent move reads as two conjured glyphs
+// (cast -> arrival) instead of a dragged line like the human's own moves.
+function fxOpponentTrace(toSq, side, tier2) {
+  try {
+    const colArr = tier2 ? FX2_SIDE_COLOR : FX_SIDE_COLOR;
+    const col = colArr[side];
+    const pt = fxScreenPoint(toSq);
+    fxSpawn(fxAt(pt, 'fx-arrive-glyph', { '--fxcol': col }), 420);
+    fxSpawn(fxAt(pt, 'fx-glow', { '--fxcol': col }), 320);
+    window.__oukFxLog.push({ tier: 1, key: 'opponent_trace' });
+  } catch (err) {
+    console.warn('opponent-trace effect render failed (ignored):', err);
+  }
+}
+
 function triggerSkillEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
   const t = theme();
   if (!t.magicFx) return;
@@ -4064,7 +4167,11 @@ function triggerSkillEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) 
       // top of the capture effect it already just played
       if (fxPieceValue(moverPiece) < fxPieceValue(capturedPiece)) fxUpset(m.to, side);
     } else {
+      // an AI opponent's own (non-capturing) move gets the magical arrival
+      // glyph instead of the plain trail line the human's own moves use,
+      // since fxOpponentCast already fired the origin-square rune above
       if (reduced) fxSimpleFlash(fxScreenPoint(m.to), colArr[side]);
+      else if (mode.startsWith('ai') && side !== humanSide) fxOpponentTrace(m.to, side, tier2);
       else if (tier2) fxTrail2(m.from, m.to, side);
       else fxTrail(m.from, m.to, side);
     }
@@ -4105,7 +4212,7 @@ const MUSIC_TRACKS = {
   relax5: { label: 'ភ្លេងសណ្ឋាគារ៥ Still Water (guitar, solo)', instrument: 'guitar', noteLen: 1700, gain: 0.08,
     filterHz: 1400,
     notes: [329.63, 329.63, 392.00, 349.23] },
-  khmer1: { label: 'ភ្លេងខ្មែរ១ Khmer Roneat (bell, solo)', instrument: 'bell', noteLen: 380, gain: 0.09,
+  khmer1: { label: 'ភ្លេងខ្មែរ១ Khmer Roneat (bell, solo)', instrument: 'bell', noteLen: 560, gain: 0.09,
     notes: [293.66, 349.23, 392.00, 440.00, 523.25, 440.00, 392.00, 349.23] },
   khmer2: { label: 'ភ្លេងខ្មែរ២ Khmer Kong Vong (pad, solo)', instrument: 'pad', noteLen: 1350, gain: 0.08,
     filterHz: 950, detune: 5,
@@ -4130,7 +4237,7 @@ function populateMusicSelect() {
     opt.value = key; opt.textContent = t.label;
     (key.startsWith('khmer') ? khmerGroup : relaxGroup).appendChild(opt);
   });
-  sel.value = 'relax1';
+  sel.value = 'khmer1';
 }
 populateMusicSelect();
 
@@ -5811,6 +5918,17 @@ window.__ouk = {
   frameMetalness: () => frameMat.metalness,
   frameRoughness: () => frameMat.roughness,
   pieceGroupCount: () => pieceGroup.children.length,
+  reflectionGroupCount: () => reflectionGroup.children.length,
+  reflectionMeshInfo: () => {
+    const r = reflectionGroup.children[0];
+    if (!r) return null;
+    let mesh = null;
+    r.traverse((o) => { if (!mesh && o.isMesh) mesh = o; });
+    return mesh ? { opacity: mesh.material.opacity, color: mesh.material.color.getHex(), scaleY: r.scale.y, scaleXZ: r.scale.x } : null;
+  },
+  goldAccentsOn: () => !!theme().goldAccents,
+  matAccentPhysical: () => ({ w: { color: MAT_ACCENT_W.color.getHex(), roughness: MAT_ACCENT_W.roughness, metalness: MAT_ACCENT_W.metalness }, b: { color: MAT_ACCENT_B.color.getHex(), roughness: MAT_ACCENT_B.roughness, metalness: MAT_ACCENT_B.metalness } }),
+  matBasePhysical: () => ({ w: { color: MAT_BASE_W.color.getHex(), roughness: MAT_BASE_W.roughness, metalness: MAT_BASE_W.metalness }, b: { color: MAT_BASE_B.color.getHex(), roughness: MAT_BASE_B.roughness, metalness: MAT_BASE_B.metalness } }),
   squareHasMarbleMap: () => !!squareMeshes[0].material.map,
   fxPoint: (sq) => fxScreenPoint(sq),
   fxRingCenter: (sq) => {
