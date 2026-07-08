@@ -991,6 +991,10 @@
       <button id="cancelGameBtn">បោះបង់ Cancel Game</button>
     </div>
     <div id="saveStatus" style="font-size:12px;color:#b7a687;margin-top:4px;min-height:14px;"></div>
+    <label style="margin-top:8px">
+      <input type="checkbox" id="autoCountChk">
+      ចាប់ផ្ដើមរាប់ដោយស្វ័យប្រវត្តិ Auto-start counting when eligible
+    </label>
     </div>
   </details>
   </div>
@@ -1209,10 +1213,11 @@
 
   <h3>Counting rules (draws for the weaker side)</h3>
   <p><strong>Board's honor:</strong> a player with three or fewer pieces may start counting from 1
-     with a limit of 64; they may stop at any time, and a restart begins from 1 again.</p>
+     with a limit of 64; they may pause and restart at their own discretion, and a restart begins from 1 again.</p>
   <p><strong>Piece's honor:</strong> when no unpromoted Trey remain and a player has only the bare Sdach,
-     that player may instead count starting from (all pieces on the board, both Sdach included) + 1,
-     with the limit fixed by the stronger side's force — the smallest applicable value:</p>
+     that player may instead count starting from the total number of pieces currently on the board
+     (both sides, both Sdach included), with the limit fixed by the stronger side's force — the smallest
+     applicable value:</p>
   <table>
     <tr><th>Stronger side has…</th><th>Limit</th></tr>
     <tr><td>Two Tuuk</td><td>8</td></tr>
@@ -1225,8 +1230,12 @@
   </table>
   <p class="note">These limits are the commonly cited table; exact values vary slightly between Cambodian
      and Thai sources. The table lives in one editable constant (<code>PIECE_HONOR_TABLE</code>) in the
-     engine script. Once piece-counting starts the limit never changes, even if pieces are captured later;
-     stopping and restarting re-fixes it. If the count reaches the limit before checkmate, the game is a draw.</p>
+     engine script. Once piece-counting starts the limit itself never changes -- but a capture restarts the
+     count from the new (smaller) total, still governed by that original limit. Stopping and manually
+     restarting re-fixes the limit too. If the count reaches the limit before checkmate, the game is a draw.
+     The "Auto-start counting when eligible" checkbox (Settings → Game) starts the count the instant a side
+     qualifies instead of waiting for a manual "Start count" button click; the computer opponent always
+     decides for itself either way, since it has no button to click.</p>
 </div></div>
 
 <!-- ============ RULES ENGINE (also shipped to the AI web worker) ============ -->
@@ -1474,8 +1483,18 @@
     S.board[m.from] = EMPTY;
     S.turn = 1 - S.turn;
     updateRookAlignment(S);
-    if (S.counting && S.counting.side === c && !S.result) {
-      S.counting.count++;
+    if (S.counting && !S.result) {
+      if (S.counting.mode === 'piece' && u.captured !== EMPTY) {
+        // Piece's Honor: a capture (by either side) restarts the count
+        // from the new total piece count -- the limit was already fixed
+        // when counting began and never recalculates. Board's Honor has
+        // no such rule; there the count only ever changes via the
+        // counting player's own pause/restart at their discretion
+        // (stopCounting + a fresh startCounting).
+        S.counting.count = countPieces(S, WHITE) + countPieces(S, BLACK);
+      } else if (S.counting.side === c) {
+        S.counting.count++;
+      }
       if (S.counting.count >= S.counting.limit) S.result = { type: 'count-limit' }; // draw
     }
     return u;
@@ -1555,9 +1574,13 @@
       S.counting = { side: side, mode: 'board', count: BOARD_HONOR.start, limit: BOARD_HONOR.limit };
     } else {
       if (!canCountPiece(S, side)) return false;
+      // The spoken count starts at the total number of pieces currently on
+      // the board (both sides, including both kings) -- not at 1 and not
+      // at total+1. The limit is fixed now and never changes, even if
+      // pieces are captured later (see makeMove's capture-restart, which
+      // resets `count` to the new total but leaves `limit` alone).
       var total = countPieces(S, WHITE) + countPieces(S, BLACK);
-      // limit is fixed now and never changes, even if pieces are captured later
-      S.counting = { side: side, mode: 'piece', count: total + 1, limit: pieceHonorLimit(S, 1 - side) };
+      S.counting = { side: side, mode: 'piece', count: total, limit: pieceHonorLimit(S, 1 - side) };
     }
     return true;
   }
@@ -1986,14 +2009,14 @@
     });
 
     // ---------- counting rules ----------
-    T("piece's honor: lone Sdach vs 2 Tuuk -> start = pieces+1, limit 8", function () {
+    T("piece's honor: lone Sdach vs 2 Tuuk -> start = total pieces on board, limit 8", function () {
       var S = E.emptyState();
       put(S, 'e4', E.KING, E.WHITE); put(S, 'a1', E.ROOK, E.WHITE); put(S, 'h1', E.ROOK, E.WHITE);
       put(S, 'e8', E.KING, E.BLACK);
       assert(E.canCountPiece(S, E.BLACK), 'black (lone king) may count');
       assert(!E.canCountPiece(S, E.WHITE), 'white may not');
       assert(E.startCounting(S, E.BLACK, 'piece'), 'start');
-      eq(S.counting.count, 5, 'starts at pieces on board + 1 = 5');
+      eq(S.counting.count, 4, 'starts at total pieces on board (both kings + 2 Tuuk) = 4');
       eq(S.counting.limit, 8, 'two Tuuk -> limit 8');
     });
     T("piece's honor: limit table (1 Tuuk=16, 2 Koul=22, 2 Ses=32, 1 Koul=44, 1 Ses=64, Neang only=64)", function () {
@@ -2012,17 +2035,17 @@
       eq(limitFor([E.QUEEN]), 64, 'Neang only');
       eq(limitFor([E.ROOK, E.BISHOP, E.BISHOP]), 16, 'minimum applicable wins (Tuuk beats Koul pair)');
     });
-    T("piece's honor: limit stays fixed after a later capture", function () {
+    T("piece's honor: a capture restarts the count but never re-fixes the limit", function () {
       var S = E.emptyState();
       put(S, 'e4', E.KING, E.WHITE); put(S, 'c2', E.ROOK, E.WHITE); put(S, 'h1', E.ROOK, E.WHITE);
       put(S, 'd1', E.KING, E.BLACK);
       S.kingMoved = [true, true]; S.turn = E.BLACK;
       E.startCounting(S, E.BLACK, 'piece');
       eq(S.counting.limit, 8, 'limit 8 with two Tuuk');
-      var before = S.counting.count;
-      doMove(S, 'd1', 'c2'); // lone king captures a Tuuk
+      eq(S.counting.count, 4, 'starts at total pieces (4)');
+      doMove(S, 'd1', 'c2'); // lone king captures a Tuuk -- one fewer piece on the board now
       eq(S.counting.limit, 8, 'limit unchanged after capture (would be 16 if re-fixed)');
-      eq(S.counting.count, before + 1, 'count advanced on counting side move');
+      eq(S.counting.count, 3, 'count restarts from the new total (3) instead of just incrementing');
     });
     T("counting: draw when the count reaches the limit", function () {
       var S = E.emptyState();
@@ -2047,7 +2070,7 @@
       S.board[E.sqIndex('a1')] = E.EMPTY; // a Tuuk disappears before the restart
       E.startCounting(S, E.BLACK, 'piece');
       eq(S.counting.limit, 16, 'restart re-fixes limit: one Tuuk -> 16');
-      eq(S.counting.count, 4, 'restart count = pieces(3) + 1');
+      eq(S.counting.count, 3, 'restart count = total pieces on board (3)');
     });
     T("board's honor: <=3 pieces may count, starts at 1, limit 64", function () {
       var S = E.emptyState();
@@ -5238,7 +5261,7 @@ function applyMove(m) {
   triggerContraEffect(m, mover, captured, isCheck, isCheckmate);
   triggerKidsEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
-  maybeAutoCountForAI();
+  maybeAutoCount();
   scheduleAI();
 }
 
@@ -5261,13 +5284,30 @@ function applyTrainingMove(m) {
   playMoveSound(captured !== E.EMPTY ? 'capture' : 'move');
 }
 
-function maybeAutoCountForAI() {
-  if (uiMode === 'train' || mode === 'hotseat' || gameOver || state.counting) return;
-  const aiSide = 1 - humanSide;
-  if (E.canCountPiece(state, aiSide)) {
-    E.startCounting(state, aiSide, 'piece');
-    refreshCountPanel();
+// Auto-start counting when eligible -- either always for the computer's
+// own side (it has no manual "Start count" button to click, so it must
+// decide for itself regardless of the autoCountChk setting), or, when
+// the player has opted into autoCountChk, for any human-controlled side
+// too (both sides in hotseat, or just the human's own side vs AI).
+// Manual play (the checkbox left off) is unaffected: the countPanel's
+// existing "Start count" buttons are how a human invokes it themselves.
+let autoCountEnabled = false;
+document.getElementById('autoCountChk').onchange = (e) => { autoCountEnabled = e.target.checked; };
+function trySideAutoCount(side) {
+  if (E.canCountPiece(state, side)) { E.startCounting(state, side, 'piece'); return true; }
+  if (E.canCountBoard(state, side)) { E.startCounting(state, side, 'board'); return true; }
+  return false;
+}
+function maybeAutoCount() {
+  if (uiMode === 'train' || gameOver || state.counting) return;
+  let started;
+  if (mode === 'hotseat') {
+    started = autoCountEnabled && (trySideAutoCount(E.WHITE) || trySideAutoCount(E.BLACK));
+  } else {
+    started = trySideAutoCount(1 - humanSide); // the computer always decides for itself
+    if (!started && autoCountEnabled) started = trySideAutoCount(humanSide);
   }
+  if (started) refreshCountPanel();
 }
 
 // ---------- AI (web worker, synchronous fallback) ----------
@@ -5813,9 +5853,7 @@ const GUIDE = {
       why: { kh: 'ទូកពីរទល់នឹងស្ដេចនៅម្នាក់ឯង ជាការរាប់កិត្តិយសកូនអុក ដែលមានដែនកំណត់គ្រាន់តែ ៨ — ហើយការរាប់មិនចាប់ផ្ដើមពី ១ ទេ ដូច្នេះថវិកាជាក់ស្ដែងគឺមានតែប៉ុន្មានជើងប៉ុណ្ណោះ។ អ្នកត្រូវដឹងផ្លូវអុកងាប់មុននឹងការរាប់ចាប់ផ្ដើម។ ជណ្ដើរ៖ ទូកមួយបិទជួរទី៧ (a7) ទូកមួយទៀតអុកងាប់នៅជួរទី៨ — ទូក b8# បញ្ចប់ក្នុងមួយជើងនៅទីនេះ។ ឯកសារក៏កត់ត្រាការលះបង់ពន្លាតដែនកំណត់ផងដែរ៖ អ្នកវាយប្រហារមានទូក និងសេះពីរ (ដែនកំណត់ ១៦) ប្រឈមនឹងស្ដេចរត់រួសរាន់ អាចលះបង់ទូកចេញដោយចេតនា ដើម្បីត្រឡប់ទៅដែនកំណត់សេះពីរ ៣២ជើង — ដូរអំណាចយកពេលវេលា។',
         en: 'Two Touks vs a lone Ang is a piece’s-honor count with a limit of just 8 — and the count does not start at 1, so the real budget is a handful of moves. You must know the mate before the count starts. The ladder: one Touk seals rank 7 (a7), the other mates along rank 8 — Touk b8# ends it in one here. The guide also records the limit-extending sacrifice: an attacker with Touk + 2 Ses (limit 16) facing an elusive Ang can deliberately sacrifice the Touk to fall back to the 2-Ses limit of 32 moves — trading power for time.' },
       avoid: { kh: 'ការចាប់ផ្ដើមរាប់ដោយគ្មានផ្លូវអុកងាប់ច្បាស់លាស់ និងការអុកឥតគោលដៅ — រាល់ការអុកមួយជាការដកជើងចេញពីនាឡិកា។ ត្រូវដឹងធរណីមាត្រជាមុនសិន រួចទើបរាប់។',
-        en: 'Starting the count with no concrete mating net, and aimless checks — every one is a move off the clock. Know the geometry first, count second.' },
-      flag: { kh: 'របៀបរាប់ខុសគ្នាបន្តិចរវាងប្រភព៖ ឯកសារប្រភពចាប់ផ្ដើមរាប់ពាក្យសំដីពីចំនួនកូនអុកបច្ចុប្បន្ន ខណៈកម្មវិធីនេះចាប់ផ្ដើមពីចំនួនកូនអុក+១។ តារាងដែនកំណត់ខ្លួនឯង (ទូក២=៨ ទូក១=១៦ គោល២=២២ សេះ២=៣២ គោល១=៤៤ សេះ១=៦៤ នាង/ត្រីបកតែឯង=៦៤) ដូចគ្នាទាំងពីរ។',
-        en: 'Counting conventions differ slightly between sources: the guide document starts the spoken count at the current piece total, while this app starts it at pieces+1. The limit table itself (2 Touk=8, 1 Touk=16, 2 Koul=22, 2 Ses=32, 1 Koul=44, 1 Ses=64, Neang/Bork only=64) matches both.' }
+        en: 'Starting the count with no concrete mating net, and aimless checks — every one is a move off the clock. Know the geometry first, count second.' }
     },
     {
       key: 'toukses', btn: 'ទូក+សេះ<br>Mate', kh: 'អុកងាប់ដោយទូក​និងសេះ', pron: 'ouk ngoap',
@@ -6669,6 +6707,12 @@ window.__ouk = {
   frameMetalness: () => frameMat.metalness,
   frameRoughness: () => frameMat.roughness,
   pieceGroupCount: () => pieceGroup.children.length,
+  countingState: () => state.counting,
+  autoCountEnabled: () => autoCountEnabled,
+  setAutoCount: (v) => { autoCountEnabled = v; document.getElementById('autoCountChk').checked = v; },
+  maybeAutoCount: () => maybeAutoCount(),
+  refreshCountPanel: () => refreshCountPanel(),
+  countPanelHTML: () => countPanel.innerHTML,
   reflectionGroupCount: () => reflectionGroup.children.length,
   reflectionMeshInfo: () => {
     const r = reflectionGroup.children[0];
