@@ -781,6 +781,45 @@
     0% { transform: translate(0, 0) scale(.6); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) scale(1); opacity: 0; }
   }
+
+  /* ============ Sci-Fi Frontier theme: laser-beam/plasma-burst motion effects ============
+     A thin, bright cyan laser streak that snaps from the mover's square to
+     its destination for a normal move (a hard-edged bolt, unlike Avatar's
+     soft bioluminescent wisp -- this is technology, not nature), and a
+     violet plasma-explosion burst with a handful of sparks flying outward
+     for a capture. */
+  .fx-scifi-beam {
+    position: absolute; width: 3px; height: 3px; left: -1.5px; top: -1.5px; border-radius: 2px;
+    background: linear-gradient(90deg, #eafcff, #4fd8ff 60%, transparent 100%);
+    box-shadow: 0 0 8px 2px #38c6ff;
+    transform-origin: 0 50%;
+    animation: fxScifiBeam 180ms linear forwards;
+  }
+  @keyframes fxScifiBeam {
+    0% { width: 3px; opacity: 1; }
+    80% { opacity: 1; }
+    100% { width: var(--beamlen); opacity: 0; }
+  }
+  .fx-scifi-burst {
+    position: absolute; width: 42px; height: 42px; left: -21px; top: -21px; border-radius: 50%;
+    background: radial-gradient(circle, #f3e6ff 0%, #a24fff 45%, transparent 76%);
+    animation: fxScifiBurst 380ms ease-out forwards;
+  }
+  @keyframes fxScifiBurst {
+    0% { transform: scale(.2); opacity: 1; }
+    50% { opacity: .95; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .fx-scifi-spark {
+    position: absolute; width: 5px; height: 5px; left: -2.5px; top: -2.5px; border-radius: 50%;
+    background: #d9b6ff;
+    box-shadow: 0 0 6px 2px #a24fff;
+    animation: fxScifiSpark 340ms ease-out forwards;
+  }
+  @keyframes fxScifiSpark {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1131,6 +1170,7 @@
       <option value="kids">Kids Playroom — កុមារ</option>
       <option value="pvz">Plants vs Zombies — រុក្ខជាតិទល់មនុស្សស្លាប់រស់</option>
       <option value="avatar">Avatar Vibe — អវតារ</option>
+      <option value="scifi">Sci-Fi Frontier — វិទ្យាសាស្ត្រអនាគត</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1221,6 +1261,7 @@
       <optgroup label="Khmer Traditional (5)"></optgroup>
       <optgroup label="Arcade (3)"></optgroup>
       <optgroup label="Cinematic (1)"></optgroup>
+      <optgroup label="Synth (1)"></optgroup>
     </select>
     <div class="btnrow" style="margin-top:6px">
       <button id="musicPlayBtn">▶ Play</button>
@@ -2659,6 +2700,25 @@ const THEMES = {
     pieceW: 0x2a7fa8, pieceB: 0x5f6b78, rough: 0.4, metal: 0.05, pieceBFloor: 0.22,
     labelInk: '#bdf5f0', tray: 0x0d1f22,
     avatarFx: true
+  },
+  // Sci-Fi Frontier: a deep-space bridge-console board (dark navy dark
+  // squares, lit cyan-blue panel light squares) with, like Plants vs
+  // Zombies/Avatar, a genuinely different piece shape per side -- a Human
+  // Star Fleet (White) facing off against an Alien Swarm (Black) -- see
+  // buildScifiPiece. Paired with its own laser-beam move / plasma-burst
+  // capture motion effects (scifiFx, see triggerScifiEffect) and a synth
+  // blip / laser-zap-and-screech / red-alert-klaxon SFX bank. pieceB is
+  // kept a genuinely bright violet rather than a dark "alien black" --
+  // the Avatar theme's first pass learned that a dark, fairly metallic
+  // material reads as near-invisible under this scene's lighting, so this
+  // theme leans bright/glowing for both factions from the start instead.
+  scifi: {
+    name: 'Sci-Fi Frontier', style: 'scifi',
+    bg: 0x03060f, fog: null,
+    frame: 0x1a2438, tileLight: 0x2e4468, tileDark: 0x18213a,
+    pieceW: 0xd7e4f2, pieceB: 0x8a4fd0, rough: 0.4, metal: 0.1,
+    labelInk: '#bfe7ff', tray: 0x141b2c,
+    scifiFx: true
   }
 };
 let themeKey = 'wood';
@@ -3033,6 +3093,22 @@ const MAT_AVATAR_GLOW = new THREE.MeshStandardMaterial({ color: 0x3be6e0, emissi
 const MAT_AVATAR_METAL = new THREE.MeshStandardMaterial({ color: 0x8b96a3, roughness: 0.45, metalness: 0.3 });
 const MAT_AVATAR_VISOR = new THREE.MeshStandardMaterial({ color: 0xff8a1a, emissive: 0xaa4400, emissiveIntensity: 0.5, roughness: 0.4, metalness: 0.1 });
 const MAT_AVATAR_WOOD = new THREE.MeshStandardMaterial({ color: 0x5a3a24, roughness: 0.75, metalness: 0.0 });
+// Fixed accent colors for the Sci-Fi Frontier piece set (see
+// buildScifiPiece): a self-lit cyan for every Human Fleet glowing accent
+// (visor stripe, cockpit glass, headlight), a self-lit violet for every
+// Alien Swarm glowing accent (eyes, spore glow, bio-veins), plus a shared
+// chrome hull/armor material and a hazard-red visor/warning accent. The
+// chrome is deliberately a BRIGHT base color even though it carries real
+// metalness -- the Avatar theme's first pass used a dark, fairly metallic
+// gunmetal here and it rendered almost invisible, because a metal's
+// perceived brightness comes mostly from environment-map reflection, and
+// this scene caps envMapIntensity low. A bright base color keeps the
+// direct-lit diffuse contribution alone enough to read clearly.
+const MAT_SCIFI_GLOW_CYAN = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x30c8ff, emissiveIntensity: 1.0, roughness: 0.3, metalness: 0.0 });
+const MAT_SCIFI_GLOW_ALIEN = new THREE.MeshStandardMaterial({ color: 0xcaa3ff, emissive: 0x8a3ff0, emissiveIntensity: 0.95, roughness: 0.3, metalness: 0.0 });
+const MAT_SCIFI_METAL = new THREE.MeshStandardMaterial({ color: 0xc7d0da, roughness: 0.35, metalness: 0.45 });
+const MAT_SCIFI_VISOR = new THREE.MeshStandardMaterial({ color: 0xff5533, emissive: 0xaa2200, emissiveIntensity: 0.55, roughness: 0.4, metalness: 0.1 });
+const MAT_SCIFI_ALIEN_SHELL = new THREE.MeshStandardMaterial({ color: 0x6a3fa0, roughness: 0.55, metalness: 0.05 });
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -3117,6 +3193,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'kids') return buildKidsPiece(g, add, type, promoted, color);
   if (style === 'pvz') return buildPvzPiece(g, add, type, promoted, color);
   if (style === 'avatar') return buildAvatarPiece(g, add, type, promoted, color);
+  if (style === 'scifi') return buildScifiPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -3494,6 +3571,111 @@ function buildAvatarPiece(g, add, type, promoted, color) {
         add(new THREE.CylinderGeometry(0.13, 0.15, 0.3, 12), 0.22, MAT_AVATAR_METAL);
         add(new THREE.BoxGeometry(0.18, 0.1, 0.18), 0.4, MAT_AVATAR_METAL);
         add(new THREE.SphereGeometry(0.025, 6, 6), 0.4, MAT_AVATAR_VISOR).position.z = 0.09;
+      }
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Sci-Fi Frontier piece set: a genuinely different shape per side, like
+// Plants vs Zombies/Avatar -- a Human Star Fleet (White) facing an Alien
+// Swarm (Black). King: a Fleet Commander (armored, glowing visor stripe)
+// vs a Hive Overlord (bulbous glowing-eyed cranium). Queen/Neang: an Ace
+// Fighter (delta-wing silhouette, glowing cockpit) vs a Bio-ship (a sleek
+// glowing-underside ovoid) -- both aerial support units. Bishop/Koul: a
+// Support Drone (a floating ringed orb) vs a Spore Pod (a glowing bio
+// cluster). Knight/Ses: a Speeder Mech (bipedal, glowing headlight) vs an
+// Alien Beast (four-legged, glowing mandibles). Rook/Touk: a Defense
+// Turret vs an Alien Spire -- both read as a blocky defensive tower.
+// Pawn/Trey: a Marine Trooper vs an Alien Drone.
+function buildScifiPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 20), 0.07); // base
+  const human = color === E.WHITE;
+  switch (type) {
+    case E.KING:
+      if (human) {
+        add(new THREE.CylinderGeometry(0.17, 0.21, 0.5, 14), 0.39, MAT_SCIFI_METAL);
+        add(new THREE.SphereGeometry(0.19, 16, 12), 0.7, MAT_SCIFI_METAL);
+        add(new THREE.BoxGeometry(0.42, 0.06, 0.06), 0.68, MAT_SCIFI_GLOW_CYAN);
+        add(new THREE.BoxGeometry(0.14, 0.14, 0.1), 0.58, MAT_SCIFI_METAL).position.x = -0.24;
+        add(new THREE.BoxGeometry(0.14, 0.14, 0.1), 0.58, MAT_SCIFI_METAL).position.x = 0.24;
+      } else {
+        add(new THREE.SphereGeometry(0.24, 16, 12), 0.62, MAT_SCIFI_ALIEN_SHELL).scale.set(1, 1.15, 1);
+        add(new THREE.CylinderGeometry(0.1, 0.16, 0.3, 12), 0.32, MAT_SCIFI_ALIEN_SHELL);
+        add(new THREE.SphereGeometry(0.045, 10, 8), 0.66, MAT_SCIFI_GLOW_ALIEN).position.set(-0.09, 0, 0.18);
+        add(new THREE.SphereGeometry(0.045, 10, 8), 0.66, MAT_SCIFI_GLOW_ALIEN).position.set(0.09, 0, 0.18);
+      }
+      break;
+    case E.QUEEN:
+      if (human) {
+        add(new THREE.CylinderGeometry(0.09, 0.13, 0.46, 12), 0.35, MAT_SCIFI_METAL);
+        const wingL = add(new THREE.BoxGeometry(0.3, 0.03, 0.14), 0.42, MAT_SCIFI_METAL); wingL.rotation.z = 0.15; wingL.position.x = -0.18;
+        const wingR = add(new THREE.BoxGeometry(0.3, 0.03, 0.14), 0.42, MAT_SCIFI_METAL); wingR.rotation.z = -0.15; wingR.position.x = 0.18;
+        add(new THREE.SphereGeometry(0.08, 14, 10), 0.64, MAT_SCIFI_GLOW_CYAN);
+      } else {
+        add(new THREE.SphereGeometry(0.16, 16, 12), 0.5, MAT_SCIFI_ALIEN_SHELL).scale.set(1, 0.9, 1.6);
+        const finL = add(new THREE.ConeGeometry(0.16, 0.05, 3), 0.46, MAT_SCIFI_ALIEN_SHELL); finL.rotation.z = Math.PI / 2; finL.position.x = -0.2;
+        const finR = add(new THREE.ConeGeometry(0.16, 0.05, 3), 0.46, MAT_SCIFI_ALIEN_SHELL); finR.rotation.z = -Math.PI / 2; finR.position.x = 0.2;
+        add(new THREE.SphereGeometry(0.06, 10, 8), 0.4, MAT_SCIFI_GLOW_ALIEN);
+      }
+      break;
+    case E.BISHOP:
+      if (human) {
+        add(new THREE.SphereGeometry(0.16, 16, 12), 0.56, MAT_SCIFI_METAL);
+        add(new THREE.TorusGeometry(0.19, 0.03, 8, 20), 0.56, MAT_SCIFI_GLOW_CYAN).rotation.x = Math.PI / 2.3;
+        add(new THREE.ConeGeometry(0.03, 0.14, 8), 0.78, MAT_SCIFI_METAL);
+      } else {
+        add(new THREE.SphereGeometry(0.16, 14, 10), 0.5, MAT_SCIFI_ALIEN_SHELL);
+        for (let i = 0; i < 3; i++) {
+          const ang = i * Math.PI * 2 / 3;
+          const pod = add(new THREE.SphereGeometry(0.08, 10, 8), 0.5, MAT_SCIFI_GLOW_ALIEN);
+          pod.position.set(Math.cos(ang) * 0.18, 0, Math.sin(ang) * 0.18);
+        }
+      }
+      break;
+    case E.KNIGHT:
+      if (human) {
+        add(new THREE.BoxGeometry(0.24, 0.36, 0.22), 0.36, MAT_SCIFI_METAL);
+        const head = add(new THREE.BoxGeometry(0.14, 0.14, 0.2), 0.58, MAT_SCIFI_METAL);
+        head.position.z = 0.1;
+        add(new THREE.SphereGeometry(0.035, 8, 6), 0.58, MAT_SCIFI_GLOW_CYAN).position.set(0, 0, 0.2);
+        add(new THREE.CylinderGeometry(0.05, 0.06, 0.22, 8), 0.11, MAT_SCIFI_METAL).position.x = -0.12;
+        add(new THREE.CylinderGeometry(0.05, 0.06, 0.22, 8), 0.11, MAT_SCIFI_METAL).position.x = 0.12;
+      } else {
+        const body = add(new THREE.CylinderGeometry(0.14, 0.17, 0.38, 12), 0.32, MAT_SCIFI_ALIEN_SHELL);
+        body.rotation.z = Math.PI / 2.4;
+        const head = add(new THREE.BoxGeometry(0.15, 0.15, 0.2), 0.5, MAT_SCIFI_ALIEN_SHELL);
+        head.position.z = 0.15;
+        add(new THREE.ConeGeometry(0.025, 0.16, 8), 0.64, MAT_SCIFI_GLOW_ALIEN).position.set(-0.05, 0, 0.2);
+        add(new THREE.ConeGeometry(0.025, 0.16, 8), 0.64, MAT_SCIFI_GLOW_ALIEN).position.set(0.05, 0, 0.2);
+      }
+      break;
+    case E.ROOK:
+      if (human) {
+        add(new THREE.CylinderGeometry(0.2, 0.24, 0.4, 16), 0.27, MAT_SCIFI_METAL);
+        add(new THREE.BoxGeometry(0.3, 0.14, 0.3), 0.5, MAT_SCIFI_METAL);
+        add(new THREE.CylinderGeometry(0.04, 0.05, 0.3, 10), 0.58, MAT_SCIFI_METAL).rotation.z = Math.PI / 2;
+        add(new THREE.SphereGeometry(0.03, 8, 6), 0.58, MAT_SCIFI_GLOW_CYAN).position.x = 0.16;
+      } else {
+        add(new THREE.ConeGeometry(0.22, 0.6, 14), 0.34, MAT_SCIFI_ALIEN_SHELL);
+        for (let i = 0; i < 3; i++) {
+          const y = 0.24 + i * 0.16;
+          const r = 0.19 - i * 0.05;
+          add(new THREE.SphereGeometry(0.03, 8, 6), y, MAT_SCIFI_GLOW_ALIEN).position.x = r;
+        }
+      }
+      break;
+    case E.PAWN:
+      if (human) {
+        add(new THREE.CylinderGeometry(0.09, 0.1, 0.28, 10), 0.22, MAT_SCIFI_METAL);
+        add(new THREE.BoxGeometry(0.15, 0.13, 0.15), 0.4, MAT_SCIFI_METAL);
+        add(new THREE.BoxGeometry(0.16, 0.03, 0.04), 0.4, MAT_SCIFI_GLOW_CYAN).position.z = 0.07;
+      } else {
+        add(new THREE.SphereGeometry(0.14, 12, 10), 0.28, MAT_SCIFI_ALIEN_SHELL);
+        add(new THREE.SphereGeometry(0.03, 8, 6), 0.32, MAT_SCIFI_GLOW_ALIEN).position.z = 0.1;
+        add(new THREE.ConeGeometry(0.025, 0.1, 8), 0.42, MAT_SCIFI_ALIEN_SHELL);
       }
       break;
   }
@@ -4531,7 +4713,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -4766,6 +4948,18 @@ const SFX = {
       envOsc({ freq: 390, type: 'square', dur: 0.11, gain: 0.26, delay: 0.11 });
       envOsc({ freq: 520, type: 'square', dur: 0.11, gain: 0.26, delay: 0.22 });
       envOsc({ freq: 390, type: 'square', dur: 0.15, gain: 0.26, delay: 0.33 });
+    }
+  },
+  // Sci-Fi Frontier: a two-note ascending "console confirm" blip for a
+  // move, a descending laser-zap sweep layered with a high, brief
+  // bandpass "screech" for a capture, and a fast alternating two-tone
+  // "red alert" klaxon warble for check/checkmate -- distinct from
+  // Avatar's slower, warmer klaxon even though both are alarm-shaped.
+  scifi(kind) {
+    if (kind === 'move') { envOsc({ freq: 700, type: 'triangle', dur: 0.06, gain: 0.22, freqTo: 1000 }); envOsc({ freq: 1200, type: 'triangle', dur: 0.06, gain: 0.16, delay: 0.06 }); }
+    else if (kind === 'capture') { envOsc({ freq: 1800, type: 'sawtooth', dur: 0.14, gain: 0.3, freqTo: 200 }); noiseBurst({ dur: 0.12, filterFreq: 3200, q: 3, gain: 0.3, filterType: 'highpass', delay: 0.05 }); }
+    else {
+      for (let i = 0; i < 5; i++) envOsc({ freq: i % 2 === 0 ? 660 : 494, type: 'square', dur: 0.09, gain: 0.26, delay: i * 0.09 });
     }
   }
 };
@@ -5490,6 +5684,54 @@ function triggerAvatarEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate)
   }
 }
 
+// ============ Sci-Fi Frontier theme: laser-beam/plasma-burst motion effects ============
+// A hard-edged laser bolt that snaps from the mover's square to its
+// destination for a normal move (fxScifiBeam -- a stretched streak rather
+// than a translating dot, since a laser reads as an instant line, not a
+// travelling projectile), and a violet plasma-explosion burst with sparks
+// flying outward for a capture (fxScifiBurst). Fires only while scifiFx is
+// on -- same fire-and-forget, try/catch-wrapped, independently-called
+// pattern as the other custom themes above.
+function fxScifiBeam(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.max(3, Math.hypot(dx, dy));
+  const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  fxSpawn(fxAt(a, 'fx-scifi-beam', { '--beamlen': len + 'px', transform: `rotate(${ang}deg)` }), 180);
+  window.__oukFxLog.push({ tier: 1, key: 'scifi_beam' });
+}
+function fxScifiBurst(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-scifi-burst', {}), 380);
+  for (let i = 0; i < 7; i++) {
+    const a2 = (i / 7) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 24 + Math.random() * 20;
+    fxSpawn(fxAt(pt, 'fx-scifi-spark', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 340);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'scifi_burst' });
+}
+function triggerScifiEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.scifiFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#a24fff');
+      else fxScifiBurst(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#4fd8ff');
+      else fxScifiBeam(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- a generic
+    // "you're in check" beat that fits fine without any change (it reads
+    // naturally enough as a red-alert klaxon).
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('scifi-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -5552,17 +5794,25 @@ const MUSIC_TRACKS = {
   // transcribing any existing score.
   cine1: { label: 'ព្រៃពន្លឺរស្មី Bioluminescent Canopy (pad + bell mix)', instrument: 'pad', instrument2: 'bell', noteLen: 1900, gain: 0.07,
     filterHz: 1100, detune: 4,
-    notes: [220.00, 246.94, 293.66, 329.63, null, 246.94] }
+    notes: [220.00, 246.94, 293.66, 329.63, null, 246.94] },
+  // An original driving, propulsive minor-key synth arpeggio for the
+  // Sci-Fi Frontier theme -- a fast chiptune pulse (like Contra Assault's
+  // urgency) but built on a wider, more angular interval pattern to read
+  // as "console/spacecraft" rather than "ground combat", not a
+  // transcription of any existing score.
+  synth1: { label: 'ជីពចរអវកាស Cosmic Pulse (chiptune, solo)', instrument: 'chip', noteLen: 150, gain: 0.08,
+    filterHz: 2400,
+    notes: [293.66, 293.66, 440.00, 293.66, 349.23, null, 293.66, 220.00, null, 349.23, 440.00, 523.25, null, null, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
   const groups = sel.querySelectorAll('optgroup');
-  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2], cineGroup = groups[3];
+  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2], cineGroup = groups[3], synthGroup = groups[4];
   Object.keys(MUSIC_TRACKS).forEach(key => {
     const t = MUSIC_TRACKS[key];
     const opt = document.createElement('option');
     opt.value = key; opt.textContent = t.label;
-    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : key.startsWith('cine') ? cineGroup : relaxGroup).appendChild(opt);
+    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : key.startsWith('cine') ? cineGroup : key.startsWith('synth') ? synthGroup : relaxGroup).appendChild(opt);
   });
   sel.value = 'khmer1';
 }
@@ -5832,6 +6082,7 @@ function applyMove(m) {
   triggerKidsEffect(m, mover, captured, isCheck, isCheckmate);
   triggerPvzEffect(m, mover, captured, isCheck, isCheckmate);
   triggerAvatarEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerScifiEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
