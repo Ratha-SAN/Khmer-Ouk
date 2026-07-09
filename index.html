@@ -2241,10 +2241,29 @@ const THEMES = {
   magic: {
     name: 'Magic', style: 'minimal',
     bg: 0x0a0518, fog: null,
-    // tileLight/tileDark were both fairly deep, similarly-muted purples --
-    // low checkerboard contrast -- so tileLight is brighter/more saturated
-    // here, widening the gap while keeping the arcane violet identity.
-    frame: 0x1c1030, tileLight: 0x6551a0, tileDark: 0x1c1338,
+    // The previous tileLight/tileDark/pieceB values still read as washed-out
+    // and low-contrast in practice, for three compounding reasons, all fixed
+    // here: (1) color -- tileDark and pieceB pushed genuinely dark instead
+    // of just "darker than tileLight", tileLight pushed more vividly
+    // saturated for real spread; (2) pieceBFloor was calibrated against the
+    // wrong number entirely -- THREE's ColorManagement stores/reads HSL in
+    // *linear* space, where this theme's very dark hex colors land at
+    // lightness ~0.01-0.03, so the old 0.22 floor was pulling "black" pieces
+    // all the way up to a pale lavender (hex ~0x7249a4); a floor around
+    // 0.045 keeps them dark while still rescuing them from literal
+    // invisibility; (3) lighting -- ambientScale/hemiScale dim just the flat
+    // ambient+hemisphere fill lights (tuned for the bright Classic Wood
+    // theme) so the directional sun does more of the work and shadows read
+    // with real contrast, and boardEnvMapIntensityDark/
+    // boardClearcoatRoughnessDark (the same knobs Glass's black-glass
+    // squares already use) stop dark tiles from mirroring the bright studio
+    // environment map into gray; ambientColorOverride/hemi*ColorOverride
+    // replace the scene's default warm-cream ambient and warm-brown
+    // hemisphere ground bounce (both tuned for Classic Wood) with cool
+    // violet-tinted equivalents, since multiplying a warm light against
+    // this theme's cool violet pieces was desaturating them toward a muddy
+    // brown instead of reading as purple.
+    frame: 0x180d28, tileLight: 0x7d63c9, tileDark: 0x110a22,
     // goldAccents (see buildPiece/MAT_BASE_*/MAT_ACCENT_*) gives every
     // piece a subtly split finish instead of a uniform chrome body: the
     // base gets a slight metal shine of its own, and the rest of the body
@@ -2254,11 +2273,13 @@ const THEMES = {
     // itself (reusing the same procedural studio environment map the
     // Glass/Marble themes use) makes the polished floor visibly reflect
     // the pieces standing on it.
-    pieceW: 0xe8def5, pieceB: 0x2a1840, rough: 0.4, metal: 0.08,
-    labelInk: '#e6d9ff', tray: 0x160c28,
+    pieceW: 0xf2ecfc, pieceB: 0x180b2c, rough: 0.4, metal: 0.08,
+    labelInk: '#e6d9ff', tray: 0x120820,
     clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 1.0,
+    boardEnvMapIntensityDark: 0.12, boardClearcoatRoughnessDark: 0.7,
     goldAccents: true,
-    magicFx: true, pieceBFloor: 0.22
+    magicFx: true, pieceBFloor: 0.045, ambientScale: 0.55, hemiScale: 0.5,
+    ambientColorOverride: 0xe4d9ff, hemiSkyColorOverride: 0xcabaff, hemiGroundColorOverride: 0x1c1030
   },
   // Magic II: a louder, more extreme skill-effect theme layered on top of
   // the same infrastructure as Magic (see "skill effects" below) -- more
@@ -2269,15 +2290,27 @@ const THEMES = {
   magic2: {
     name: 'Magic II', style: 'minimal',
     bg: 0x05010a, fog: null,
-    frame: 0x260a30, tileLight: 0x5a1a56, tileDark: 0x150414,
+    // Same washed-out-contrast problem as Magic (see its comment above),
+    // fixed the same three ways: tileDark/pieceB pushed properly dark (with
+    // a matching low pieceBFloor -- see Magic's comment on the linear-space
+    // HSL surprise), tileLight pushed more vividly saturated,
+    // ambientScale/hemiScale dim the flat fill lights, and
+    // boardEnvMapIntensityDark/boardClearcoatRoughnessDark keep dark tiles
+    // from mirroring the bright studio environment into gray; and
+    // ambientColorOverride/hemi*ColorOverride swap the default warm-cream/
+    // warm-brown fill for cool magenta-tinted equivalents so the neon
+    // magenta pieces don't get muddied toward brown.
+    frame: 0x230927, tileLight: 0x7a2374, tileDark: 0x0d0312,
     // Louder than Magic in every dimension here too: a glossier reflective
     // floor (the base/accent split's own shine constants stay the same
     // "slight" values as Magic -- see MAT_BASE_*/MAT_ACCENT_*).
-    pieceW: 0xfff0c2, pieceB: 0x3a0a3a, rough: 0.4, metal: 0.08,
-    labelInk: '#ffe9b0', tray: 0x1c0620,
+    pieceW: 0xfff4d2, pieceB: 0x220520, rough: 0.4, metal: 0.08,
+    labelInk: '#ffe9b0', tray: 0x160418,
     clearcoat: 0.75, clearcoatRoughness: 0.15, envMapIntensity: 1.4,
+    boardEnvMapIntensityDark: 0.1, boardClearcoatRoughnessDark: 0.75,
     goldAccents: true,
-    magicFx: true, magicFxTier: 2, pieceBFloor: 0.22
+    magicFx: true, magicFxTier: 2, pieceBFloor: 0.045, ambientScale: 0.5, hemiScale: 0.45,
+    ambientColorOverride: 0xf5d9f0, hemiSkyColorOverride: 0xd9a8e0, hemiGroundColorOverride: 0x1c0620
   },
   // Acrylic/crystal chess set: near-clear "white" pieces and smoky-charcoal
   // "black" pieces, a glass-tiled board. A touch of metalness (a common
@@ -2655,14 +2688,37 @@ function updateSunPosition() {
   sun.position.set(r * Math.cos(el) * Math.sin(az), r * Math.sin(el), r * Math.cos(el) * Math.cos(az));
 }
 updateSunPosition();
+// moodAmbientIntensity/moodAmbientColor/HEMI_BASE_INTENSITY/HEMI_*_COLOR are
+// the *unscaled/uncolored* values the current lighting-mood preset asks for;
+// themeAmbientScale/themeHemiScale/theme*ColorOverride (see applyTheme, e.g.
+// Magic/Magic II) dim and recolor just the flat ambient+hemisphere fill
+// lights for themes whose dark, cool-toned palette otherwise gets washed
+// toward a midtone -- and warmed toward brown -- by a bright warm mood like
+// Daytime (whose ambient is a warm cream and whose hemisphere ground bounce
+// is a warm brown; multiplied against a cool violet piece color that reads
+// as muddy brown instead of purple). refreshLightScale recombines mood and
+// theme so a mood change and a theme change each independently take effect
+// without one silently overwriting the other's intent.
+let moodAmbientColor = 0xfff2dd, moodAmbientIntensity = 0.75;
+const HEMI_BASE_INTENSITY = 0.55, HEMI_SKY_COLOR = 0xdbe9ff, HEMI_GROUND_COLOR = 0x3a2f22;
+let themeAmbientScale = 1, themeHemiScale = 1;
+let themeAmbientColorOverride = null, themeHemiSkyColorOverride = null, themeHemiGroundColorOverride = null;
+function refreshLightScale() {
+  ambientLight.color.setHex(themeAmbientColorOverride != null ? themeAmbientColorOverride : moodAmbientColor);
+  ambientLight.intensity = moodAmbientIntensity * themeAmbientScale;
+  hemiLight.color.setHex(themeHemiSkyColorOverride != null ? themeHemiSkyColorOverride : HEMI_SKY_COLOR);
+  hemiLight.groundColor.setHex(themeHemiGroundColorOverride != null ? themeHemiGroundColorOverride : HEMI_GROUND_COLOR);
+  hemiLight.intensity = HEMI_BASE_INTENSITY * themeHemiScale;
+}
 function setLightMood(m) {
   lightAzimuth = m.azimuth; lightElevation = m.elevation;
   document.getElementById('lightAzimuth').value = m.azimuth;
   document.getElementById('lightElevation').value = m.elevation;
   updateSunPosition();
   sun.color.setHex(m.sunColor); sun.intensity = m.sunIntensity;
-  ambientLight.color.setHex(m.ambientColor); ambientLight.intensity = m.ambientIntensity;
+  moodAmbientColor = m.ambientColor; moodAmbientIntensity = m.ambientIntensity;
   fill.color.setHex(m.fillColor); fill.intensity = m.fillIntensity;
+  refreshLightScale();
 }
 document.getElementById('lightDaytime').onclick = () => setLightMood({
   azimuth: 35, elevation: 65, sunColor: 0xffffff, sunIntensity: 1.6,
@@ -2845,6 +2901,19 @@ function glowTint(baseColor) {
 function raiseMinLightness(color, minL) {
   color.getHSL(fxGlowHSL);
   if (fxGlowHSL.l < minL) color.setHSL(fxGlowHSL.h, fxGlowHSL.s, minL);
+}
+// Blends two sRGB hex colors by lerping their raw 0-255 channel bytes
+// directly, deliberately bypassing THREE.Color's own .lerp (which mixes in
+// the *linear* working color space): for a very dark base color, that would
+// make even a small blend fraction toward a bright tint (e.g. gold accents
+// on Magic/Magic II's near-black pieces) end up dominated by the tint,
+// reading as a muddy off-hue instead of "mostly the base color with a hint
+// of the tint" the way a plain sRGB blend reads.
+function lerpSRGBHex(baseHex, tintHex, t) {
+  const br = (baseHex >> 16) & 255, bg = (baseHex >> 8) & 255, bb = baseHex & 255;
+  const tr = (tintHex >> 16) & 255, tg = (tintHex >> 8) & 255, tb = tintHex & 255;
+  const r = Math.round(br + (tr - br) * t), g = Math.round(bg + (tg - bg) * t), b = Math.round(bb + (tb - bb) * t);
+  return (r << 16) | (g << 8) | b;
 }
 function applyPieceLuminescence() {
   MAT_W.emissive.copy(glowTint(MAT_W.color));
@@ -3959,6 +4028,17 @@ function applyTheme(key) {
   scene.fog = t.fog ? new THREE.Fog(t.bg, t.fog[0], t.fog[1]) : null;
   frameMat.color.setHex(t.frame);
   trayMat.color.setHex(t.tray);
+  // Dim (and, for Magic/Magic II, recolor) the flat ambient+hemisphere fill
+  // lights for themes that ask for it (see the "ambientScale"/"hemiScale"/
+  // "*ColorOverride" comment above); every other theme leaves these at their
+  // defaults (full strength, whatever the current lighting-mood preset and
+  // the scene's normal daylight-ish hemisphere colors already are).
+  themeAmbientScale = t.ambientScale != null ? t.ambientScale : 1;
+  themeHemiScale = t.hemiScale != null ? t.hemiScale : 1;
+  themeAmbientColorOverride = t.ambientColorOverride != null ? t.ambientColorOverride : null;
+  themeHemiSkyColorOverride = t.hemiSkyColorOverride != null ? t.hemiSkyColorOverride : null;
+  themeHemiGroundColorOverride = t.hemiGroundColorOverride != null ? t.hemiGroundColorOverride : null;
+  refreshLightScale();
   // The frame's own roughness/metalness are otherwise never touched by a
   // theme (every other theme wants its inherited matte-wood default), so
   // only Glass's chrome-rail look opts in here; everything else falls
@@ -4022,10 +4102,16 @@ function applyTheme(key) {
   // blended a little toward gold, at its own fixed slight-shine values.
   // Only ever visibly used while goldAccents is on, but kept in sync every
   // call regardless so nothing stale leaks in if a theme ever reuses them.
+  // Uses lerpSRGBHex (plain per-channel sRGB-byte blending), not
+  // THREE.Color's own .lerp -- that mixes in the *linear* working color
+  // space (ColorManagement is on by default), where a very dark base color
+  // has a tiny linear value next to gold's much brighter one, so even a
+  // nominal 20% blend ends up dominated by gold and reads as a muddy brown
+  // instead of the intended dark-color-with-a-gold-hint.
   MAT_BASE_W.color.copy(MAT_W.color); MAT_BASE_B.color.copy(MAT_B.color);
-  const goldTint = new THREE.Color(0xd4a548);
-  MAT_ACCENT_W.color.copy(MAT_W.color).lerp(goldTint, 0.2);
-  MAT_ACCENT_B.color.copy(MAT_B.color).lerp(goldTint, 0.2);
+  const GOLD_TINT_HEX = 0xd4a548;
+  MAT_ACCENT_W.color.setHex(lerpSRGBHex(MAT_W.color.getHex(), GOLD_TINT_HEX, 0.2));
+  MAT_ACCENT_B.color.setHex(lerpSRGBHex(MAT_B.color.getHex(), GOLD_TINT_HEX, 0.2));
   MAT_BASE_W.needsUpdate = MAT_BASE_B.needsUpdate = MAT_ACCENT_W.needsUpdate = MAT_ACCENT_B.needsUpdate = true;
   // a texture's own baked-in pixels are multiplied by material.color, so
   // when a marble-vein texture supplies the real color, the material color
@@ -6718,6 +6804,18 @@ window.__ouk = {
   sunIntensity: () => sun.intensity,
   sunColor: () => sun.color.getHex(),
   ambientIntensity: () => ambientLight.intensity,
+  hemiIntensity: () => hemiLight.intensity,
+  themeLightScale: () => ({ ambient: themeAmbientScale, hemi: themeHemiScale }),
+  pieceBColor: () => MAT_B.color.getHex(),
+  pieceWColor: () => MAT_W.color.getHex(),
+  matAccentBColor: () => MAT_ACCENT_B.color.getHex().toString(16),
+  matBaseBColor: () => MAT_BASE_B.color.getHex().toString(16),
+  lightSnapshot: () => ({
+    ambientColor: ambientLight.color.getHex().toString(16), ambientIntensity: ambientLight.intensity,
+    hemiSky: hemiLight.color.getHex().toString(16), hemiGround: hemiLight.groundColor.getHex().toString(16), hemiIntensity: hemiLight.intensity,
+    sunColor: sun.color.getHex().toString(16), sunIntensity: sun.intensity,
+    fillColor: fill.color.getHex().toString(16), fillIntensity: fill.intensity,
+  }),
   lightAzEl: () => ({ azimuth: lightAzimuth, elevation: lightElevation }),
   sceneHasFog: () => !!scene.fog,
   sceneBrightness: () => sceneBrightness,
