@@ -742,6 +742,45 @@
     0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) rotate(200deg); opacity: 0; }
   }
+
+  /* ============ Avatar-vibe theme: bioluminescent trail/spore motion effects ============
+     A glowing cyan wisp that travels from the mover's square to its
+     destination for a normal move (like Plants vs Zombies' pea, but a
+     soft blurred glow instead of a solid dot -- bioluminescence, not a
+     projectile), and a soft impact glow with a handful of motes drifting
+     gently *upward* and fading for a capture -- "returning to Eywa"
+     rather than an explosive burst, matching the film's own visual
+     language for anything dying on Pandora. */
+  .fx-avatar-trail {
+    position: absolute; width: 12px; height: 12px; left: -6px; top: -6px; border-radius: 50%;
+    background: radial-gradient(circle, #d8fffb, #3be6e0 55%, transparent 85%);
+    box-shadow: 0 0 12px 4px #2ec9c4;
+    animation: fxAvatarTrail 260ms ease-in forwards;
+  }
+  @keyframes fxAvatarTrail {
+    0% { transform: translate(0, 0) scale(.5); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(1.1); opacity: 0; }
+  }
+  .fx-avatar-burst {
+    position: absolute; width: 46px; height: 46px; left: -23px; top: -23px; border-radius: 50%;
+    background: radial-gradient(circle, #eafffd 0%, #3be6e0 40%, transparent 74%);
+    animation: fxAvatarBurst 400ms ease-out forwards;
+  }
+  @keyframes fxAvatarBurst {
+    0% { transform: scale(.2); opacity: 1; }
+    55% { opacity: .9; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .fx-avatar-spore {
+    position: absolute; width: 6px; height: 6px; left: -3px; top: -3px; border-radius: 50%;
+    background: #9ff7f0;
+    box-shadow: 0 0 6px 2px #3be6e0;
+    animation: fxAvatarSpore 620ms ease-out forwards;
+  }
+  @keyframes fxAvatarSpore {
+    0% { transform: translate(0, 0) scale(.6); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(1); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1091,6 +1130,7 @@
       <option value="girlyYellow">Girly Yellow — លឿង</option>
       <option value="kids">Kids Playroom — កុមារ</option>
       <option value="pvz">Plants vs Zombies — រុក្ខជាតិទល់មនុស្សស្លាប់រស់</option>
+      <option value="avatar">Avatar Vibe — អវតារ</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1180,6 +1220,7 @@
       <optgroup label="Relaxing (5)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
       <optgroup label="Arcade (3)"></optgroup>
+      <optgroup label="Cinematic (1)"></optgroup>
     </select>
     <div class="btnrow" style="margin-top:6px">
       <button id="musicPlayBtn">▶ Play</button>
@@ -2602,6 +2643,22 @@ const THEMES = {
     pieceW: 0x4caf50, pieceB: 0x707a5c, rough: 0.55, metal: 0.0,
     labelInk: '#ffffff', tray: 0x6b4423,
     pvzFx: true
+  },
+  // Avatar vibe: a bioluminescent night-jungle board (deep indigo dark
+  // squares, glowing teal light squares, like Pandora's forest floor after
+  // dark) with, like Plants vs Zombies, a genuinely different piece shape
+  // per side -- Na'vi (nature, White) facing off against the RDA (human
+  // industry/military, Black) -- see buildAvatarPiece. Paired with its own
+  // glowing-trail move / upward-drifting-spore capture motion effects
+  // (avatarFx, see triggerAvatarEffect) and an ethereal chime / mechanical
+  // impact-groan / klaxon-alarm SFX bank.
+  avatar: {
+    name: 'Avatar Vibe', style: 'avatar',
+    bg: 0x0a1428, fog: null,
+    frame: 0x1c2f2c, tileLight: 0x1f9e9a, tileDark: 0x0d1f3a,
+    pieceW: 0x2a7fa8, pieceB: 0x5f6b78, rough: 0.4, metal: 0.05, pieceBFloor: 0.22,
+    labelInk: '#bdf5f0', tray: 0x0d1f22,
+    avatarFx: true
   }
 };
 let themeKey = 'wood';
@@ -2965,6 +3022,17 @@ const MAT_PVZ_METAL = new THREE.MeshStandardMaterial({ color: 0xb8bcc0, roughnes
 const MAT_PVZ_CONE = new THREE.MeshStandardMaterial({ color: 0xff8a1a, roughness: 0.5, metalness: 0.0 }); // traffic cone, flag
 const MAT_PVZ_NUT = new THREE.MeshStandardMaterial({ color: 0xc9975c, roughness: 0.6, metalness: 0.0 }); // Wall-nut/Tall-nut shell
 const MAT_PVZ_MOUTH = new THREE.MeshStandardMaterial({ color: 0x7a1414, roughness: 0.5, metalness: 0.0 }); // Chomper's mouth
+// Fixed accent colors for the Avatar-vibe piece set (see buildAvatarPiece):
+// a self-lit bioluminescent cyan for every Na'vi-side glowing accent (queue
+// tip, Woodsprite body, Direhorse feelers, moss-tuft), independent of the
+// scene's own lighting -- the whole point is that these bits glow in the
+// dark rather than merely reflecting light -- plus a matching pair of
+// fixed RDA (human faction) accents: gunmetal for mech/vehicle armor, and
+// a hazard-orange for cockpit visors/warning markings.
+const MAT_AVATAR_GLOW = new THREE.MeshStandardMaterial({ color: 0x3be6e0, emissive: 0x0fa8a0, emissiveIntensity: 0.9, roughness: 0.35, metalness: 0.0 });
+const MAT_AVATAR_METAL = new THREE.MeshStandardMaterial({ color: 0x8b96a3, roughness: 0.45, metalness: 0.3 });
+const MAT_AVATAR_VISOR = new THREE.MeshStandardMaterial({ color: 0xff8a1a, emissive: 0xaa4400, emissiveIntensity: 0.5, roughness: 0.4, metalness: 0.1 });
+const MAT_AVATAR_WOOD = new THREE.MeshStandardMaterial({ color: 0x5a3a24, roughness: 0.75, metalness: 0.0 });
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -3048,6 +3116,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'girly') return buildGirlyPiece(g, add, type, promoted, color);
   if (style === 'kids') return buildKidsPiece(g, add, type, promoted, color);
   if (style === 'pvz') return buildPvzPiece(g, add, type, promoted, color);
+  if (style === 'avatar') return buildAvatarPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -3327,6 +3396,104 @@ function buildPvzPiece(g, add, type, promoted, color) {
         add(new THREE.CylinderGeometry(0.09, 0.1, 0.28, 10), 0.22);
         add(new THREE.BoxGeometry(0.06, 0.14, 0.05), 0.4);
         add(new THREE.BoxGeometry(0.05, 0.13, 0.045), 0.4).position.x = 0.05;
+      }
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Avatar-vibe piece set: like Plants vs Zombies, a genuinely different
+// shape per side instead of one silhouette recolored -- Na'vi (White,
+// nature/bioluminescent) facing the RDA (Black, human industry/military).
+// King: a Na'vi warrior (with a glowing queue tip) vs an AMP Suit mech --
+// each faction's single strongest fighter. Queen/Neang: an Ikran (Banshee
+// mount) vs a Samson gunship -- both aerial support units. Bishop/Koul: a
+// Woodsprite/Atokirina (a glowing seed spirit) vs an RDA trooper.
+// Knight/Ses: a Direhorse (Pa'li, with glowing feelers) vs a recon buggy.
+// Rook/Touk: a Hometree trunk vs a drilling-rig tower -- both read as a
+// blocky defensive tower. Pawn/Trey: a glowing moss tuft vs a grunt marker.
+function buildAvatarPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 20), 0.07); // base
+  const navi = color === E.WHITE;
+  switch (type) {
+    case E.KING:
+      if (navi) {
+        add(new THREE.CylinderGeometry(0.15, 0.19, 0.5, 14), 0.39);
+        add(new THREE.SphereGeometry(0.19, 16, 12), 0.7);
+        const queue = add(new THREE.ConeGeometry(0.05, 0.22, 10), 0.62, MAT_AVATAR_GLOW);
+        queue.rotation.x = Math.PI / 2.2; queue.position.z = -0.16;
+      } else {
+        add(new THREE.BoxGeometry(0.34, 0.5, 0.26), 0.4, MAT_AVATAR_METAL);
+        add(new THREE.BoxGeometry(0.14, 0.14, 0.3), 0.66, MAT_AVATAR_METAL).position.x = -0.24;
+        add(new THREE.BoxGeometry(0.14, 0.14, 0.3), 0.66, MAT_AVATAR_METAL).position.x = 0.24;
+        add(new THREE.BoxGeometry(0.16, 0.08, 0.04), 0.56, MAT_AVATAR_VISOR).position.z = 0.14;
+      }
+      break;
+    case E.QUEEN:
+      if (navi) {
+        add(new THREE.SphereGeometry(0.18, 16, 12), 0.5).scale.set(1, 1.3, 1);
+        const wingL = add(new THREE.ConeGeometry(0.22, 0.05, 3), 0.52); wingL.rotation.z = Math.PI / 2; wingL.position.x = -0.24;
+        const wingR = add(new THREE.ConeGeometry(0.22, 0.05, 3), 0.52); wingR.rotation.z = -Math.PI / 2; wingR.position.x = 0.24;
+        add(new THREE.SphereGeometry(0.04, 8, 6), 0.52, MAT_AVATAR_GLOW).position.x = -0.42;
+        add(new THREE.SphereGeometry(0.04, 8, 6), 0.52, MAT_AVATAR_GLOW).position.x = 0.42;
+      } else {
+        add(new THREE.BoxGeometry(0.26, 0.22, 0.4), 0.42, MAT_AVATAR_METAL);
+        const boom = add(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8), 0.42, MAT_AVATAR_METAL);
+        boom.rotation.x = Math.PI / 2; boom.position.z = -0.32;
+        add(new THREE.CylinderGeometry(0.02, 0.02, 0.42, 8), 0.66, MAT_AVATAR_METAL);
+        add(new THREE.BoxGeometry(0.42, 0.02, 0.05), 0.68, MAT_AVATAR_METAL);
+      }
+      break;
+    case E.BISHOP:
+      if (navi) {
+        add(new THREE.SphereGeometry(0.14, 14, 10), 0.5, MAT_AVATAR_GLOW);
+        for (let i = 0; i < 4; i++) {
+          const ang = i * Math.PI / 2;
+          const tendril = add(new THREE.ConeGeometry(0.035, 0.22, 8), 0.36);
+          tendril.position.set(Math.cos(ang) * 0.1, 0.36, Math.sin(ang) * 0.1);
+          tendril.rotation.x = Math.PI;
+        }
+      } else {
+        add(new THREE.CylinderGeometry(0.16, 0.2, 0.4, 14), 0.32, MAT_AVATAR_METAL);
+        add(new THREE.SphereGeometry(0.15, 14, 10), 0.6, MAT_AVATAR_METAL);
+        add(new THREE.BoxGeometry(0.16, 0.06, 0.04), 0.6, MAT_AVATAR_VISOR).position.z = 0.13;
+      }
+      break;
+    case E.KNIGHT:
+      if (navi) {
+        const body = add(new THREE.CylinderGeometry(0.15, 0.18, 0.4, 12), 0.32);
+        body.rotation.z = Math.PI / 2.4;
+        const head = add(new THREE.BoxGeometry(0.16, 0.16, 0.22), 0.5);
+        head.position.z = 0.16;
+        add(new THREE.ConeGeometry(0.03, 0.14, 8), 0.62, MAT_AVATAR_GLOW).position.set(-0.05, 0, 0.2);
+        add(new THREE.ConeGeometry(0.03, 0.14, 8), 0.62, MAT_AVATAR_GLOW).position.set(0.05, 0, 0.2);
+      } else {
+        add(new THREE.BoxGeometry(0.3, 0.22, 0.4), 0.28, MAT_AVATAR_METAL);
+        add(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 12), 0.1, MAT_AVATAR_METAL).position.set(-0.14, 0, 0.14);
+        add(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 12), 0.1, MAT_AVATAR_METAL).position.set(0.14, 0, 0.14);
+        add(new THREE.CylinderGeometry(0.015, 0.015, 0.2, 6), 0.5, MAT_AVATAR_METAL);
+      }
+      break;
+    case E.ROOK:
+      if (navi) {
+        add(new THREE.CylinderGeometry(0.1, 0.32, 0.14, 16), 0.14, MAT_AVATAR_WOOD); // root flare
+        add(new THREE.CylinderGeometry(0.16, 0.2, 0.5, 16), 0.42, MAT_AVATAR_WOOD);
+      } else {
+        add(new THREE.BoxGeometry(0.22, 0.6, 0.22), 0.36, MAT_AVATAR_METAL);
+        add(new THREE.BoxGeometry(0.32, 0.06, 0.08), 0.56, MAT_AVATAR_METAL);
+        add(new THREE.SphereGeometry(0.04, 8, 6), 0.68, MAT_AVATAR_VISOR);
+      }
+      break;
+    case E.PAWN:
+      if (navi) {
+        add(new THREE.CylinderGeometry(0.05, 0.07, 0.24, 10), 0.2);
+        add(new THREE.SphereGeometry(0.11, 12, 10), 0.36, MAT_AVATAR_GLOW);
+      } else {
+        add(new THREE.CylinderGeometry(0.13, 0.15, 0.3, 12), 0.22, MAT_AVATAR_METAL);
+        add(new THREE.BoxGeometry(0.18, 0.1, 0.18), 0.4, MAT_AVATAR_METAL);
+        add(new THREE.SphereGeometry(0.025, 6, 6), 0.4, MAT_AVATAR_VISOR).position.z = 0.09;
       }
       break;
   }
@@ -4364,7 +4531,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -4585,6 +4752,20 @@ const SFX = {
       envOsc({ freq: 660, type: 'sawtooth', dur: 0.14, gain: 0.26, delay: 0.16 });
       envOsc({ freq: 440, type: 'sawtooth', dur: 0.14, gain: 0.26, delay: 0.32 });
       envOsc({ freq: 660, type: 'sawtooth', dur: 0.18, gain: 0.26, delay: 0.48 });
+    }
+  },
+  // Avatar-vibe theme: an ethereal two-note bioluminescent chime for a
+  // move, a mechanical impact-groan (grinding noise burst + a low
+  // descending growl) for a capture, and a harsh two-tone klaxon -- an
+  // RDA "intruder alert" siren -- for check.
+  avatar(kind) {
+    if (kind === 'move') { envOsc({ freq: 660, type: 'sine', dur: 0.22, gain: 0.2, freqTo: 880 }); envOsc({ freq: 990, type: 'sine', dur: 0.18, gain: 0.12, delay: 0.04 }); }
+    else if (kind === 'capture') { noiseBurst({ dur: 0.18, filterFreq: 550, q: 1.4, gain: 0.38, filterType: 'lowpass' }); envOsc({ freq: 160, type: 'sawtooth', dur: 0.24, gain: 0.32, freqTo: 60 }); }
+    else {
+      envOsc({ freq: 520, type: 'square', dur: 0.11, gain: 0.26 });
+      envOsc({ freq: 390, type: 'square', dur: 0.11, gain: 0.26, delay: 0.11 });
+      envOsc({ freq: 520, type: 'square', dur: 0.11, gain: 0.26, delay: 0.22 });
+      envOsc({ freq: 390, type: 'square', dur: 0.15, gain: 0.26, delay: 0.33 });
     }
   }
 };
@@ -5266,6 +5447,49 @@ function triggerPvzEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
   }
 }
 
+// ============ Avatar-vibe theme: bioluminescent trail/spore motion effects ============
+// A glowing wisp that travels from the mover's square to its destination
+// for a normal move (fxAvatarTrail), and a soft glow burst with motes
+// drifting upward for a capture (fxAvatarBurst -- "returning to Eywa").
+// Fires only while avatarFx is on -- same fire-and-forget, try/catch-
+// wrapped, independently-called pattern as the other custom themes above.
+function fxAvatarTrail(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  fxSpawn(fxAt(a, 'fx-avatar-trail', { '--mx': (b.x - a.x) + 'px', '--my': (b.y - a.y) + 'px' }), 260);
+  window.__oukFxLog.push({ tier: 1, key: 'avatar_trail' });
+}
+function fxAvatarBurst(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-avatar-burst', {}), 400);
+  for (let i = 0; i < 7; i++) {
+    const spread = (Math.random() - 0.5) * 50;
+    const rise = -(40 + Math.random() * 30);
+    fxSpawn(fxAt(pt, 'fx-avatar-spore', { '--mx': spread + 'px', '--my': rise + 'px' }), 620);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'avatar_burst' });
+}
+function triggerAvatarEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.avatarFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#3be6e0');
+      else fxAvatarBurst(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#3be6e0');
+      else fxAvatarTrail(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- a generic
+    // "you're in check" beat that fits fine without any change (it reads
+    // naturally enough as an RDA intruder-alert klaxon).
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('avatar-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -5321,17 +5545,24 @@ const MUSIC_TRACKS = {
   // a cheerful backyard-defense feel without transcribing any existing
   // melody.
   arcade3: { label: 'ចម្ការការពារ Lawn Defense (chiptune, solo)', instrument: 'chip', noteLen: 170, gain: 0.08,
-    notes: [349.23, 349.23, 440.00, 349.23, null, 293.66, null, 261.63, 349.23, null, 440.00, 523.25, null, null, null, null] }
+    notes: [349.23, 349.23, 440.00, 349.23, null, 293.66, null, 261.63, 349.23, null, 440.00, 523.25, null, null, null, null] },
+  // An original slow, spacious pad+bell drone for the Avatar-vibe theme --
+  // a mystical, ambient night-forest feel (not a chiptune loop like the
+  // other theme tracks), evoking Pandora's bioluminescent canopy without
+  // transcribing any existing score.
+  cine1: { label: 'ព្រៃពន្លឺរស្មី Bioluminescent Canopy (pad + bell mix)', instrument: 'pad', instrument2: 'bell', noteLen: 1900, gain: 0.07,
+    filterHz: 1100, detune: 4,
+    notes: [220.00, 246.94, 293.66, 329.63, null, 246.94] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
   const groups = sel.querySelectorAll('optgroup');
-  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2];
+  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2], cineGroup = groups[3];
   Object.keys(MUSIC_TRACKS).forEach(key => {
     const t = MUSIC_TRACKS[key];
     const opt = document.createElement('option');
     opt.value = key; opt.textContent = t.label;
-    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : relaxGroup).appendChild(opt);
+    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : key.startsWith('cine') ? cineGroup : relaxGroup).appendChild(opt);
   });
   sel.value = 'khmer1';
 }
@@ -5600,6 +5831,7 @@ function applyMove(m) {
   triggerContraEffect(m, mover, captured, isCheck, isCheckmate);
   triggerKidsEffect(m, mover, captured, isCheck, isCheckmate);
   triggerPvzEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerAvatarEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
