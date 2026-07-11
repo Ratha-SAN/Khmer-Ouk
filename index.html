@@ -1481,27 +1481,39 @@
 
 <div id="modeScreen" class="fullOverlay" style="display:none">
   <div class="box">
-    <h2>ជ្រើសរើសរបៀបលេង — Choose a play mode</h2>
-    <div class="bigpick">
-      <button id="pick2p">លេង២នាក់<br>2 Player</button>
-      <button id="pickAi">ជាមួយកុំព្យូទ័រ<br>vs Computer</button>
-    </div>
-    <div id="clockPick" style="margin-top:14px">
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
-      <div class="btnrow" id="clockBtns"></div>
-    </div>
-    <div id="aiOptions" style="display:none">
-      <div class="levelgrid" id="levelBtns"></div>
-      <div class="sidepick">
-        <button class="sidebtn active" data-side="0">ស White</button>
-        <button class="sidebtn" data-side="1">ខ្មៅ Black</button>
+    <div id="modeScreenChoice">
+      <h2>ជ្រើសរើសរបៀប — Choose a mode</h2>
+      <div class="bigpick">
+        <button id="pickLearn">រៀនលេង<br>Learn to Play</button>
+        <button id="pickPlay">លេង<br>Play</button>
       </div>
-      <div class="btnrow" style="margin-top:14px">
-        <button id="confirmAi">លេង ▸ Play</button>
+      <div class="btnrow" style="margin-top:18px">
+        <button id="modeChoiceCancel">បោះបង់ Cancel</button>
       </div>
     </div>
-    <div class="btnrow" style="margin-top:18px">
-      <button id="modeCancel">បោះបង់ Cancel</button>
+    <div id="modeScreenPlay" style="display:none">
+      <h2>ជ្រើសរើសរបៀបលេង — Choose a play mode</h2>
+      <div class="bigpick">
+        <button id="pick2p">លេង២នាក់<br>2 Player</button>
+        <button id="pickAi">ជាមួយកុំព្យូទ័រ<br>vs Computer</button>
+      </div>
+      <div id="clockPick" style="margin-top:14px">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
+        <div class="btnrow" id="clockBtns"></div>
+      </div>
+      <div id="aiOptions" style="display:none">
+        <div class="levelgrid" id="levelBtns"></div>
+        <div class="sidepick">
+          <button class="sidebtn active" data-side="0">ស White</button>
+          <button class="sidebtn" data-side="1">ខ្មៅ Black</button>
+        </div>
+        <div class="btnrow" style="margin-top:14px">
+          <button id="confirmAi">លេង ▸ Play</button>
+        </div>
+      </div>
+      <div class="btnrow" style="margin-top:18px">
+        <button id="modeCancel">ត្រឡប់ក្រោយ Back</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1566,6 +1578,9 @@
   </div>
 
   <div id="trainPanel">
+    <div class="btnrow">
+      <button id="changeModeBtnTrain">ប្ដូររបៀបលេង Change Mode</button>
+    </div>
     <fieldset>
       <legend>រៀនដើរកូនអុក — Learn the pieces</legend>
       <div class="piecebtns" id="pieceBtns"></div>
@@ -4934,8 +4949,12 @@ function buildGemPiece(g, add, type, promoted, color) {
       add(new THREE.ConeGeometry(0.07, 0.24, 4), 0.52, MAT_GEM_SAPPHIRE).position.z = -0.08;
       break;
     case E.ROOK:
-      // pillar-cut amber column, the defensive tower
-      add(new THREE.CylinderGeometry(0.19, 0.23, 0.44, 6), 0.34, MAT_GEM_AMBER);
+      // side-colored pillar column, the defensive tower, topped with an
+      // amber gem-cut crown -- like every other rank here, only the crown
+      // carries the fixed gem hue, so White/Black stay distinguishable
+      // (this used to put BOTH parts on the amber material, so the two
+      // sides' rooks rendered identically)
+      add(new THREE.CylinderGeometry(0.19, 0.23, 0.44, 6), 0.34);
       add(new THREE.CylinderGeometry(0.23, 0.19, 0.1, 6), 0.6, MAT_GEM_AMBER);
       break;
     case E.PAWN:
@@ -9206,9 +9225,25 @@ buildLevelButtons();
 // been chosen; opened mid-game via "Change Mode" ('game'), Cancel should
 // still just close back to that ongoing game, unchanged from before.
 let modeScreenOrigin = 'start';
+// The mode-select overlay is a 2-step wizard: step A (modeScreenChoice) is
+// the top-level Learn to Play / Play choice; step B (modeScreenPlay) is
+// the pre-existing 2 Player / vs Computer + time-control picker, only
+// reached after choosing Play. openModeScreen() always resets to step A
+// -- both the in-game "Change Mode" button and the Training panel's own
+// "Change Mode" button reopen this same top-level choice, not just the
+// 2P/AI submenu, so either mode can freely switch to the other.
+function showModeChoiceStep() {
+  document.getElementById('modeScreenChoice').style.display = 'block';
+  document.getElementById('modeScreenPlay').style.display = 'none';
+}
+function showModePlayStep() {
+  document.getElementById('modeScreenChoice').style.display = 'none';
+  document.getElementById('modeScreenPlay').style.display = 'block';
+}
 function openModeScreen() {
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('aiOptions').style.display = 'none';
+  showModeChoiceStep();
   document.getElementById('modeScreen').style.display = 'flex';
   overlayOpen = true;
   tickHud();
@@ -9221,13 +9256,17 @@ function hideOverlays() {
 }
 document.getElementById('startBtn').onclick = () => { modeScreenOrigin = 'start'; openModeScreen(); };
 document.getElementById('changeModeBtn').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
-document.getElementById('pick2p').onclick = () => { startGameWithMode('hotseat', E.WHITE); hideOverlays(); };
-document.getElementById('pickAi').onclick = () => { document.getElementById('aiOptions').style.display = 'block'; };
-document.getElementById('confirmAi').onclick = () => { startGameWithMode('ai' + pendingAiLevel, pendingSide); hideOverlays(); };
-document.getElementById('modeCancel').onclick = () => {
+document.getElementById('changeModeBtnTrain').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
+document.getElementById('pickLearn').onclick = () => { hideOverlays(); setUiMode('train'); };
+document.getElementById('pickPlay').onclick = () => showModePlayStep();
+document.getElementById('modeChoiceCancel').onclick = () => {
   if (modeScreenOrigin === 'start') showStartScreen();
   else hideOverlays();
 };
+document.getElementById('pick2p').onclick = () => { startGameWithMode('hotseat', E.WHITE); hideOverlays(); };
+document.getElementById('pickAi').onclick = () => { document.getElementById('aiOptions').style.display = 'block'; };
+document.getElementById('confirmAi').onclick = () => { startGameWithMode('ai' + pendingAiLevel, pendingSide); hideOverlays(); };
+document.getElementById('modeCancel').onclick = () => showModeChoiceStep();
 function showStartScreen() {
   document.getElementById('modeScreen').style.display = 'none';
   document.getElementById('startScreen').style.display = 'flex';
