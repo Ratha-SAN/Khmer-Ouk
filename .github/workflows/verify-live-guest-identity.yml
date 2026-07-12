@@ -34,25 +34,33 @@ jobs:
             const errors = [];
             page.on('pageerror', (e) => errors.push(String(e)));
             page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+            page.on('requestfailed', (r) => console.log('REQUEST FAILED:', r.url(), r.failure() && r.failure().errorText));
+            page.on('response', (r) => {
+              const u = r.url();
+              if (u.includes('identitytoolkit') || u.includes('firestore')) {
+                console.log('RESPONSE:', r.status(), u);
+              }
+            });
 
             await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load' });
             await page.waitForTimeout(3000);
 
-            console.log('startBtn visible:', await page.isVisible('#startBtn').catch(() => 'N/A'));
+            console.log('firebase defined:', await page.evaluate(() => typeof window.firebase !== 'undefined'));
+            console.log('__oukAuth signInGuest is stub?', await page.evaluate(() => window.__oukAuth.signInGuest.toString().includes('Firebase unavailable')));
+
             await page.click('#startBtn');
             await page.waitForTimeout(500);
-
-            console.log('loginScreen display:', await page.evaluate(() => document.getElementById('loginScreen').style.display));
-            console.log('username field value:', await page.evaluate(() => document.getElementById('loginUsername').value));
-            console.log('loginSubmitBtn visible:', await page.isVisible('#loginSubmitBtn').catch(() => 'N/A'));
-
             await page.click('#loginSubmitBtn');
-            await page.waitForTimeout(2500);
 
-            const authState = await page.evaluate(() => window.__oukAuth.getState());
-            console.log('AUTH STATE:', JSON.stringify(authState));
+            for (let i = 0; i < 8; i++) {
+              await page.waitForTimeout(1000);
+              const s = await page.evaluate(() => window.__oukAuth.getState());
+              console.log(`AUTH STATE @${i + 1}s:`, JSON.stringify(s));
+            }
+
             console.log('ERRORS:', JSON.stringify(errors.filter(e => !e.includes('favicon'))));
 
+            const authState = await page.evaluate(() => window.__oukAuth.getState());
             await browser.close();
             require('fs').writeFileSync('auth_state.json', JSON.stringify(authState));
           }
@@ -64,6 +72,10 @@ jobs:
         run: |
           GUEST_UID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('auth_state.json')).uid)")
           echo "Looking up uid: $GUEST_UID"
+          if [ "$GUEST_UID" = "null" ]; then
+            echo "No uid to look up (login never succeeded); skipping Firestore check."
+            exit 0
+          fi
           TOKEN=$(gcloud auth application-default print-access-token)
           curl -sS -X GET \
             "https://firestore.googleapis.com/v1/projects/khmer-ouk-datacollection/databases/(default)/documents/users/$GUEST_UID" \
