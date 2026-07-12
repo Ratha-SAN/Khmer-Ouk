@@ -1630,10 +1630,23 @@
             });
           });
         }
+        // A lobby whose host closed the tab (or crashed) while still
+        // "searching" has no way to ever mark itself closed -- there's no
+        // cleanup hook that reliably fires on a killed tab -- so it would
+        // otherwise sit "open" in Firestore forever, matchable against a
+        // host who's long gone. Skipping anything older than this treats
+        // that as expired instead of a live candidate.
+        var QUICK_MATCH_LOBBY_MAX_AGE_MS = 2 * 60 * 1000;
         window.__oukOnline.findQuickMatch = function (uid, name, initialState) {
           return db.collection('lobbies').where('kind', '==', 'quick').where('status', '==', 'open')
             .limit(10).get().then(function (snap) {
-              var candidate = snap.docs.find(function (d) { return d.data().hostUid !== uid; });
+              var now = Date.now();
+              var candidate = snap.docs.find(function (d) {
+                var data = d.data();
+                if (data.hostUid === uid) return false;
+                var createdMs = data.createdAt && data.createdAt.toMillis ? data.createdAt.toMillis() : 0;
+                return createdMs > 0 && (now - createdMs) < QUICK_MATCH_LOBBY_MAX_AGE_MS;
+              });
               if (!candidate) return hostLobby('quick', uid, name, null);
               return claimLobby(candidate.id, uid, name, initialState).then(function (r) {
                 return { lobbyId: candidate.id, matchId: r.matchId, color: r.color, isHost: false };
