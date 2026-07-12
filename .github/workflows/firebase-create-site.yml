@@ -1,0 +1,15 @@
+name: Create Firebase Hosting site
+on:
+  workflow_dispatch:
+    inputs:
+      site_id:
+        description: 'New Firebase Hosting site ID to create'
+        required: true
+jobs:
+  create_site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+      - run: npx firebase-tools@latest hosting:sites:create "${{ inputs.site_id }}" --project khmer-ouk-datacollection
