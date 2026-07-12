@@ -248,6 +248,24 @@
   .scorecard .pscore { font-size: 15px; font-weight: 800; color: var(--accent); }
   .scorecard.turn { border-color: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
   .scorecard.turn .avatar { border-color: var(--accent); }
+  /* online opponent whose presence heartbeat has gone stale -- grayed out,
+     with the "why" surfaced via the card's native title tooltip on hover. */
+  .scorecard.offline { opacity: .45; filter: grayscale(1); cursor: default; }
+  .scorecard.offline .pname::after { content: ' (offline)'; font-weight: 400; opacity: .8; }
+  /* floating "balloon" notice for online-session events (e.g. the
+     opponent ending the match) -- a speech-bubble toast, not a modal. */
+  #onlineBalloon {
+    position: fixed; top: 70px; left: 50%; z-index: 30; max-width: 80vw; text-align: center;
+    background: var(--accent); color: var(--on-accent); padding: 10px 18px; border-radius: 14px;
+    font-size: 13px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.4); cursor: pointer;
+    opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-10px);
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  #onlineBalloon::after {
+    content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    border-width: 0 8px 8px; border-style: solid; border-color: transparent transparent var(--accent);
+  }
+  #onlineBalloon.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
   /* background-change fade overlay */
   #bgFade {
     position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none;
@@ -1480,6 +1498,8 @@
       cancelLobby: function () { return Promise.resolve(); },
       watchMatch: function () { return function () {}; },
       pushMove: unavailable,
+      pushPresence: function () { return Promise.resolve(); },
+      endSession: unavailable,
       finishMatch: unavailable
     };
   })();
@@ -1663,6 +1683,21 @@
         };
         window.__oukOnline.finishMatch = function (matchId, uid, resultPayload) {
           return window.__oukOnline.pushMove(matchId, uid, Object.assign({ status: 'finished' }, resultPayload));
+        };
+        // A lightweight presence heartbeat: touches only the sender's own
+        // presence.<color> field (a plain client timestamp, not
+        // serverTimestamp -- this only ever needs a rough "how long ago",
+        // so avoiding the extra round trip serverTimestamp implies is fine)
+        // rather than rewriting the whole match doc like pushMove does.
+        window.__oukOnline.pushPresence = function (matchId, color) {
+          var upd = {}; upd['presence.' + color] = Date.now();
+          return db.collection('matches').doc(matchId).update(upd).catch(function () {});
+        };
+        // Explicit "End Session": flags the match so the other client's
+        // onRemoteMatchUpdate can show a balloon notice. Reuses pushMove's
+        // updatedBy convention so the sender's own echo is still ignored.
+        window.__oukOnline.endSession = function (matchId, uid) {
+          return window.__oukOnline.pushMove(matchId, uid, { status: 'ended', endedBy: uid });
         };
       }
       if (firebase.auth) {
@@ -1952,6 +1987,9 @@
       <button id="rulesBtn">Rules ច្បាប់</button>
       <button id="cancelGameBtn">បោះបង់ Cancel Game</button>
     </div>
+    <div class="btnrow" style="margin-top:6px">
+      <button id="onlineEndBtn" type="button" style="display:none">⏹ បញ្ចប់វគ្គ End Session</button>
+    </div>
     <div id="saveStatus" style="font-size:12px;color:#b7a687;margin-top:4px;min-height:14px;"></div>
     <label style="margin-top:8px">
       <input type="checkbox" id="autoCountChk">
@@ -2171,6 +2209,19 @@
     </div>
   </div>
 </div>
+
+<div id="onlineEndConfirmPopup" class="fullOverlay" style="display:none;z-index:25">
+  <div class="box" style="max-width:320px">
+    <p>⏹ បញ្ចប់វគ្គលេងអនឡាញ?<br>End the online session?</p>
+    <p class="loginHint">ដៃគូររបស់អ្នកនឹងទទួលបានការជូនដំណឹង។<br>Your opponent will be notified.</p>
+    <div class="btnrow" style="margin-top:14px;justify-content:center">
+      <button id="onlineEndConfirmYes">បញ្ចប់ Yes, End It</button>
+      <button id="onlineEndConfirmNo">បោះបង់ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="onlineBalloon" title="ចុចដើម្បីបិទ Click to dismiss"></div>
 
 <div id="onlineMatchScreen" class="fullOverlay" style="display:none">
   <div class="box" style="max-width:380px">
@@ -3938,6 +3989,12 @@ let onlineOpponentName = null;
 let onlineUnsubLobby = null;      // unsubscribe fn for the active lobby listener
 let onlineUnsubMatch = null;      // unsubscribe fn for the active match listener
 let onlineApplyingRemote = false; // guard so applying an opponent's move doesn't re-broadcast it
+let onlinePresenceTimer = null;   // interval: broadcast my own presence heartbeat
+let onlinePresenceCheckTimer = null; // interval: locally re-evaluate the opponent's offline status
+let onlineOpponentPresence = null;   // last-known presence timestamp (ms) reported by the opponent
+let onlineSessionEnded = false;      // true once either side has explicitly ended the match
+const ONLINE_HEARTBEAT_MS = 12000;
+const ONLINE_OFFLINE_MS = 30000; // opponent presence older than this reads as "offline"
 let selected = -1;
 let legalForSelected = [];
 let lastMove = null;
@@ -9248,6 +9305,12 @@ function updateScoreboard() {
     card.classList.toggle('turn', !gameOver && !reviewMode && state.turn === side);
     card.classList.toggle('clickable', isOwnCard);
     card.onclick = isOwnCard ? openProfileScreen : null;
+    // Online opponent whose presence heartbeat has gone stale: gray the
+    // card out and surface why via its native hover tooltip.
+    const isOpponentCard = mode === 'online' && side !== humanSide;
+    const offline = isOpponentCard && onlineOpponentPresence != null && (Date.now() - onlineOpponentPresence) > ONLINE_OFFLINE_MS;
+    card.classList.toggle('offline', offline);
+    card.title = offline ? (name + ' គ្មានអ៊ីនធឺណិត — ' + name + ' is offline') : '';
   }
 }
 function refreshAll() {
@@ -10594,8 +10657,8 @@ function startGameWithMode(modeStr, side) {
   trackEvent('game_start', { mode: modeStr, side: side === E.WHITE ? 'white' : 'black' });
 }
 function refreshModeReadout() {
-  const playModeText = mode === 'hotseat'
-    ? '2 Player ២នាក់'
+  const playModeText = mode === 'hotseat' ? '2 Player ២នាក់'
+    : mode === 'online' ? 'Online vs ' + (onlineOpponentName || 'Opponent') + ' (' + (humanSide === E.WHITE ? 'White' : 'Black') + ')'
     : 'vs Computer L' + mode.slice(2) + ' (' + (humanSide === E.WHITE ? 'White' : 'Black') + ')';
   document.getElementById('modeReadoutText').textContent = playModeText;
   // top-of-panel readout (above Change Mode) additionally reflects Training
@@ -10603,6 +10666,7 @@ function refreshModeReadout() {
   // accordion is itself hidden while in Training.
   document.getElementById('currentModeReadoutText').textContent =
     uiMode === 'train' ? 'Learn to Play រៀនលេង' : playModeText;
+  document.getElementById('onlineEndBtn').style.display = mode === 'online' ? '' : 'none';
 }
 
 // ---------- start screen + mode-select overlay ----------
@@ -10763,6 +10827,22 @@ function showOnlineError(msg) {
   const el = document.getElementById('onlineError');
   el.textContent = msg; el.style.display = 'block';
 }
+// Floating "balloon" toast for online-session events (e.g. the opponent
+// ending the match) -- separate from showOnlineError, which only exists
+// while the matchmaking screen itself is open.
+let onlineBalloonTimer = null;
+function showOnlineBalloon(msg) {
+  const el = document.getElementById('onlineBalloon');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (onlineBalloonTimer) clearTimeout(onlineBalloonTimer);
+  onlineBalloonTimer = setTimeout(hideOnlineBalloon, 6000);
+}
+function hideOnlineBalloon() {
+  document.getElementById('onlineBalloon').classList.remove('show');
+  if (onlineBalloonTimer) { clearTimeout(onlineBalloonTimer); onlineBalloonTimer = null; }
+}
+document.getElementById('onlineBalloon').onclick = hideOnlineBalloon;
 function onlineCleanupSearch() {
   if (onlineUnsubLobby) { onlineUnsubLobby(); onlineUnsubLobby = null; }
   if (onlineLobbyId && !onlineMatchId) window.__oukOnline.cancelLobby(onlineLobbyId);
@@ -10871,6 +10951,19 @@ function beginOnlineMatch(matchId, color, opponentName, stateJson, existingUnsub
   trackEvent('game_start', { mode: 'online', side: color === 'white' ? 'white' : 'black' });
   if (onlineUnsubMatch) onlineUnsubMatch();
   onlineUnsubMatch = existingUnsub || window.__oukOnline.watchMatch(matchId, onRemoteMatchUpdate);
+  onlineOpponentPresence = null;
+  onlineSessionEnded = false;
+  // presence: a heartbeat so the opponent's client can tell we're still
+  // around, plus a local timer that re-checks staleness on its own (a
+  // closed tab stops writing, but nothing else would ever tell us that --
+  // Firestore only pushes updates on writes, not on the passage of time).
+  if (onlinePresenceTimer) clearInterval(onlinePresenceTimer);
+  if (onlinePresenceCheckTimer) clearInterval(onlinePresenceCheckTimer);
+  window.__oukOnline.pushPresence(matchId, color);
+  onlinePresenceTimer = setInterval(() => {
+    if (mode === 'online' && onlineMatchId) window.__oukOnline.pushPresence(onlineMatchId, humanSide === E.WHITE ? 'white' : 'black');
+  }, ONLINE_HEARTBEAT_MS);
+  onlinePresenceCheckTimer = setInterval(updateScoreboard, 5000);
 }
 // The host side of a match only learns its own color from the match doc
 // itself (the guest is the one who randomly assigned colors when they
@@ -10899,19 +10992,39 @@ function beginHostSideMatch(matchId, guestNameFallback) {
 // rather than replaying moveHistory, so it's correct even if a snapshot is
 // ever missed or arrives out of order.
 function onRemoteMatchUpdate(doc) {
-  if (!doc || mode !== 'online' || doc.updatedBy === (currentProfile && currentProfile.uid)) return;
+  if (!doc || mode !== 'online') return;
+  const myUid = currentProfile && currentProfile.uid;
   if (!onlineOpponentName && doc.playerNames) {
     const oppColor = humanSide === E.WHITE ? 'black' : 'white';
     onlineOpponentName = doc.playerNames[oppColor] || onlineOpponentName;
   }
-  if (doc.state) state = E.fromJSON(doc.state);
+  // Presence heartbeats (and the "ended" flag below) land on this same
+  // doc, so every snapshot -- not just ones carrying an actual move --
+  // needs to at least refresh these before deciding whether to bail out.
+  const oppColorKey = humanSide === E.WHITE ? 'black' : 'white';
+  if (doc.presence && doc.presence[oppColorKey] != null) onlineOpponentPresence = doc.presence[oppColorKey];
+  updateScoreboard();
+  if (doc.status === 'ended' && doc.endedBy && doc.endedBy !== myUid && !onlineSessionEnded) {
+    onlineSessionEnded = true;
+    showOnlineBalloon((onlineOpponentName || 'Opponent') + ' បានបញ្ចប់វគ្គលេង — has ended the session.');
+  }
+  if (doc.updatedBy === myUid || !doc.state) return;
+  // Everything past here is the actual move/counting/state sync -- guarded
+  // by comparing the incoming board state to what's already applied
+  // locally, so a heartbeat-only snapshot (nothing about the game itself
+  // changed) doesn't replay the move sound or do a full board re-render
+  // for nothing.
+  const incomingStateJson = JSON.stringify(doc.state);
+  if (incomingStateJson === JSON.stringify(E.toJSON(state))) return;
+  const moveChanged = JSON.stringify(doc.lastMove || null) !== JSON.stringify(lastMove);
+  state = E.fromJSON(doc.state);
   lastMove = doc.lastMove || null;
   moveEntries = doc.moveEntries || moveEntries;
   timeoutResult = doc.timeoutResult || null;
   selected = -1; legalForSelected = [];
   clearMarkers();
   refreshAll();
-  if (lastMove) playMoveSound(E.inCheck(state, state.turn) ? 'check' : 'move');
+  if (moveChanged && lastMove) playMoveSound(E.inCheck(state, state.turn) ? 'check' : 'move');
 }
 // Broadcasts a move this client just made locally (via the normal
 // applyMove pipeline) to the shared match doc, so the opponent's
@@ -10928,9 +11041,18 @@ function broadcastOnlineMove() {
 // unmatched lobby so it doesn't linger as a phantom "open" entry.
 function leaveOnlineMatch() {
   if (onlineUnsubMatch) { onlineUnsubMatch(); onlineUnsubMatch = null; }
+  if (onlinePresenceTimer) { clearInterval(onlinePresenceTimer); onlinePresenceTimer = null; }
+  if (onlinePresenceCheckTimer) { clearInterval(onlinePresenceCheckTimer); onlinePresenceCheckTimer = null; }
   onlineCleanupSearch();
   onlineMatchId = null;
   onlineOpponentName = null;
+  onlineOpponentPresence = null;
+  onlineSessionEnded = false;
+  hideOnlineBalloon();
+  // mode itself is left as 'online' until a new game actually starts (the
+  // usual pattern here -- see undoBtn etc.), so this button's visibility
+  // needs its own explicit reset rather than waiting on refreshModeReadout.
+  document.getElementById('onlineEndBtn').style.display = 'none';
 }
 function showStartScreen() {
   if (mode === 'online') leaveOnlineMatch();
@@ -10940,6 +11062,23 @@ function showStartScreen() {
   tickHud();
 }
 document.getElementById('cancelGameBtn').onclick = showStartScreen;
+// End Session: only meaningful mid-online-match, so it's tucked behind a
+// confirm popup rather than acting immediately like Cancel Game -- an
+// accidental tap here quits on both players, not just the local session.
+document.getElementById('onlineEndBtn').onclick = () => {
+  document.getElementById('onlineEndConfirmPopup').style.display = 'flex';
+};
+document.getElementById('onlineEndConfirmNo').onclick = () => {
+  document.getElementById('onlineEndConfirmPopup').style.display = 'none';
+};
+document.getElementById('onlineEndConfirmYes').onclick = () => {
+  document.getElementById('onlineEndConfirmPopup').style.display = 'none';
+  if (onlineMatchId && currentProfile) {
+    window.__oukOnline.endSession(onlineMatchId, currentProfile.uid)
+      .catch((err) => console.warn('End session broadcast failed:', err));
+  }
+  openModeScreen();
+};
 
 // ---------- save / load game (localStorage, 3 named slots) ----------
 const SAVE_KEY = 'oukChatrangSave'; // legacy single-slot key, read as a fallback for slot 1
@@ -11670,6 +11809,11 @@ if (LOGIN_ENABLED) tryAutoResume();
 window.__ouk = {
   state: () => state,
   refreshStatus: () => refreshStatus(),
+  // Test-only entry point into online mode without a real Firestore match
+  // (used by the local Playwright harness, where Firebase is stubbed out).
+  debugBeginOnlineMatch: (color, oppName) => beginOnlineMatch('debug-match', color, oppName, E.toJSON(E.initialState(currentVariant())), () => {}),
+  debugSetOpponentPresence: (ms) => { onlineOpponentPresence = ms; updateScoreboard(); },
+  debugShowOnlineBalloon: (msg) => showOnlineBalloon(msg),
   moves: () => moveEntries.slice(),
   applyTrainingMove: (m) => applyTrainingMove(m),
   accessTier: () => accessTier,
