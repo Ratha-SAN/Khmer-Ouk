@@ -10151,8 +10151,15 @@ function hideOverlays() {
 }
 document.getElementById('startBtn').onclick = () => { modeScreenOrigin = 'start'; openModeScreen(); };
 document.getElementById('changeModeBtn').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
-document.getElementById('pickLearn').onclick = () => { hideOverlays(); setUiMode('train'); };
-document.getElementById('pickPlay').onclick = () => showModePlayStep();
+// mode_access analytics: which top-level mode a visit actually reaches --
+// Learn to Play, Play -> 2 Player, or Play -> vs Computer (with the chosen
+// level) -- fired at the moment the choice is confirmed (not just hovered/
+// highlighted), segmentable by the single "mode" param. Separate from the
+// existing game_start event (see startGameWithMode) below, which tracks
+// the resulting game session itself (mode+side, for later game_end
+// correlation) rather than which mode-picker button got pressed.
+document.getElementById('pickLearn').onclick = () => { trackEvent('mode_access', { mode: 'learn' }); hideOverlays(); setUiMode('train'); };
+document.getElementById('pickPlay').onclick = () => { trackEvent('mode_access', { mode: 'play' }); showModePlayStep(); };
 document.getElementById('modeChoiceCancel').onclick = () => {
   if (modeScreenOrigin === 'start') showStartScreen();
   else hideOverlays();
@@ -10161,6 +10168,9 @@ document.getElementById('pick2p').onclick = () => selectPlayMode('hotseat');
 document.getElementById('pickAi').onclick = () => selectPlayMode('ai');
 document.getElementById('confirmPlay').onclick = () => {
   if (!pendingPlayMode) return;
+  trackEvent('mode_access', pendingPlayMode === 'hotseat'
+    ? { mode: '2player' }
+    : { mode: 'computer', level: pendingAiLevel });
   startGameWithMode(pendingPlayMode === 'hotseat' ? 'hotseat' : 'ai' + pendingAiLevel, pendingSide);
   hideOverlays();
 };
