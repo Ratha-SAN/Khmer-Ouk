@@ -1714,7 +1714,14 @@
     <details class="acc" id="trainPuzzleSec">
       <summary>ល្បងប្រាជ្ញា — Puzzles</summary>
       <div class="acc-body">
-      <div class="piecebtns" id="puzzleBtns"></div>
+      <div class="levelgrid" id="puzzleLevelBtns" style="margin-top:0">
+        <button id="puzzleLevel1">១<br>ស្រួល<br>Easy</button>
+        <button id="puzzleLevel2">២<br>ធម្មតា<br>Normal</button>
+        <button id="puzzleLevel3">៣<br>មធ្យម<br>Medium</button>
+        <button id="puzzleLevel4">៤<br>ពិបាក<br>Hard</button>
+        <button id="puzzleLevel5">៥<br>ជំនាញ<br>Expert</button>
+      </div>
+      <div class="piecebtns" id="puzzleBtns" style="margin-top:8px"></div>
       </div>
     </details>
     <div id="lessonText"></div>
@@ -9851,40 +9858,147 @@ document.getElementById('guideAnswerBtn').onclick = () => {
 // attempt -- a wrong try is reverted so they can retry, a right one gets a
 // celebration. 'mate' puzzles accept ANY move that delivers checkmate
 // (verified with the real engine, not by matching one hardcoded square);
-// 'move' puzzles match the single best move.
+// 'move' puzzles match the single best move. Puzzles are grouped into 5
+// levels mirroring the vs-Computer difficulty ladder (Easy..Expert); every
+// position below was constructed and checked against OukEngine directly
+// (legal-move generation + gameStatus) rather than by hand, since this
+// variant's piece movement is unlike international chess.
 const PUZZLES = [
+  // ---- level 1: ស្រួល Easy — familiar rook mates and free captures ----
   {
-    key: 'pz1', btn: '១ Mate<br>in 1', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the ladder', goal: 'mate',
+    key: 'l1p1', level: 1, btn: '១ Mate<br>in 1', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the ladder', goal: 'mate',
     task: { kh: 'ស្វែងរកអុកងាប់ក្នុងមួយជើង។ ទូកពីរធ្វើការជាមួយគ្នា — មួយបិទជួរទី៧ រួចហើយ។', en: 'Find checkmate in one move. Two Tuuk work together: one already seals the 7th rank.' },
     setup: (add) => { add('a8', E.KING, E.BLACK); add('h7', E.ROOK, E.WHITE); add('g1', E.ROOK, E.WHITE); add('e1', E.KING, E.WHITE); }
   },
   {
-    key: 'pz2', btn: '២ Back<br>rank', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — back rank', goal: 'mate',
+    key: 'l1p2', level: 1, btn: '២ Back<br>rank', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — back rank', goal: 'mate',
     task: { kh: 'ស្ដេចខ្មៅជាប់នៅជួរក្រោយ ដោយត្រីរបស់ខ្លួនឯង។ ស្វែងរកអុកងាប់ក្នុងមួយជើង។', en: 'The Black Sdach is trapped on its back rank by its own Trey. Find mate in one.' },
     setup: (add) => { add('e8', E.KING, E.BLACK); add('d7', E.PAWN, E.BLACK); add('e7', E.PAWN, E.BLACK); add('f7', E.PAWN, E.BLACK); add('a1', E.ROOK, E.WHITE); add('e1', E.KING, E.WHITE); }
   },
   {
-    key: 'pz3', btn: '៣ Smother<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — smothered', goal: 'mate',
+    key: 'l1p3', level: 1, btn: '៣ Box<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the box', goal: 'mate',
+    task: { kh: 'ស្ដេចខ្មៅជាប់ជ្រុងក្ដារ។ ស្ដេចរបស់អ្នកគ្រប់គ្រងក្រឡាពីរ ដូច្នេះទូកគ្រាន់តែត្រូវការចូលដល់ជួរក្រោយ។', en: 'The Black Sdach is trapped in the corner. Your own Sdach already covers two squares, so the Tuuk just needs to reach the back rank.' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('g6', E.KING, E.WHITE); add('a1', E.ROOK, E.WHITE); }
+  },
+  {
+    key: 'l1p4', level: 1, btn: '៤ Free<br>Tuuk', title: 'រកជើងល្អបំផុត Best move — a free Tuuk', goal: 'move', answer: { from: 'd1', to: 'd8' },
+    task: { kh: 'ទូកខ្មៅឈរនៅចំពោះមុខទូករបស់អ្នកគ្មានការការពារ។ ចាប់យកវា — វាថែមទាំងជាការអុកទៀតផង!', en: 'The Black Tuuk stands right in front of yours, completely undefended. Just take it — it even comes with check!' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('d8', E.ROOK, E.BLACK); add('d1', E.ROOK, E.WHITE); add('a1', E.KING, E.WHITE); }
+  },
+  {
+    key: 'l1p5', level: 1, btn: '៥ Free<br>Neang', title: 'រកជើងល្អបំផុត Best move — a free Neang', goal: 'move', answer: { from: 'e5', to: 'd6' },
+    task: { kh: 'នាងខ្មៅគ្មានការការពារ។ ត្រីរបស់អ្នកចាប់យកបានតាមអង្កត់ទ្រូង — កុំភ្លេចថាត្រីវាយចំហៀង មិនមែនត្រង់មុខ។', en: 'The Black Neang is undefended. Your Trey captures it diagonally — remember, a Trey attacks sideways-forward, not straight ahead.' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('d6', E.QUEEN, E.BLACK); add('e5', E.PAWN, E.WHITE); add('a1', E.KING, E.WHITE); }
+  },
+  // ---- level 2: ធម្មតា Normal — this variant's special piece movement ----
+  {
+    key: 'l2p1', level: 2, btn: '១ Smother<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — smothered', goal: 'mate',
     task: { kh: 'ស្ដេចខ្មៅព័ទ្ធជុំវិញដោយកូនអុករបស់ខ្លួនឯង។ សេះអាចធ្វើអ្វីដែលគ្មានកូនអុកផ្សេងអាចធ្វើបាន!', en: 'The Black Sdach is smothered by its own pieces. Only a Ses can strike here!' },
     setup: (add) => { add('h8', E.KING, E.BLACK); add('g8', E.ROOK, E.BLACK); add('g7', E.PAWN, E.BLACK); add('h7', E.PAWN, E.BLACK); add('e5', E.KNIGHT, E.WHITE); add('e1', E.KING, E.WHITE); }
   },
   {
-    key: 'pz4', btn: '៤ Koul<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — with the Koul', goal: 'mate',
+    key: 'l2p2', level: 2, btn: '២ Koul<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — with the Koul', goal: 'mate',
     task: { kh: 'ស្ដេចរបស់អ្នកគាំទ្រកូលរបស់អ្នក។ ស្វែងរកអុកងាប់ក្នុងមួយជើង។', en: 'Your Sdach supports your Koul. Find mate in one.' },
     setup: (add) => { add('h8', E.KING, E.BLACK); add('g6', E.KING, E.WHITE); add('h6', E.BISHOP, E.WHITE); }
   },
   {
-    key: 'pz5', btn: '៥ Ses<br>strike', title: 'រកជើងល្អបំផុត Best move — Ses strike', goal: 'move', answer: { from: 'b5', to: 'c7' },
+    key: 'l2p3', level: 2, btn: '៣ Ses<br>strike', title: 'រកជើងល្អបំផុត Best move — Ses strike', goal: 'move', answer: { from: 'b5', to: 'c7' },
     task: { kh: 'នាងខ្មៅគ្មានការការពារ។ ចាប់វាដោយសេះ — វាក៏អុកស្ដេចដែរ!', en: 'The Black Neang is undefended. Capture it with your Ses — it even checks the Sdach!' },
     setup: (add) => { add('e8', E.KING, E.BLACK); add('c7', E.QUEEN, E.BLACK); add('b5', E.KNIGHT, E.WHITE); add('e1', E.KING, E.WHITE); }
   },
   {
-    key: 'pz6', btn: '៦ Trey<br>catch', title: 'រកជើងល្អបំផុត Best move — Trey catches a Tuuk', goal: 'move', answer: { from: 'c4', to: 'd5' },
+    key: 'l2p4', level: 2, btn: '៤ Trey<br>catch', title: 'រកជើងល្អបំផុត Best move — Trey catches a Tuuk', goal: 'move', answer: { from: 'c4', to: 'd5' },
     task: { kh: 'ទូកខ្មៅឈរនៅចំពោះមុខត្រីរបស់អ្នក។ ត្រីចាប់យកតាមអង្កត់ទ្រូង!', en: 'A Black Tuuk stands within reach of your Trey. Trey captures diagonally forward!' },
     setup: (add) => { add('h8', E.KING, E.BLACK); add('d5', E.ROOK, E.BLACK); add('c4', E.PAWN, E.WHITE); add('a1', E.KING, E.WHITE); }
   },
+  {
+    key: 'l2p5', level: 2, btn: '៥ Neang<br>check', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — a quiet Neang check', goal: 'mate',
+    task: { kh: 'នាងជើងតូចរបស់អ្នកគ្រាន់តែឈានចូលមួយជំហាន — ស្ដេចរបស់អ្នកការពារវា ដូច្នេះស្ដេចខ្មៅចាប់វាមិនបាន។', en: 'Your Neang just steps in one square — your own Sdach defends it, so the Black Sdach cannot capture it back.' },
+    setup: (add) => { add('a8', E.KING, E.BLACK); add('a7', E.PAWN, E.BLACK); add('c8', E.KING, E.WHITE); add('c6', E.QUEEN, E.WHITE); }
+  },
+  // ---- level 3: មធ្យម Medium — forks, discoveries, and captures that hide a mate ----
+  {
+    key: 'l3p1', level: 3, btn: '១ Discovered<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — discovered', goal: 'mate',
+    task: { kh: 'សេះរបស់អ្នកកំពុងបិទផ្លូវរបស់ទូកខ្លួនឯង។ រំកិលសេះឲ្យត្រូវក្រឡា ដើម្បីបើកអុក ព្រមទាំងគ្រប់គ្រងក្រឡានៅសល់!', en: 'Your own Ses is blocking your Tuuk. Move it to the right square to reveal the check while it also covers the last escape square!' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('g6', E.KING, E.WHITE); add('h1', E.ROOK, E.WHITE); add('h7', E.KNIGHT, E.WHITE); }
+  },
+  {
+    key: 'l3p2', level: 3, btn: '២ Ses<br>fork', title: 'រកជើងល្អបំផុត Best move — Ses fork', goal: 'move', answer: { from: 'b5', to: 'd6' },
+    task: { kh: 'សេះលោតទៅក្រឡាតែមួយ អុកស្ដេចខ្មៅ ព្រមទាំងគំរាមទូក — ស្ដេចត្រូវរត់ រួចអ្នកចាប់ទូកបាន។', en: 'One knight jump checks the Sdach and threatens the Tuuk at the same time — the king must run, and the Tuuk falls next.' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('c8', E.ROOK, E.BLACK); add('b5', E.KNIGHT, E.WHITE); add('a1', E.KING, E.WHITE); }
+  },
+  {
+    key: 'l3p3', level: 3, btn: '៣ Koul<br>takes', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the Koul takes', goal: 'mate',
+    task: { kh: 'សេះខ្មៅមើលទៅដូចជាការពារដោយស្ដេច — ប៉ុន្តែកូលរបស់អ្នកចាប់វា ព្រមទាំងអុកងាប់ភ្លាមៗ ដូច្នេះការចាប់មិនអាចត្រូវឆ្លើយវិញបានទេ។', en: 'The Black Ses looks defended by the king — but your Koul captures it and delivers instant mate, so there is no time for a recapture.' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('g7', E.KNIGHT, E.BLACK); add('g6', E.KING, E.WHITE); add('f6', E.BISHOP, E.WHITE); }
+  },
+  {
+    key: 'l3p4', level: 3, btn: '៤ Blind<br>spot', title: 'រកជើងល្អបំផុត Best move — the Koul\'s blind spot', goal: 'move', answer: { from: 'e6', to: 'd7' },
+    task: { kh: 'កូលខ្មៅមើលទៅដូចជាការពារទូក ព្រោះវាឈរពីមុខ — ប៉ុន្តែកូលដើរថយក្រោយត្រង់ៗមិនបានទេ! ទូកនោះគ្មានការការពារពិតប្រាកដ។', en: 'The Black Koul looks like it defends the Tuuk sitting right behind it -- but a Koul can never step straight backward! The Tuuk is secretly undefended.' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('d6', E.BISHOP, E.BLACK); add('d7', E.ROOK, E.BLACK); add('e6', E.BISHOP, E.WHITE); add('a1', E.KING, E.WHITE); }
+  },
+  {
+    key: 'l3p5', level: 3, btn: '៥ Trey<br>takes', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the Trey takes', goal: 'mate',
+    task: { kh: 'សេះខ្មៅមើលទៅដូចជាការពារជ្រុងក្ដារ — ប៉ុន្តែត្រីរបស់អ្នកចាប់វា ព្រមទាំងអុកងាប់ភ្លាមៗ។', en: 'The Black Ses looks like it is guarding the corner — but your Trey captures it and delivers instant mate.' },
+    setup: (add) => { add('a8', E.KING, E.BLACK); add('a7', E.PAWN, E.BLACK); add('b7', E.KNIGHT, E.BLACK); add('c6', E.PAWN, E.WHITE); add('c8', E.KING, E.WHITE); }
+  },
+  // ---- level 4: ពិបាក Hard — double checks, traps, and promotion tactics ----
+  {
+    key: 'l4p1', level: 4, btn: '១ Double<br>check', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — double check', goal: 'mate',
+    task: { kh: 'សេះលោតទៅមួយក្រឡា ព្រមទាំងអុកខ្លួនឯង និងបើកអុកពីទូកក្រោយវាដែរ — អុកទ្វេដងបែបនេះ ស្ដេចមិនអាចទប់ស្កាត់ ឬចាប់អ្វីមួយបានទេ ត្រូវរត់តែម្យ៉ាង។', en: 'One knight jump checks by itself AND uncovers the Tuuk behind it — a double check like this can\'t be blocked or captured away, the king can only run, and every square is covered.' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('e1', E.ROOK, E.WHITE); add('e4', E.KNIGHT, E.WHITE); add('c8', E.KING, E.WHITE); add('g7', E.BISHOP, E.WHITE); }
+  },
+  {
+    key: 'l4p2', level: 4, btn: '២ Avoid<br>stalemate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — avoid the stalemate', goal: 'mate',
+    task: { kh: 'ប្រយ័ត្ន! ស្ដេចខ្មៅជិតគ្មានផ្លូវទៅរួចហើយ — ជើងភាគច្រើននឹងធ្វើឲ្យល្បែងស្មើ (គ្មានផ្លូវទៅ តែក៏មិនត្រូវអុកដែរ)។ មានតែជើងតែមួយប៉ុណ្ណោះដែលពិតជាអុកងាប់។', en: 'Careful! The Black Sdach is almost out of moves already — most tries will only stalemate the game (no legal moves, but not in check either). Only one move is genuine checkmate.' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('h6', E.KING, E.WHITE); add('f6', E.KNIGHT, E.WHITE); add('g1', E.ROOK, E.WHITE); }
+  },
+  {
+    key: 'l4p3', level: 4, btn: '៣ Promotion<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — promotion', goal: 'mate',
+    task: { kh: 'ត្រីរបស់អ្នកឈានដល់ជួរទី៦ ក្លាយជានាងភ្លាមៗ ព្រមទាំងអុកជាមួយគ្នា។ ត្រីរបស់ខ្លួនឯង និងទូក រួមគ្នាបិទផ្លូវទាំងអស់។', en: 'Your Trey reaches the 6th rank and instantly promotes to a Neang, checking as it lands. Its own Trey and your Tuuk seal off every escape.' },
+    setup: (add) => { add('h7', E.KING, E.BLACK); add('h6', E.PAWN, E.BLACK); add('a8', E.ROOK, E.WHITE); add('f6', E.KING, E.WHITE); add('g5', E.PAWN, E.WHITE); }
+  },
+  {
+    key: 'l4p4', level: 4, btn: '៤ Right<br>square', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the right square', goal: 'mate',
+    task: { kh: 'ក្រឡាមួយចំនួនមើលទៅដូចជាអុកបានដែរ ប៉ុន្តែសេះនឹងទៅរារាំងទូករបស់អ្នកខ្លួនឯង។ ស្វែងរកក្រឡាដែលមិនរារាំងអ្វីសោះ។', en: 'A couple of squares look like they check too -- but the knight would block one of your own Tuuk. Find the square that blocks nothing.' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('e6', E.KING, E.WHITE); add('d1', E.ROOK, E.WHITE); add('f1', E.ROOK, E.WHITE); add('b5', E.KNIGHT, E.WHITE); }
+  },
+  {
+    key: 'l4p5', level: 4, btn: '៥ Double<br>line', title: 'រកជើងល្អបំផុត Best move — opening two lines at once', goal: 'move', answer: { from: 'h5', to: 'e5' },
+    task: { kh: 'ត្រីខ្មៅបិទផ្លូវទូករបស់អ្នក។ ចាប់យកវា ដើម្បីអុកតាមជួរឈរ ព្រមទាំងគំរាមសេះខ្មៅតាមជួរដេកក្នុងពេលតែមួយ។', en: 'A Black Trey blocks your Tuuk\'s line. Capture it to check along the file and threaten the Black Ses along the rank at the same time.' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('e5', E.PAWN, E.BLACK); add('a5', E.KNIGHT, E.BLACK); add('h5', E.ROOK, E.WHITE); add('a1', E.KING, E.WHITE); }
+  },
+  // ---- level 5: ជំនាញ Expert — full-board reading, no obvious hints ----
+  {
+    key: 'l5p1', level: 5, btn: '១ Read<br>the board', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — read the whole board', goal: 'mate',
+    task: { kh: 'ជើងអុកពីរបីមើលទៅដូចគ្នា ប៉ុន្តែជើងតែមួយប៉ុណ្ណោះមិនរារាំងទូករបស់អ្នកខ្លួនឯង។ កុំភ្លេចរាប់កូនអុករបស់ខ្មៅដែលនៅឆ្ងាយពីសកម្មភាព។', en: 'A couple of knight checks look alike -- only one doesn\'t block your own Tuuk. Don\'t let the Black pieces sitting far from the action distract you.' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('b6', E.PAWN, E.BLACK); add('e6', E.KING, E.WHITE); add('d1', E.ROOK, E.WHITE); add('f1', E.ROOK, E.WHITE); add('h5', E.KNIGHT, E.WHITE); }
+  },
+  {
+    key: 'l5p2', level: 5, btn: '២ Promotion<br>capture', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — promoting with a capture', goal: 'mate',
+    task: { kh: 'ត្រីរបស់អ្នកចាប់សេះខ្មៅតាមអង្កត់ទ្រូង ឈានដល់ជួរទី៦ ក្លាយជានាងភ្លាមៗ ព្រមទាំងអុកជាមួយគ្នា។', en: 'Your Trey captures the Black Ses diagonally, lands on the 6th rank, and instantly promotes to a Neang -- checking as it arrives.' },
+    setup: (add) => { add('h7', E.KING, E.BLACK); add('h6', E.PAWN, E.BLACK); add('g6', E.KNIGHT, E.BLACK); add('a8', E.ROOK, E.WHITE); add('f6', E.KING, E.WHITE); add('f5', E.PAWN, E.WHITE); }
+  },
+  {
+    key: 'l5p3', level: 5, btn: '៣ Quiet<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the quiet mate', goal: 'mate',
+    task: { kh: 'កូនអុកជាច្រើននៅលើក្ដារ ប៉ុន្តែភាគច្រើនមិនពាក់ព័ន្ធនឹងចម្លើយទេ។ ស្វែងរកជំហានតូចមួយរបស់នាង ដែលស្ដេចរបស់អ្នកការពារ។', en: 'There are many pieces on the board, but most of them are irrelevant. Look for the small step your Neang can take, backed up by your own Sdach.' },
+    setup: (add) => {
+      add('a8', E.KING, E.BLACK); add('a7', E.PAWN, E.BLACK); add('d5', E.PAWN, E.BLACK); add('f4', E.PAWN, E.BLACK); add('g3', E.KNIGHT, E.BLACK);
+      add('c8', E.KING, E.WHITE); add('c6', E.QUEEN, E.WHITE); add('e3', E.PAWN, E.WHITE); add('f3', E.PAWN, E.WHITE);
+    }
+  },
+  {
+    key: 'l5p4', level: 5, btn: '៤ Bigger<br>prize', title: 'រកជើងល្អបំផុត Best move — chase the bigger prize', goal: 'move', answer: { from: 'e4', to: 'd6' },
+    task: { kh: 'សេះអាចលោតទៅក្រឡាពីរ ដែលទាំងពីរអុកជាមួយគំរាមកូនអុកខ្មៅ។ ប៉ុន្តែកូនអុកមួយមានការការពារ — ជ្រើសរើសទូកគ្មានការការពារ មិនមែនត្រីដែលមានការពារនោះទេ។', en: 'The Ses can jump to two different squares that both check while threatening a Black piece. But one of those pieces is defended -- go for the undefended Tuuk, not the guarded Trey.' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('c8', E.ROOK, E.BLACK); add('g8', E.PAWN, E.BLACK); add('h7', E.BISHOP, E.BLACK); add('e4', E.KNIGHT, E.WHITE); add('a1', E.KING, E.WHITE); }
+  },
+  {
+    key: 'l5p5', level: 5, btn: '៥ Forward<br>strike', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the Koul\'s forward strike', goal: 'mate',
+    task: { kh: 'កូលរបស់អ្នកមិនចាំបាច់ចាប់តាមអង្កត់ទ្រូងទេ — វាចាប់បានត្រង់មុខផងដែរ! ការចាប់តាមមុខនេះអុកភ្លាមៗ ព្រមទាំងគ្រប់គ្រងជ្រុងទាំងពីរ។', en: 'Your Koul doesn\'t have to capture diagonally -- it can capture straight ahead too! This forward capture checks instantly and covers both corners of the escape.' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('h7', E.ROOK, E.BLACK); add('g6', E.KING, E.WHITE); add('h6', E.BISHOP, E.WHITE); }
+  },
 ];
-let activePuzzle = null, puzzleSolved = false;
+let activePuzzle = null, puzzleSolved = false, puzzleLevel = 1;
 function puzzleLessonText() {
   const pz = activePuzzle;
   document.getElementById('lessonText').innerHTML =
@@ -9896,6 +10010,7 @@ function loadPuzzle(key) {
   activateTrainSection('trainPuzzleSec');
   guideGameStopAuto();
   activePuzzle = PUZZLES.find(p => p.key === key);
+  puzzleLevel = activePuzzle.level;
   puzzleSolved = false;
   guideKey = null;
   state = E.emptyState(currentVariant());
@@ -9907,22 +10022,35 @@ function loadPuzzle(key) {
   gameOver = false;
   selected = -1; legalForSelected = [];
   document.getElementById('guideAnswerBtn').style.display = 'none';
-  document.querySelectorAll('#puzzleBtns button').forEach(b => b.classList.toggle('active', b.dataset.key === key));
+  markPuzzleLevelButtons();
+  buildPuzzleButtons();
   document.querySelectorAll('#pieceBtns button, #guideBtns button').forEach(b => b.classList.remove('active'));
   puzzleLessonText();
   clearMarkers();
   refreshAll();
 }
-(function buildPuzzleButtons() {
+function buildPuzzleButtons() {
   const holder = document.getElementById('puzzleBtns');
-  PUZZLES.forEach(p => {
+  holder.innerHTML = '';
+  PUZZLES.filter(p => p.level === puzzleLevel).forEach(p => {
     const b = document.createElement('button');
     b.innerHTML = p.btn;
     b.dataset.key = p.key;
     b.onclick = () => loadPuzzle(p.key);
     holder.appendChild(b);
   });
-})();
+  document.querySelectorAll('#puzzleBtns button').forEach(b => b.classList.toggle('active', activePuzzle && b.dataset.key === activePuzzle.key));
+}
+function markPuzzleLevelButtons() {
+  [1, 2, 3, 4, 5].forEach(n => document.getElementById('puzzleLevel' + n).classList.toggle('active', puzzleLevel === n));
+}
+[1, 2, 3, 4, 5].forEach(n => {
+  document.getElementById('puzzleLevel' + n).onclick = () => {
+    loadPuzzle(PUZZLES.find(p => p.level === n).key);
+  };
+});
+buildPuzzleButtons();
+markPuzzleLevelButtons();
 
 // ---------- play/train mode switching ----------
 function setUiMode(m) {
@@ -10604,6 +10732,7 @@ window.__ouk = {
   state: () => state,
   refreshStatus: () => refreshStatus(),
   moves: () => moveEntries.slice(),
+  applyTrainingMove: (m) => applyTrainingMove(m),
   accessTier: () => accessTier,
   isOptionLocked: (selId, value) => isSelectValueLocked(selId, value),
   isButtonLocked: (btnId) => document.getElementById(btnId).classList.contains('locked'),
@@ -10630,6 +10759,7 @@ window.__ouk = {
   pieceLabelCount: () => pieceGroup.children.reduce((n, g) => n + g.children.filter(c => c.isSprite).length, 0),
   trackedEvents: () => oukTrackLog,
   guideTiers: () => ({ t1: GUIDE.t1.map(e => e.key), t2: GUIDE.t2.map(e => e.key), t3: GUIDE.t3.map(e => e.key) }),
+  puzzleLevels: () => [1, 2, 3, 4, 5].reduce((o, n) => (o[n] = PUZZLES.filter(p => p.level === n).map(p => p.key), o), {}),
   guideLoad: (tier, key) => loadGuideExample(tier, key),
   guideCurrent: () => ({ tier: guideTier, key: guideKey }),
   guideAnswerVisible: () => document.getElementById('guideAnswerBtn').style.display !== 'none',
