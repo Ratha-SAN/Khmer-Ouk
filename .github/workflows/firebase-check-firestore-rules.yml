@@ -1,0 +1,31 @@
+name: Check Firestore security rules
+on:
+  workflow_dispatch:
+jobs:
+  check_rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+      - run: |
+          set -e
+          TOKEN=$(gcloud auth application-default print-access-token)
+          echo "== Current Firestore rules release =="
+          curl -sf -H "Authorization: Bearer $TOKEN" \
+            "https://firebaserules.googleapis.com/v1/projects/khmer-ouk-datacollection/releases/cloud.firestore" \
+            -o release.json
+          cat release.json
+          RULESET=$(node -e "console.log(JSON.parse(require('fs').readFileSync('release.json','utf8')).rulesetName)")
+          echo "== Ruleset: $RULESET =="
+          curl -sf -H "Authorization: Bearer $TOKEN" \
+            "https://firebaserules.googleapis.com/v1/$RULESET" \
+            -o ruleset.json
+          echo "== Rules source =="
+          node -e "
+            const r = JSON.parse(require('fs').readFileSync('ruleset.json','utf8'));
+            for (const f of r.source.files) {
+              console.log('--- ' + f.name + ' ---');
+              console.log(f.content);
+            }
+          "
