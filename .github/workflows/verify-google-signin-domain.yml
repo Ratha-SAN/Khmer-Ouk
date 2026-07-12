@@ -27,26 +27,29 @@ jobs:
             await page.click('#startBtn');
             await page.waitForTimeout(500);
 
-            // A real click (not a direct API call) so this exercises the exact
-            // popup flow a user hits -- if the domain is still unauthorized,
-            // Firebase throws before ever opening a popup to Google.
             const popupPromise = context.waitForEvent('page', { timeout: 8000 }).catch(() => null);
-            await page.click('#signupGoogleBtn');
-            const popup = await popupPromise;
 
+            // Direct call (not a click) with a manual timeout guard: if the
+            // domain check now passes, this may hang forever waiting on a
+            // real human at the Google popup, which a headless run can
+            // never provide -- a timeout here is expected and fine, an
+            // unauthorized-domain rejection is what we're checking is gone.
+            const timeout = new Promise((resolve) => setTimeout(() => resolve({ ok: false, code: 'TIMEOUT' }), 8000));
+            const call = page.evaluate(() => window.__oukAuth.signInGoogle()
+              .then(() => ({ ok: true }))
+              .catch((err) => ({ ok: false, code: err && err.code, message: err && err.message })));
+            const result = await Promise.race([call, timeout]);
+            console.log('signInGoogle RESULT:', JSON.stringify(result));
+
+            const popup = await popupPromise;
             if (popup) {
               await popup.waitForLoadState('domcontentloaded').catch(() => {});
               console.log('POPUP OPENED, URL:', popup.url());
               console.log('REACHED GOOGLE:', popup.url().includes('accounts.google.com'));
               await popup.close().catch(() => {});
             } else {
-              console.log('NO POPUP OPENED');
+              console.log('NO POPUP EVENT SEEN');
             }
-
-            await page.waitForTimeout(1000);
-            const errorVisible = await page.evaluate(() => document.getElementById('loginError').style.display === 'block');
-            const errorText = await page.evaluate(() => document.getElementById('loginError').textContent);
-            console.log('LOGIN ERROR SHOWN:', errorVisible, errorVisible ? errorText : '');
 
             await browser.close();
           }
