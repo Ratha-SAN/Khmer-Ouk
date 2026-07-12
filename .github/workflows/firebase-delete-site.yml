@@ -1,0 +1,15 @@
+name: Delete Firebase Hosting site
+on:
+  workflow_dispatch:
+    inputs:
+      site_id:
+        description: 'Firebase Hosting site ID to delete'
+        required: true
+jobs:
+  delete_site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+      - run: npx firebase-tools@latest hosting:sites:delete "${{ inputs.site_id }}" --project khmer-ouk-datacollection --force
