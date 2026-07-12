@@ -27,8 +27,8 @@ jobs:
                 firestoreCalls.push({ url: url.slice(0, 200), status: res.status() });
               }
             });
-            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'networkidle', timeout: 30000 });
-            await page.waitForTimeout(5000);
+            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load', timeout: 30000 });
+            await page.waitForTimeout(6000);
             const puzzleLevels = await page.evaluate(() => window.__ouk && window.__ouk.puzzleLevels ? window.__ouk.puzzleLevels() : null);
             console.log('PUZZLE LEVELS ON LIVE SITE:', JSON.stringify(puzzleLevels));
             console.log('CONSOLE/PAGE ERRORS:', JSON.stringify(errors, null, 2));
