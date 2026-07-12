@@ -37,10 +37,17 @@ jobs:
 
             await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load' });
             await page.waitForTimeout(3000);
+
+            console.log('startBtn visible:', await page.isVisible('#startBtn').catch(() => 'N/A'));
             await page.click('#startBtn');
             await page.waitForTimeout(500);
+
+            console.log('loginScreen display:', await page.evaluate(() => document.getElementById('loginScreen').style.display));
+            console.log('username field value:', await page.evaluate(() => document.getElementById('loginUsername').value));
+            console.log('loginSubmitBtn visible:', await page.isVisible('#loginSubmitBtn').catch(() => 'N/A'));
+
             await page.click('#loginSubmitBtn');
-            await page.waitForTimeout(1500);
+            await page.waitForTimeout(2500);
 
             const authState = await page.evaluate(() => window.__oukAuth.getState());
             console.log('AUTH STATE:', JSON.stringify(authState));
@@ -55,9 +62,9 @@ jobs:
 
       - name: Check Firestore users collection for the new UID
         run: |
-          UID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('auth_state.json')).uid)")
-          echo "Looking up uid: $UID"
+          GUEST_UID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('auth_state.json')).uid)")
+          echo "Looking up uid: $GUEST_UID"
           TOKEN=$(gcloud auth application-default print-access-token)
           curl -sS -X GET \
-            "https://firestore.googleapis.com/v1/projects/khmer-ouk-datacollection/databases/(default)/documents/users/$UID" \
+            "https://firestore.googleapis.com/v1/projects/khmer-ouk-datacollection/databases/(default)/documents/users/$GUEST_UID" \
             -H "Authorization: Bearer $TOKEN"
