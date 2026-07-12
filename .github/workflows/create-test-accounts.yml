@@ -22,10 +22,24 @@ jobs:
             { email: 'oukhtest.bob@example.com', password: 'OukTest123!', name: 'TestBob' },
           ];
 
+          async function pollModeScreenOrError(page, label, maxSeconds) {
+            for (let i = 0; i < maxSeconds; i++) {
+              await page.waitForTimeout(1000);
+              const state = await page.evaluate(() => ({
+                modeScreenVisible: document.getElementById('modeScreen').style.display === 'flex',
+                errText: document.getElementById('loginError').style.display === 'block' ? document.getElementById('loginError').textContent : null,
+              }));
+              console.log(label, 't+' + (i + 1) + 's:', JSON.stringify(state));
+              if (state.modeScreenVisible || state.errText) return state;
+            }
+            return { modeScreenVisible: false, errText: null };
+          }
+
           async function createOrSignIn(browser, acct) {
             const context = await browser.newContext();
             const page = await context.newPage();
             page.on('pageerror', err => console.log(`[${acct.name} pageerror]`, String(err)));
+            page.on('console', msg => { if (msg.type() === 'error' || msg.type() === 'warning') console.log(`[${acct.name} console.${msg.type()}]`, msg.text()); });
             await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load', timeout: 45000 });
             await page.waitForTimeout(2000);
             await page.click('#startBtn');
@@ -35,26 +49,17 @@ jobs:
             await page.fill('#loginEmail', acct.email);
             await page.fill('#loginEmailPassword', acct.password);
             await page.click('#loginEmailSubmitBtn');
-            await page.waitForTimeout(1500);
 
-            let errText = await page.evaluate(() => {
-              const el = document.getElementById('loginError');
-              return el.style.display === 'block' ? el.textContent : null;
-            });
+            let { modeScreenVisible, errText } = await pollModeScreenOrError(page, acct.name + ' signup', 10);
 
             if (errText && errText.includes('already has an account')) {
               console.log(acct.name, '-> account already exists, signing in instead');
               await page.click('#loginEmailToggleModeBtn');
               await page.waitForTimeout(200);
               await page.click('#loginEmailSubmitBtn');
-              await page.waitForTimeout(1500);
-              errText = await page.evaluate(() => {
-                const el = document.getElementById('loginError');
-                return el.style.display === 'block' ? el.textContent : null;
-              });
+              ({ modeScreenVisible, errText } = await pollModeScreenOrError(page, acct.name + ' signin', 10));
             }
 
-            const modeScreenVisible = await page.evaluate(() => document.getElementById('modeScreen').style.display === 'flex');
             console.log(acct.name, 'result: modeScreenVisible=', modeScreenVisible, 'errText=', errText);
 
             if (modeScreenVisible) {
