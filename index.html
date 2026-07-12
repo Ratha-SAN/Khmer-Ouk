@@ -379,15 +379,54 @@
       0 0 70px 14px rgba(79,216,255,.08), 0 24px 60px rgba(0,0,0,.55);
   }
   .loginHint { font-size: 11px; color: var(--text-muted); opacity: .75; margin: 4px 0 0; line-height: 1.45; }
-  #loginUsername, #loginPassword {
+  #loginUsername, #loginPassword, #loginEmail, #loginEmailPassword {
     font-family: inherit; font-size: 15px; border-radius: 6px; border: 1px solid var(--accent-dim);
     background: var(--surface-2); color: var(--panel-fg); padding: 6px 10px; box-sizing: border-box;
   }
-  #loginUsername:focus, #loginPassword:focus { border-color: var(--accent); outline: none; }
-  #loginSwitchUserBtn {
+  #loginUsername:focus, #loginPassword:focus, #loginEmail:focus, #loginEmailPassword:focus { border-color: var(--accent); outline: none; }
+  #loginSwitchUserBtn, #loginEmailToggleModeBtn, #loginEmailBackBtn {
     background: none; border: none; color: var(--text-faint); font-size: 12px;
     text-decoration: underline; padding: 4px; cursor: pointer;
   }
+  .loginDivider {
+    display: flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 11px; color: var(--text-muted);
+  }
+  .loginDivider::before, .loginDivider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .signupRow { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+  .signupIconBtn {
+    width: 44px; height: 44px; border-radius: 10px; background: var(--surface-2);
+    border: 1px solid var(--accent-dim); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--panel-fg);
+  }
+  .signupIconBtn:hover:not(:disabled) { border-color: var(--accent); }
+  .signupIconBtn:disabled { opacity: .35; cursor: not-allowed; }
+  #profileEntryBtn {
+    position: fixed; top: 10px; right: 10px; z-index: 21; width: 40px; height: 40px; border-radius: 50%;
+    padding: 0; overflow: hidden; border: 2px solid var(--accent-dim); background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  #profileEntryBtn:hover { border-color: var(--accent); }
+  #profileEntryBtn img { width: 100%; height: 100%; object-fit: cover; }
+  #profileEntryInitial, #profileAvatarInitial {
+    font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  #profileEntryInitial { font-size: 16px; }
+  #profileAvatarPreview {
+    width: 84px; height: 84px; border-radius: 50%; margin: 14px auto 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent-dim);
+  }
+  #profileAvatarPreview img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  #profileAvatarInitial { font-size: 32px; }
+  #profileGradientGrid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+  .gradientSwatch {
+    width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;
+  }
+  .gradientSwatch.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+  #profileDisplayName {
+    font-family: inherit; font-size: 15px; border-radius: 6px; border: 1px solid var(--accent-dim);
+    background: var(--surface-2); color: var(--panel-fg); padding: 6px 10px; box-sizing: border-box;
+  }
+  #profileDisplayName:focus { border-color: var(--accent); outline: none; }
   #startScreen .box h1 {
     font-size: 30px; margin-bottom: 6px;
     background: linear-gradient(180deg, #fff3d6, #ffcf6b 55%, #e6a53a);
@@ -1373,9 +1412,12 @@
       signInGuest: function () { return Promise.reject(new Error('Firebase unavailable')); },
       signInGoogle: function () { return Promise.reject(new Error('Firebase unavailable')); },
       signInApple: function () { return Promise.reject(new Error('Firebase unavailable')); },
+      signUpEmail: function () { return Promise.reject(new Error('Firebase unavailable')); },
+      signInEmail: function () { return Promise.reject(new Error('Firebase unavailable')); },
       signOut: function () { return Promise.resolve(); },
       // No-op until Firestore is available; upgraded below once it loads.
-      recordProfile: function () {}
+      recordProfile: function () {},
+      fetchProfile: function () { return Promise.resolve(null); }
     };
   })();
 </script>
@@ -1438,6 +1480,14 @@
               .catch(function (err) { console.warn('Firestore user profile save failed:', err); });
           } catch (err) { console.warn('Firestore user profile save threw:', err); }
         };
+        // Reads back a previously-saved profile (avatar choice, display
+        // name) so it follows the account across devices/sessions -- the
+        // security rule only allows a user to read their own doc.
+        window.__oukAuth.fetchProfile = function (uid) {
+          return db.collection('users').doc(uid).get()
+            .then(function (doc) { return doc.exists ? doc.data() : null; })
+            .catch(function (err) { console.warn('Firestore profile fetch failed:', err); return null; });
+        };
       }
       if (firebase.auth) {
         var auth = firebase.auth();
@@ -1472,6 +1522,16 @@
           var provider = new firebase.auth.OAuthProvider('apple.com');
           return auth.signInWithPopup(provider).catch(function (err) {
             console.warn('Apple sign-in failed:', err); throw err;
+          });
+        };
+        window.__oukAuth.signUpEmail = function (email, password) {
+          return auth.createUserWithEmailAndPassword(email, password).catch(function (err) {
+            console.warn('Email sign-up failed:', err); throw err;
+          });
+        };
+        window.__oukAuth.signInEmail = function (email, password) {
+          return auth.signInWithEmailAndPassword(email, password).catch(function (err) {
+            console.warn('Email sign-in failed:', err); throw err;
           });
         };
         window.__oukAuth.signOut = function () { return auth.signOut(); };
@@ -1555,6 +1615,10 @@
   <div id="fxLayer" aria-hidden="true"></div>
   <div id="fxPortalLayer" aria-hidden="true"></div>
   <button id="panelToggle" title="Hide/show control panel">◧</button>
+  <button id="profileEntryBtn" title="គណនីរបស់អ្នក — Your profile" style="display:none">
+    <img id="profileEntryImg" alt="" style="display:none">
+    <span id="profileEntryInitial"></span>
+  </button>
   <div id="camControls">
     <button id="zoomInBtn" title="Zoom In">＋</button>
     <button id="zoomOutBtn" title="Zoom Out">－</button>
@@ -1567,20 +1631,54 @@
 <div id="loginScreen" class="fullOverlay" style="display:none">
   <div class="box">
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
-    <p>ចូលជាភ្ញៀវ — Continue as a guest</p>
-    <div style="text-align:left;margin-top:6px">
-      <label style="display:block">ឈ្មោះអ្នកប្រើ Username
-        <input type="text" id="loginUsername" style="width:100%;margin-top:4px" autocomplete="username">
-      </label>
-      <p class="loginHint">ឈ្មោះនេះបង្កើតដោយស្វ័យប្រវត្តិ ប៉ុន្តែអ្នកអាចប្ដូរជាឈ្មោះផ្ទាល់ខ្លួនបានគ្រប់ពេល។<br>Auto-generated for you — feel free to type your own name instead.</p>
-      <label style="display:block;margin-top:10px">លេខសម្ងាត់ Password
-        <input type="password" id="loginPassword" style="width:100%;margin-top:4px" autocomplete="current-password">
-      </label>
-      <p class="loginHint">ដាក់ក៏បានមិនដាក់ក៏បាន<br>Optional — you can leave this blank.</p>
+    <div id="loginGuestPanel">
+      <p>ចូលជាភ្ញៀវ — Continue as a guest</p>
+      <div style="text-align:left;margin-top:6px">
+        <label style="display:block">ឈ្មោះអ្នកប្រើ Username
+          <input type="text" id="loginUsername" style="width:100%;margin-top:4px" autocomplete="username">
+        </label>
+        <p class="loginHint">ឈ្មោះនេះបង្កើតដោយស្វ័យប្រវត្តិ ប៉ុន្តែអ្នកអាចប្ដូរជាឈ្មោះផ្ទាល់ខ្លួនបានគ្រប់ពេល។<br>Auto-generated for you — feel free to type your own name instead.</p>
+        <label style="display:block;margin-top:10px">លេខសម្ងាត់ Password
+          <input type="password" id="loginPassword" style="width:100%;margin-top:4px" autocomplete="current-password">
+        </label>
+        <p class="loginHint">ដាក់ក៏បានមិនដាក់ក៏បាន<br>Optional — you can leave this blank.</p>
+      </div>
+      <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
+        <button id="loginSubmitBtn">ចូល ▸ Log In</button>
+        <button id="loginSwitchUserBtn" type="button">មិនមែនអ្នកទេ? ចូលជាអ្នកប្រើផ្សេង — Not you? Log in as a different user</button>
+      </div>
+      <div class="loginDivider"><span>ឬ ចុះឈ្មោះជាមួយ — or sign up with</span></div>
+      <div class="signupRow">
+        <button id="signupEmailBtn" class="signupIconBtn" type="button" title="ចុះឈ្មោះជាមួយអ៊ីមែល — Sign up with Email">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        </button>
+        <button id="signupGoogleBtn" class="signupIconBtn" type="button" title="ចុះឈ្មោះជាមួយ Google — Sign up with Google">
+          <svg viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.7 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.5 13.2l7.8 6.1C12.3 13.1 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 2.9-2.2 5.4-4.7 7l7.4 5.7c4.3-4 6.8-9.9 6.8-17.2z"/><path fill="#FBBC05" d="M10.3 19.3a14.5 14.5 0 0 0 0 9.4l-7.8 6.1a24 24 0 0 1 0-21.6z"/><path fill="#34A853" d="M24 48c6.2 0 11.7-2 15.6-5.6l-7.4-5.7c-2.1 1.4-4.8 2.2-8.2 2.2-6.4 0-11.7-3.6-13.7-8.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+        </button>
+        <button id="signupAppleBtn" class="signupIconBtn" type="button" title="ចុះឈ្មោះជាមួយ Apple — Sign up with Apple">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16.365 1.43c0 1.14-.468 2.185-1.238 2.955-.848.85-2.233 1.505-3.32 1.417-.126-1.108.42-2.28 1.19-3.02.85-.826 2.31-1.44 3.368-1.352zM20.13 17.14c-.395.91-.876 1.79-1.44 2.63-.79 1.16-1.44 1.96-1.93 2.4-.76.72-1.58 1.09-2.45 1.11-.63.02-1.39-.18-2.28-.6-.89-.42-1.7-.62-2.44-.62-.77 0-1.61.2-2.51.62-.9.42-1.63.63-2.19.65-.83.03-1.66-.35-2.5-1.14-.53-.47-1.21-1.3-2.03-2.5-.88-1.28-1.6-2.77-2.17-4.47-.6-1.83-.9-3.6-.9-5.31 0-1.96.42-3.65 1.27-5.06.67-1.13 1.55-2.02 2.66-2.68 1.11-.66 2.31-1 3.6-1.02.66 0 1.53.21 2.6.62 1.07.42 1.75.63 2.06.63.23 0 .99-.24 2.27-.72 1.2-.44 2.22-.62 3.05-.55 2.25.18 3.94 1.07 5.06 2.66-2.02 1.22-3.02 2.93-3 5.12.02 1.71.63 3.13 1.83 4.26.55.52 1.16.93 1.84 1.21-.15.43-.3.84-.47 1.24z"/></svg>
+        </button>
+        <button id="signupGameCenterBtn" class="signupIconBtn" type="button" disabled title="Game Center is only available inside a native iOS app, not a web browser — សេវាកម្ម Game Center មានតែក្នុងកម្មវិធី iOS ប៉ុណ្ណោះ">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="11" rx="3"/><path d="M7 10v5M4.5 12.5h5"/><circle cx="16" cy="11" r="1"/><circle cx="18.5" cy="13.5" r="1"/></svg>
+        </button>
+      </div>
     </div>
-    <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
-      <button id="loginSubmitBtn">ចូល ▸ Log In</button>
-      <button id="loginSwitchUserBtn" type="button">មិនមែនអ្នកទេ? ចូលជាអ្នកប្រើផ្សេង — Not you? Log in as a different user</button>
+    <div id="loginEmailPanel" style="display:none">
+      <p id="loginEmailTitle">បង្កើតគណនីអ៊ីមែល — Create an email account</p>
+      <div style="text-align:left;margin-top:6px">
+        <label style="display:block">អ៊ីមែល Email
+          <input type="email" id="loginEmail" style="width:100%;margin-top:4px" autocomplete="email">
+        </label>
+        <label style="display:block;margin-top:10px">លេខសម្ងាត់ Password
+          <input type="password" id="loginEmailPassword" style="width:100%;margin-top:4px" autocomplete="new-password">
+        </label>
+        <p class="loginHint">យ៉ាងតិច៦តួ — At least 6 characters.</p>
+      </div>
+      <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
+        <button id="loginEmailSubmitBtn">បង្កើតគណនី ▸ Create Account</button>
+        <button id="loginEmailToggleModeBtn" type="button">មានគណនីរួចហើយ? ចូល — Already have an account? Sign in</button>
+        <button id="loginEmailBackBtn" type="button">← ត្រឡប់ Back</button>
+      </div>
     </div>
     <p id="loginError" style="display:none;color:var(--danger);font-size:12px;margin-top:12px"></p>
   </div>
@@ -1896,6 +1994,32 @@
       <button id="lockPopupSignIn">ចូល Sign In</button>
       <button id="lockPopupClose">បិទ Close</button>
     </div>
+  </div>
+</div>
+
+<div id="profileScreen" class="fullOverlay" style="display:none;z-index:25">
+  <div class="box" style="max-width:360px">
+    <h1 style="font-size:20px">គណនីរបស់អ្នក<br>Your Profile</h1>
+    <div id="profileAvatarPreview">
+      <img id="profileAvatarImg" alt="" style="display:none">
+      <span id="profileAvatarInitial"></span>
+    </div>
+    <div class="btnrow" style="justify-content:center;margin-top:10px">
+      <button id="profileUploadBtn" type="button">📷 ផ្ទុករូបភាព Upload Photo</button>
+      <input type="file" id="profilePhotoInput" accept="image/*" style="display:none">
+    </div>
+    <p class="loginHint" style="text-align:center">ឬជ្រើសរើសពណ៌ — or pick a color</p>
+    <div id="profileGradientGrid"></div>
+    <label style="display:block;text-align:left;margin-top:14px">ឈ្មោះបង្ហាញ Display name
+      <input type="text" id="profileDisplayName" style="width:100%;margin-top:4px">
+    </label>
+    <p id="profileMeta" class="loginHint" style="text-align:center;margin-top:10px"></p>
+    <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
+      <button id="profileSaveBtn">រក្សាទុក ▸ Save</button>
+      <button id="profileSignOutBtn" type="button">ចាកចេញ Sign Out</button>
+      <button id="profileCloseBtn" type="button">បិទ Close</button>
+    </div>
+    <p id="profileStatus" style="display:none;color:var(--accent);font-size:12px;margin-top:10px"></p>
   </div>
 </div>
 
@@ -8812,11 +8936,7 @@ function scoreAvatarURL(name, hex) {
 function playerDisplayName(side) {
   if (mode === 'hotseat') return side === E.WHITE ? 'Player 1' : 'Player 2';
   if (side !== humanSide) return 'Computer L' + mode.slice(2);
-  try {
-    const a = window.__oukAuth.getState();
-    if (a && a.signedIn && a.uid && a.uid.indexOf('local:') === 0) return a.uid.slice(6);
-  } catch (e) {}
-  return 'You';
+  return (currentProfile && currentProfile.displayName) || 'You';
 }
 function multisetMaterial(ms) {
   let s = 0;
@@ -10331,6 +10451,7 @@ function showStartScreen() {
   document.getElementById('modeScreen').style.display = 'none';
   document.getElementById('startScreen').style.display = 'flex';
   overlayOpen = true;
+  updateProfileEntryVisibility();
   tickHud();
 }
 document.getElementById('cancelGameBtn').onclick = showStartScreen;
@@ -10570,6 +10691,7 @@ function clearLoginError() { document.getElementById('loginError').style.display
 // if this device has never logged in before.
 function resetLoginFields() {
   clearLoginError();
+  showGuestPanel();
   document.getElementById('loginUsername').value = rememberedUsername() || nextGuestUsername();
   document.getElementById('loginPassword').value = '';
 }
@@ -10578,11 +10700,13 @@ function showLoginScreen() {
   resetLoginFields();
   document.getElementById('loginScreen').style.display = 'flex';
   overlayOpen = true;
+  updateProfileEntryVisibility();
   tickHud();
 }
 function finishLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('loginPassword').value = '';
+  updateProfileEntryVisibility();
   openModeScreen();
 }
 // A random offline-only id, used only as a last resort if Firebase itself
@@ -10590,6 +10714,44 @@ function finishLogin() {
 // game must stay playable either way, just without a real synced identity.
 function offlineUid() {
   return 'offline:' + ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+}
+
+// ---------- profile (avatar + display name, follows the account) ----------
+let currentProfile = null; // { uid, displayName, email, photoURL, avatarPhoto, avatarGradient, provider }
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#ff9f43,#ffcf6b)', 'linear-gradient(135deg,#ff4fc5,#ff9fe0)',
+  'linear-gradient(135deg,#4fd8ff,#7a5cff)', 'linear-gradient(135deg,#34d399,#0ea5a4)',
+  'linear-gradient(135deg,#a855f7,#6366f1)', 'linear-gradient(135deg,#f87171,#f97316)',
+  'linear-gradient(135deg,#facc15,#84cc16)', 'linear-gradient(135deg,#38bdf8,#3b82f6)'
+];
+// Firestore rejects `undefined` field values, so only ever include fields
+// that are actually set -- passing every key through unconditionally would
+// throw and silently drop the whole write.
+function profileWriteFields(p) {
+  const out = { uid: p.uid, lastSignInAt: Date.now() };
+  ['displayName', 'email', 'photoURL', 'avatarPhoto', 'avatarGradient', 'provider'].forEach((k) => {
+    if (p[k] !== undefined && p[k] !== null) out[k] = p[k];
+  });
+  return out;
+}
+// Called right after any successful sign-in. A real account's uid is
+// permanent, so this pulls back whatever avatar/display-name choice was
+// saved for it before (via the profile screen) and merges it under the
+// fresh login info, rather than the fresh info clobbering a saved avatar.
+function completeSignIn(uid, base) {
+  return Promise.resolve().then(() => window.__oukAuth.fetchProfile(uid)).catch(() => null).then((saved) => {
+    currentProfile = Object.assign({}, saved || {}, base, { uid });
+    if (saved && !base.photoURL) {
+      if (saved.avatarGradient) currentProfile.avatarGradient = saved.avatarGradient;
+      if (saved.avatarPhoto) currentProfile.avatarPhoto = saved.avatarPhoto;
+    }
+    if (!currentProfile.avatarGradient && !currentProfile.avatarPhoto) {
+      currentProfile.avatarGradient = AVATAR_GRADIENTS[Math.floor(Math.random() * AVATAR_GRADIENTS.length)];
+    }
+    window.__oukAuth.recordProfile(profileWriteFields(currentProfile));
+    updateProfileButtonUI();
+    return currentProfile;
+  });
 }
 document.getElementById('loginSubmitBtn').onclick = () => {
   clearLoginError();
@@ -10600,15 +10762,18 @@ document.getElementById('loginSubmitBtn').onclick = () => {
   window.__oukAuth.signInGuest()
     .then((cred) => {
       const uid = cred && cred.user ? cred.user.uid : offlineUid();
-      window.__oukAuth.recordProfile({ uid, displayName: username, provider: 'anonymous', lastSignInAt: Date.now() });
       rememberUsername(username);
-      finishLogin();
+      return completeSignIn(uid, { displayName: username, provider: 'anonymous' });
     })
+    .then(() => finishLogin())
     .catch(() => {
       // Firebase unreachable: keep the game playable offline, just without
       // a real synced uid -- this is a local-only identity for this visit.
-      window.__oukAuth._setState({ signedIn: true, method: 'guest', uid: offlineUid(), tier: 'guest' });
+      const uid = offlineUid();
+      window.__oukAuth._setState({ signedIn: true, method: 'guest', uid, tier: 'guest' });
       rememberUsername(username);
+      currentProfile = { uid, displayName: username, provider: 'anonymous' };
+      updateProfileButtonUI();
       finishLogin();
     })
     .finally(() => { btn.disabled = false; });
@@ -10633,24 +10798,233 @@ document.getElementById('loginPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click();
 });
 
+// ---------- sign-up: email, Google, Apple ----------
+// A real account's uid is permanent (unlike the anonymous guest uid, it
+// isn't reset by "log in as a different user"), so on every successful
+// sign-in we pull back whatever avatar/display-name choice was saved for
+// that uid before -- see completeSignIn below.
+function friendlyAuthError(err) {
+  const code = err && err.code;
+  const map = {
+    'auth/email-already-in-use': 'អ៊ីមែលនេះមានគណនីរួចហើយ។ សូមចូលជំនួសវិញ។ — This email already has an account. Try signing in instead.',
+    'auth/invalid-email': 'អ៊ីមែលមិនត្រឹមត្រូវ។ — That email address looks invalid.',
+    'auth/weak-password': 'លេខសម្ងាត់ខ្សោយពេក (យ៉ាងតិច៦តួ)។ — Password is too weak (min 6 characters).',
+    'auth/wrong-password': 'លេខសម្ងាត់មិនត្រឹមត្រូវ។ — Incorrect password.',
+    'auth/user-not-found': 'រកមិនឃើញគណនីនេះទេ។ — No account found with that email.',
+    'auth/invalid-credential': 'អ៊ីមែល ឬ លេខសម្ងាត់មិនត្រឹមត្រូវ។ — Incorrect email or password.',
+    'auth/popup-blocked': 'កម្មវិធីរុករករារផ្ទាំងលោត។ សូមអនុញ្ញាត popup។ — Your browser blocked the sign-in popup. Please allow it.',
+    'auth/network-request-failed': 'បញ្ហាបណ្ដាញ។ — Network error. Check your connection.'
+  };
+  return (code && map[code]) || 'មានបញ្ហា សូមព្យាយាមម្ដងទៀត។ — Something went wrong. Please try again.';
+}
+function showGuestPanel() {
+  clearLoginError();
+  document.getElementById('loginEmailPanel').style.display = 'none';
+  document.getElementById('loginGuestPanel').style.display = 'block';
+}
+let emailAuthMode = 'signup'; // 'signup' | 'signin'
+function applyEmailAuthMode() {
+  const isSignup = emailAuthMode === 'signup';
+  document.getElementById('loginEmailTitle').textContent = isSignup
+    ? 'បង្កើតគណនីអ៊ីមែល — Create an email account'
+    : 'ចូលដោយអ៊ីមែល — Sign in with email';
+  document.getElementById('loginEmailSubmitBtn').textContent = isSignup ? 'បង្កើតគណនី ▸ Create Account' : 'ចូល ▸ Sign In';
+  document.getElementById('loginEmailToggleModeBtn').textContent = isSignup
+    ? 'មានគណនីរួចហើយ? ចូល — Already have an account? Sign in'
+    : 'មិនទាន់មានគណនី? បង្កើតថ្មី — Need an account? Create one';
+}
+function showEmailPanel() {
+  clearLoginError();
+  document.getElementById('loginGuestPanel').style.display = 'none';
+  document.getElementById('loginEmailPanel').style.display = 'block';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginEmailPassword').value = '';
+  emailAuthMode = 'signup';
+  applyEmailAuthMode();
+  document.getElementById('loginEmail').focus();
+}
+document.getElementById('signupEmailBtn').onclick = showEmailPanel;
+document.getElementById('loginEmailBackBtn').onclick = showGuestPanel;
+document.getElementById('loginEmailToggleModeBtn').onclick = () => {
+  emailAuthMode = emailAuthMode === 'signup' ? 'signin' : 'signup';
+  clearLoginError();
+  applyEmailAuthMode();
+};
+document.getElementById('loginEmailSubmitBtn').onclick = () => {
+  clearLoginError();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginEmailPassword').value;
+  if (!email || !password) { showLoginError('សូមបញ្ចូលអ៊ីមែល និងលេខសម្ងាត់។ Please enter both email and password.'); return; }
+  const btn = document.getElementById('loginEmailSubmitBtn');
+  btn.disabled = true;
+  const action = emailAuthMode === 'signup'
+    ? window.__oukAuth.signUpEmail(email, password)
+    : window.__oukAuth.signInEmail(email, password);
+  action
+    .then((cred) => completeSignIn(cred.user.uid, {
+      displayName: cred.user.displayName || email.split('@')[0],
+      email: email,
+      provider: 'password'
+    }))
+    .then((profile) => { rememberUsername(profile.displayName); finishLogin(); })
+    .catch((err) => showLoginError(friendlyAuthError(err)))
+    .finally(() => { btn.disabled = false; });
+};
+document.getElementById('loginEmailPassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('loginEmailSubmitBtn').click();
+});
+function handleOAuthSignup(btnId, signInPromiseFn, providerName) {
+  const btn = document.getElementById(btnId);
+  btn.onclick = () => {
+    clearLoginError();
+    btn.disabled = true;
+    signInPromiseFn()
+      .then((cred) => completeSignIn(cred.user.uid, {
+        displayName: cred.user.displayName || (cred.user.email ? cred.user.email.split('@')[0] : 'Player'),
+        email: cred.user.email || undefined,
+        photoURL: cred.user.photoURL || undefined,
+        provider: providerName
+      }))
+      .then((profile) => { rememberUsername(profile.displayName); finishLogin(); })
+      .catch((err) => {
+        // The user closing the popup themselves isn't an error worth surfacing.
+        if (err && (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request')) return;
+        showLoginError(friendlyAuthError(err));
+      })
+      .finally(() => { btn.disabled = false; });
+  };
+}
+handleOAuthSignup('signupGoogleBtn', () => window.__oukAuth.signInGoogle(), 'google.com');
+handleOAuthSignup('signupAppleBtn', () => window.__oukAuth.signInApple(), 'apple.com');
+
+// ---------- profile screen ----------
+function profileAvatarSrc(p) { return p && (p.avatarPhoto || p.photoURL) || null; }
+function profileInitial(p) { return ((p && p.displayName || '?').trim().charAt(0) || '?').toUpperCase(); }
+function paintAvatar(imgEl, initialEl, containerEl, profile) {
+  const src = profileAvatarSrc(profile);
+  if (src) {
+    imgEl.src = src; imgEl.style.display = 'block'; initialEl.style.display = 'none';
+    containerEl.style.background = '';
+  } else {
+    imgEl.style.display = 'none'; initialEl.style.display = 'block'; initialEl.textContent = profileInitial(profile);
+    containerEl.style.background = (profile && profile.avatarGradient) || AVATAR_GRADIENTS[0];
+  }
+}
+function updateProfileButtonUI() {
+  const btn = document.getElementById('profileEntryBtn');
+  paintAvatar(document.getElementById('profileEntryImg'), document.getElementById('profileEntryInitial'), btn, currentProfile);
+  updateProfileEntryVisibility();
+}
+function updateProfileEntryVisibility() {
+  const loginOpen = document.getElementById('loginScreen').style.display === 'flex';
+  document.getElementById('profileEntryBtn').style.display = (currentProfile && !loginOpen) ? 'flex' : 'none';
+}
+// Pending avatar edits (photo/gradient) live here until Save is clicked,
+// so opening the profile screen and closing it without saving is a no-op.
+let pendingAvatar = null; // { avatarPhoto } | { avatarGradient } | null (null = keep current)
+(function buildGradientGrid() {
+  const grid = document.getElementById('profileGradientGrid');
+  AVATAR_GRADIENTS.forEach((g) => {
+    const sw = document.createElement('div');
+    sw.className = 'gradientSwatch';
+    sw.style.background = g;
+    sw.dataset.gradient = g;
+    sw.onclick = () => {
+      pendingAvatar = { avatarGradient: g };
+      Array.from(grid.children).forEach((c) => c.classList.toggle('selected', c === sw));
+      paintAvatar(document.getElementById('profileAvatarImg'), document.getElementById('profileAvatarInitial'),
+        document.getElementById('profileAvatarPreview'), Object.assign({}, currentProfile, pendingAvatar, { avatarPhoto: null }));
+    };
+    grid.appendChild(sw);
+  });
+})();
+function providerLabel(p) {
+  const map = { 'anonymous': 'ភ្ញៀវ — Guest account', 'google.com': 'Google', 'apple.com': 'Apple', 'password': 'អ៊ីមែល — Email' };
+  return (p && map[p.provider]) || 'Unknown';
+}
+function openProfileScreen() {
+  if (!currentProfile) return;
+  pendingAvatar = null;
+  document.getElementById('profileDisplayName').value = currentProfile.displayName || '';
+  document.getElementById('profileMeta').textContent = 'ចូលតាមរយៈ — Signed in via ' + providerLabel(currentProfile);
+  document.getElementById('profileStatus').style.display = 'none';
+  const grid = document.getElementById('profileGradientGrid');
+  Array.from(grid.children).forEach((c) => c.classList.toggle('selected', c.dataset.gradient === currentProfile.avatarGradient && !currentProfile.avatarPhoto));
+  paintAvatar(document.getElementById('profileAvatarImg'), document.getElementById('profileAvatarInitial'), document.getElementById('profileAvatarPreview'), currentProfile);
+  document.getElementById('profileScreen').style.display = 'flex';
+}
+function closeProfileScreen() {
+  document.getElementById('profileScreen').style.display = 'none';
+}
+document.getElementById('profileEntryBtn').onclick = openProfileScreen;
+document.getElementById('profileCloseBtn').onclick = closeProfileScreen;
+document.getElementById('profileUploadBtn').onclick = () => document.getElementById('profilePhotoInput').click();
+document.getElementById('profilePhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = () => {
+    img.onload = () => {
+      // Center-crop to a square, then downscale to a small fixed size --
+      // Firestore documents cap at 1MB, so this stays comfortably tiny.
+      const size = 160;
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = size;
+      const ctx = cv.getContext('2d');
+      const s = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      const dataUrl = cv.toDataURL('image/jpeg', 0.82);
+      pendingAvatar = { avatarPhoto: dataUrl };
+      Array.from(document.getElementById('profileGradientGrid').children).forEach((c) => c.classList.remove('selected'));
+      paintAvatar(document.getElementById('profileAvatarImg'), document.getElementById('profileAvatarInitial'),
+        document.getElementById('profileAvatarPreview'), Object.assign({}, currentProfile, { avatarPhoto: dataUrl, avatarGradient: null }));
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('profileSaveBtn').onclick = () => {
+  if (!currentProfile) return;
+  const name = document.getElementById('profileDisplayName').value.trim();
+  if (!name) { document.getElementById('profileDisplayName').focus(); return; }
+  currentProfile.displayName = name;
+  if (pendingAvatar) {
+    if (pendingAvatar.avatarPhoto) { currentProfile.avatarPhoto = pendingAvatar.avatarPhoto; currentProfile.avatarGradient = null; }
+    if (pendingAvatar.avatarGradient) { currentProfile.avatarGradient = pendingAvatar.avatarGradient; currentProfile.avatarPhoto = null; }
+    pendingAvatar = null;
+  }
+  rememberUsername(name);
+  window.__oukAuth.recordProfile(profileWriteFields(currentProfile));
+  updateProfileButtonUI();
+  const status = document.getElementById('profileStatus');
+  status.textContent = 'រក្សាទុករួច Saved!';
+  status.style.display = 'block';
+};
+document.getElementById('profileSignOutBtn').onclick = () => {
+  Promise.resolve(window.__oukAuth.signOut()).catch(() => {}).finally(() => {
+    currentProfile = null;
+    document.getElementById('profileScreen').style.display = 'none';
+    showStartScreen();
+  });
+};
+
 // ---------- guest feature gating ----------
-// A real Google/Apple sign-in unlocks every option; anonymous/guest (or no
-// sign-in at all) is capped to the first two real choices in Theme,
-// Background, Music, and Lighting. A neutral/free choice ('auto' / 'none')
-// doesn't count as one of the two, since it isn't really "a feature."
-// LOGIN_ENABLED is a temporary kill switch: with the login screen hidden
-// (see startScreen/loginScreen above) there is currently no in-app way to
-// sign in, so gating is also disabled and everyone gets full access --
-// flip this back to true to restore both the login screen and the guest
-// cap together.
-const LOGIN_ENABLED = false;
+// A real Google/Apple/email sign-up unlocks every option; anonymous/guest
+// is capped to the first two real choices in Theme, Background, Music, and
+// Lighting, and can't save games at all. A neutral/free choice ('auto' /
+// 'none') doesn't count as one of the two, since it isn't really "a
+// feature." The login screen now has a working real-account path (email,
+// Google, Apple), so this stays permanently on.
+const LOGIN_ENABLED = true;
 let accessTier = LOGIN_ENABLED ? 'guest' : 'full'; // 'guest' | 'full'
 const GUEST_SELECT_LIMITS = {
   themeSel: { free: [], allowed: 2 },
   bgSel: { free: ['auto'], allowed: 2 },
   musicSel: { free: ['none'], allowed: 2 }
 };
-const GUEST_LOCKED_BUTTONS = ['lightEvening', 'lightStudio'];
+const GUEST_LOCKED_BUTTONS = ['lightEvening', 'lightStudio', 'saveBtn'];
 
 function isSelectValueLocked(selId, value) {
   if (accessTier !== 'guest') return false;
