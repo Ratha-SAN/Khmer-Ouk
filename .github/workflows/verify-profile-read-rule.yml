@@ -29,10 +29,17 @@ jobs:
             await page.click('#startBtn');
             await page.waitForTimeout(500);
             await page.click('#loginSubmitBtn');
-            await page.waitForTimeout(4000);
 
-            const authState = await page.evaluate(() => window.__oukAuth.getState());
+            // The very first anonymous sign-in on a cold connection can take
+            // a few seconds to settle -- poll rather than a fixed wait.
+            let authState = null;
+            for (let i = 0; i < 15; i++) {
+              await page.waitForTimeout(1000);
+              authState = await page.evaluate(() => window.__oukAuth.getState());
+              if (authState && authState.signedIn && authState.uid) break;
+            }
             console.log('AUTH STATE:', JSON.stringify(authState));
+            if (!authState || !authState.uid) { console.log('Never signed in -- aborting.'); process.exit(1); }
 
             // Save a distinctive display name via the profile screen so we can
             // confirm the read-back actually returns THIS write, not stale data.
