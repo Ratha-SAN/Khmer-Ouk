@@ -11,5 +11,30 @@ jobs:
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-      - run: npm install -g firebase-tools
-      - run: firebase deploy --only firestore:rules --project khmer-ouk-datacollection
+      - name: Deploy Firestore rules via Rules REST API
+        run: |
+          set -euo pipefail
+          PROJECT=khmer-ouk-datacollection
+          TOKEN=$(gcloud auth application-default print-access-token)
+
+          PAYLOAD=$(jq -n --rawfile content firestore.rules \
+            '{source:{files:[{name:"firestore.rules", content:$content}]}}')
+
+          CREATE_RESP=$(curl -sS -X POST \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "https://firebaserules.googleapis.com/v1/projects/$PROJECT/rulesets")
+          echo "$CREATE_RESP"
+          RULESET_NAME=$(echo "$CREATE_RESP" | jq -r '.name')
+          if [ -z "$RULESET_NAME" ] || [ "$RULESET_NAME" = "null" ]; then
+            echo "Failed to create ruleset" >&2
+            exit 1
+          fi
+
+          RELEASE_PAYLOAD=$(jq -n --arg ruleset "$RULESET_NAME" '{rulesetName:$ruleset}')
+          RELEASE_RESP=$(curl -sS -X PATCH \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d "$RELEASE_PAYLOAD" \
+            "https://firebaserules.googleapis.com/v1/projects/$PROJECT/releases/cloud.firestore?updateMask=rulesetName")
+          echo "$RELEASE_RESP"
+          echo "$RELEASE_RESP" | jq -e --arg ruleset "$RULESET_NAME" '.rulesetName == $ruleset'
