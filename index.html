@@ -400,17 +400,11 @@
   }
   .signupIconBtn:hover:not(:disabled) { border-color: var(--accent); }
   .signupIconBtn:disabled { opacity: .35; cursor: not-allowed; }
-  #profileEntryBtn {
-    position: fixed; top: 10px; right: 10px; z-index: 21; width: 40px; height: 40px; border-radius: 50%;
-    padding: 0; overflow: hidden; border: 2px solid var(--accent-dim); background: var(--surface-2);
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-  }
-  #profileEntryBtn:hover { border-color: var(--accent); }
-  #profileEntryBtn img { width: 100%; height: 100%; object-fit: cover; }
-  #profileEntryInitial, #profileAvatarInitial {
+  #profileAvatarInitial {
     font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4);
   }
-  #profileEntryInitial { font-size: 16px; }
+  .scorecard.clickable { cursor: pointer; }
+  .scorecard.clickable:hover .avatar { border-color: var(--accent); }
   #profileAvatarPreview {
     width: 84px; height: 84px; border-radius: 50%; margin: 14px auto 0; overflow: hidden;
     display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent-dim);
@@ -1615,10 +1609,6 @@
   <div id="fxLayer" aria-hidden="true"></div>
   <div id="fxPortalLayer" aria-hidden="true"></div>
   <button id="panelToggle" title="Hide/show control panel">◧</button>
-  <button id="profileEntryBtn" title="គណនីរបស់អ្នក — Your profile" style="display:none">
-    <img id="profileEntryImg" alt="" style="display:none">
-    <span id="profileEntryInitial"></span>
-  </button>
   <div id="camControls">
     <button id="zoomInBtn" title="Zoom In">＋</button>
     <button id="zoomOutBtn" title="Zoom Out">－</button>
@@ -8938,6 +8928,32 @@ function playerDisplayName(side) {
   if (side !== humanSide) return 'Computer L' + mode.slice(2);
   return (currentProfile && currentProfile.displayName) || 'You';
 }
+// The signed-up player's own scorecard shows their actual profile picture
+// (uploaded photo, or their chosen color gradient) instead of the
+// generic per-team initial+color avatar used for everyone else.
+const profileAvatarCache = {};
+function profileAvatarDataURL(profile) {
+  if (profile.avatarPhoto) return profile.avatarPhoto;
+  const grad = profile.avatarGradient || AVATAR_GRADIENTS[0];
+  const initial = profileInitial(profile);
+  const key = grad + '|' + initial;
+  if (profileAvatarCache[key]) return profileAvatarCache[key];
+  const colors = grad.match(/#[0-9a-fA-F]{6}/g) || ['#ffcf6b', '#ff9f43'];
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 76;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 76, 76);
+  g.addColorStop(0, colors[0]);
+  g.addColorStop(1, colors[1] || colors[0]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 76, 76);
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.font = '700 40px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(initial, 38, 42);
+  const url = cv.toDataURL();
+  profileAvatarCache[key] = url;
+  return url;
+}
 function multisetMaterial(ms) {
   let s = 0;
   for (const t in ms) s += (UI_VAL[t] || 0) * ms[t];
@@ -8955,11 +8971,14 @@ function updateScoreboard() {
     const name = playerDisplayName(side);
     card.querySelector('.pname').textContent = name;
     card.querySelector('.pscore').textContent = score;
+    const isOwnCard = mode !== 'hotseat' && side === humanSide && !!currentProfile;
     const hex = side === E.WHITE ? MAT_W.color.getHex() : MAT_B.color.getHex();
-    const url = scoreAvatarURL(name, hex);
+    const url = isOwnCard ? profileAvatarDataURL(currentProfile) : scoreAvatarURL(name, hex);
     const img = card.querySelector('.avatar');
     if (img.src !== url) img.src = url;
     card.classList.toggle('turn', !gameOver && !reviewMode && state.turn === side);
+    card.classList.toggle('clickable', isOwnCard);
+    card.onclick = isOwnCard ? openProfileScreen : null;
   }
 }
 function refreshAll() {
@@ -10451,7 +10470,6 @@ function showStartScreen() {
   document.getElementById('modeScreen').style.display = 'none';
   document.getElementById('startScreen').style.display = 'flex';
   overlayOpen = true;
-  updateProfileEntryVisibility();
   tickHud();
 }
 document.getElementById('cancelGameBtn').onclick = showStartScreen;
@@ -10700,13 +10718,11 @@ function showLoginScreen() {
   resetLoginFields();
   document.getElementById('loginScreen').style.display = 'flex';
   overlayOpen = true;
-  updateProfileEntryVisibility();
   tickHud();
 }
 function finishLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('loginPassword').value = '';
-  updateProfileEntryVisibility();
   openModeScreen();
 }
 // A random offline-only id, used only as a last resort if Firebase itself
@@ -10749,7 +10765,6 @@ function completeSignIn(uid, base) {
       currentProfile.avatarGradient = AVATAR_GRADIENTS[Math.floor(Math.random() * AVATAR_GRADIENTS.length)];
     }
     window.__oukAuth.recordProfile(profileWriteFields(currentProfile));
-    updateProfileButtonUI();
     return currentProfile;
   });
 }
@@ -10773,7 +10788,6 @@ document.getElementById('loginSubmitBtn').onclick = () => {
       window.__oukAuth._setState({ signedIn: true, method: 'guest', uid, tier: 'guest' });
       rememberUsername(username);
       currentProfile = { uid, displayName: username, provider: 'anonymous' };
-      updateProfileButtonUI();
       finishLogin();
     })
     .finally(() => { btn.disabled = false; });
@@ -10911,15 +10925,6 @@ function paintAvatar(imgEl, initialEl, containerEl, profile) {
     containerEl.style.background = (profile && profile.avatarGradient) || AVATAR_GRADIENTS[0];
   }
 }
-function updateProfileButtonUI() {
-  const btn = document.getElementById('profileEntryBtn');
-  paintAvatar(document.getElementById('profileEntryImg'), document.getElementById('profileEntryInitial'), btn, currentProfile);
-  updateProfileEntryVisibility();
-}
-function updateProfileEntryVisibility() {
-  const loginOpen = document.getElementById('loginScreen').style.display === 'flex';
-  document.getElementById('profileEntryBtn').style.display = (currentProfile && !loginOpen) ? 'flex' : 'none';
-}
 // Pending avatar edits (photo/gradient) live here until Save is clicked,
 // so opening the profile screen and closing it without saving is a no-op.
 let pendingAvatar = null; // { avatarPhoto } | { avatarGradient } | null (null = keep current)
@@ -10957,7 +10962,6 @@ function openProfileScreen() {
 function closeProfileScreen() {
   document.getElementById('profileScreen').style.display = 'none';
 }
-document.getElementById('profileEntryBtn').onclick = openProfileScreen;
 document.getElementById('profileCloseBtn').onclick = closeProfileScreen;
 document.getElementById('profileUploadBtn').onclick = () => document.getElementById('profilePhotoInput').click();
 document.getElementById('profilePhotoInput').addEventListener('change', (e) => {
@@ -10998,7 +11002,6 @@ document.getElementById('profileSaveBtn').onclick = () => {
   }
   rememberUsername(name);
   window.__oukAuth.recordProfile(profileWriteFields(currentProfile));
-  updateProfileButtonUI();
   const status = document.getElementById('profileStatus');
   status.textContent = 'រក្សាទុករួច Saved!';
   status.style.display = 'block';
