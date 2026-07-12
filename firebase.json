@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "oukkhmer",
     "public": ".",
     "ignore": [
       "firebase.json",
