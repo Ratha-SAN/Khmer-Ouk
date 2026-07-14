@@ -10741,6 +10741,11 @@ buildLevelButtons();
 // been chosen; opened mid-game via "Change Mode" ('game'), Cancel should
 // still just close back to that ongoing game, unchanged from before.
 let modeScreenOrigin = 'start';
+// Set when the login screen is opened from the lock popup mid-session
+// (a guest hit a locked feature and chose to sign in) rather than from
+// the Start button -- finishLogin() uses this to resume right back into
+// the same mode/game instead of dropping into mode selection.
+let loginMidSession = false;
 // The mode-select overlay is a 2-step wizard: step A (modeScreenChoice) is
 // the top-level Learn to Play / Play choice; step B (modeScreenPlay) is
 // the pre-existing 2 Player / vs Computer + time-control picker, only
@@ -11346,6 +11351,7 @@ function resetLoginFields() {
 }
 function showLoginScreen() {
   document.getElementById('startScreen').style.display = 'none';
+  loginMidSession = false;
   resetLoginFields();
   document.getElementById('loginScreen').style.display = 'flex';
   overlayOpen = true;
@@ -11354,6 +11360,7 @@ function showLoginScreen() {
 function finishLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('loginPassword').value = '';
+  if (loginMidSession) { loginMidSession = false; return; }
   openModeScreen();
 }
 // A random offline-only id, used only as a last resort if Firebase itself
@@ -11758,6 +11765,7 @@ document.getElementById('lockPopupSignIn').onclick = () => {
   document.getElementById('lockPopup').style.display = 'none';
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('modeScreen').style.display = 'none';
+  loginMidSession = true;
   resetLoginFields();
   document.getElementById('loginScreen').style.display = 'flex';
 };
