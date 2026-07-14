@@ -410,7 +410,11 @@
   }
   #modeProfileAvatar img { width: 100%; height: 100%; object-fit: cover; }
   #modeProfileInitial { font-size: 12px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  #modeProfileText { display: flex; flex-direction: column; overflow: hidden; line-height: 1.25; }
   #modeProfileName { font-size: 11px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #modeProfileTier { font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  #modeProfileTier.tier-guest { color: #f0a83c; }
+  #modeProfileTier.tier-full { color: #4fd88a; }
   .loginHint { font-size: 11px; color: var(--text-muted); opacity: .75; margin: 4px 0 0; line-height: 1.45; }
   #loginUsername, #loginPassword, #loginEmail, #loginEmailPassword {
     font-family: inherit; font-size: 15px; border-radius: 6px; border: 1px solid var(--accent-dim);
@@ -1914,7 +1918,10 @@
   <div class="box">
     <button id="modeProfileChip" type="button" title="គណនីរបស់អ្នក — Your profile">
       <span id="modeProfileAvatar"><img id="modeProfileImg" alt="" style="display:none"><span id="modeProfileInitial"></span></span>
-      <span id="modeProfileName"></span>
+      <span id="modeProfileText">
+        <span id="modeProfileName"></span>
+        <span id="modeProfileTier"></span>
+      </span>
     </button>
     <div id="modeScreenChoice">
       <h2>ជ្រើសរើសរបៀប — Choose a mode</h2>
@@ -11575,6 +11582,18 @@ function updateModeProfileChip() {
   if (!currentProfile) return;
   paintAvatar(document.getElementById('modeProfileImg'), document.getElementById('modeProfileInitial'), document.getElementById('modeProfileAvatar'), currentProfile);
   document.getElementById('modeProfileName').textContent = currentProfile.displayName || '';
+  refreshTierBadge();
+}
+// Small always-visible "who am I" indicator next to the profile chip --
+// guests only ever see this and the profile screen's own "Signed in via
+// Guest account" text to know they haven't created a real account yet.
+function refreshTierBadge() {
+  const el = document.getElementById('modeProfileTier');
+  if (!el) return;
+  const isGuest = accessTier === 'guest';
+  el.textContent = isGuest ? 'ភ្ញៀវ — Guest' : 'គណនី — Account';
+  el.classList.toggle('tier-guest', isGuest);
+  el.classList.toggle('tier-full', !isGuest);
 }
 document.getElementById('modeProfileChip').onclick = openProfileScreen;
 // Pending avatar edits (photo/gradient) live here until Save is clicked,
@@ -11758,6 +11777,7 @@ function applyAccessTier() {
     Array.from(sel.options).forEach(opt => decorateOptionLabel(opt, isSelectValueLocked(selId, opt.value)));
   });
   GUEST_LOCKED_BUTTONS.forEach(id => decorateButtonLabel(document.getElementById(id), accessTier === 'guest'));
+  refreshTierBadge();
 }
 function showLockPopup() { document.getElementById('lockPopup').style.display = 'flex'; }
 document.getElementById('lockPopupClose').onclick = () => { document.getElementById('lockPopup').style.display = 'none'; };
