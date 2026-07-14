@@ -246,13 +246,12 @@
   .scorecard .meta { display: flex; flex-direction: column; line-height: 1.25; }
   .scorecard .pname { font-size: 13px; font-weight: 700; color: var(--panel-fg); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .scorecard .ptier {
-    position: absolute; top: -9px; left: 50%; transform: translateX(-50%); z-index: 3;
-    font-size: 9px; font-weight: 700; display: none; white-space: nowrap; line-height: 1.4;
-    padding: 1px 8px; border-radius: 8px;
-    background: color-mix(in srgb, var(--panel-bg) 92%, transparent); border: 1px solid var(--line);
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%); z-index: 3;
+    font-size: 9px; font-weight: 700; display: none; white-space: nowrap; cursor: pointer;
   }
-  .scorecard .ptier.tier-guest { color: #f0a83c; border-color: #f0a83c; display: block; }
-  .scorecard .ptier.tier-full { color: #4fd88a; border-color: #4fd88a; display: block; }
+  .scorecard .ptier:hover { text-decoration: underline; }
+  .scorecard .ptier.tier-guest { color: #f0a83c; display: block; }
+  .scorecard .ptier.tier-full { color: #4fd88a; display: block; }
   .scorecard .pscore { font-size: 15px; font-weight: 800; color: var(--accent); }
   .scorecard.turn { border-color: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
   .scorecard.turn .avatar { border-color: var(--accent); }
@@ -555,7 +554,7 @@
     #scoreB { left: auto; right: 8px; top: auto; bottom: 10px; padding: 3px 10px 3px 4px; }
     .scorecard .avatar { width: 28px; height: 28px; }
     .scorecard .pname { font-size: 10px; max-width: 84px; }
-    .scorecard .ptier { font-size: 8px; top: -8px; padding: 1px 6px; }
+    .scorecard .ptier { font-size: 8px; top: -12px; }
     .scorecard .pscore { font-size: 12px; }
     #panel {
       position: fixed; inset: 0; z-index: 15; display: flex;
@@ -11615,6 +11614,16 @@ function refreshTierBadge() {
   el.classList.toggle('tier-full', !isGuest);
 }
 document.getElementById('modeProfileChip').onclick = openProfileScreen;
+// The scorecard's Guest/Account tag doubles as a shortcut into sign-in
+// (mainly useful for guests mid-game) -- stopPropagation keeps the click
+// from also triggering the card's own onclick (which opens the profile
+// screen instead).
+['scoreW', 'scoreB'].forEach((id) => {
+  document.querySelector('#' + id + ' .ptier').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMidSessionLogin();
+  });
+});
 // Pending avatar edits (photo/gradient) live here until Save is clicked,
 // so opening the profile screen and closing it without saving is a no-op.
 let pendingAvatar = null; // { avatarPhoto } | { avatarGradient } | null (null = keep current)
@@ -11801,14 +11810,19 @@ function applyAccessTier() {
 }
 function showLockPopup() { document.getElementById('lockPopup').style.display = 'flex'; }
 document.getElementById('lockPopupClose').onclick = () => { document.getElementById('lockPopup').style.display = 'none'; };
-document.getElementById('lockPopupSignIn').onclick = () => {
+// Opens the login screen without disturbing whatever's currently on
+// screen (mode selection, an in-progress game, etc.) -- finishLogin()
+// sees loginMidSession and resumes right where the user left off instead
+// of bouncing them back to mode selection.
+function openMidSessionLogin() {
   document.getElementById('lockPopup').style.display = 'none';
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('modeScreen').style.display = 'none';
   loginMidSession = true;
   resetLoginFields();
   document.getElementById('loginScreen').style.display = 'flex';
-};
+}
+document.getElementById('lockPopupSignIn').onclick = openMidSessionLogin;
 // Wrap each control's already-assigned handler rather than editing it in
 // place: the wrapper decides, on every interaction, whether to call
 // through to the original behavior or block it with the lock popup --
