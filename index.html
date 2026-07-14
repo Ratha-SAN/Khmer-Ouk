@@ -245,6 +245,9 @@
   .scorecard .avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--accent-dim); display: block; }
   .scorecard .meta { display: flex; flex-direction: column; line-height: 1.25; }
   .scorecard .pname { font-size: 13px; font-weight: 700; color: var(--panel-fg); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .scorecard .ptier { font-size: 9px; font-weight: 600; display: none; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .scorecard .ptier.tier-guest { color: #f0a83c; display: block; }
+  .scorecard .ptier.tier-full { color: #4fd88a; display: block; }
   .scorecard .pscore { font-size: 15px; font-weight: 800; color: var(--accent); }
   .scorecard.turn { border-color: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
   .scorecard.turn .avatar { border-color: var(--accent); }
@@ -547,6 +550,7 @@
     #scoreB { left: auto; right: 8px; top: auto; bottom: 10px; padding: 3px 10px 3px 4px; }
     .scorecard .avatar { width: 28px; height: 28px; }
     .scorecard .pname { font-size: 10px; max-width: 84px; }
+    .scorecard .ptier { font-size: 8px; max-width: 84px; }
     .scorecard .pscore { font-size: 12px; }
     #panel {
       position: fixed; inset: 0; z-index: 15; display: flex;
@@ -1821,11 +1825,11 @@
   <div id="boardTitle">អុកចត្រង្គ<small>OUK CHATRANG</small></div>
   <div id="scoreW" class="scorecard" style="display:none">
     <img class="avatar" alt="White player avatar">
-    <div class="meta"><span class="pname">White</span><span class="pscore">0</span></div>
+    <div class="meta"><span class="pname">White</span><span class="ptier"></span><span class="pscore">0</span></div>
   </div>
   <div id="scoreB" class="scorecard" style="display:none">
     <img class="avatar" alt="Black player avatar">
-    <div class="meta"><span class="pname">Black</span><span class="pscore">0</span></div>
+    <div class="meta"><span class="pname">Black</span><span class="ptier"></span><span class="pscore">0</span></div>
   </div>
   <div id="hud"></div>
   <div id="movelist"></div>
@@ -9325,6 +9329,14 @@ function updateScoreboard() {
     card.classList.toggle('turn', !gameOver && !reviewMode && state.turn === side);
     card.classList.toggle('clickable', isOwnCard);
     card.onclick = isOwnCard ? openProfileScreen : null;
+    // Guest/Account status on the local player's own card too, not just
+    // the mode-selection profile chip -- visible the whole time they're
+    // actually playing, without having to back out to check.
+    const tierEl = card.querySelector('.ptier');
+    const isGuest = accessTier === 'guest';
+    tierEl.textContent = isOwnCard ? (isGuest ? 'ភ្ញៀវ — Guest' : 'គណនី — Account') : '';
+    tierEl.classList.toggle('tier-guest', isOwnCard && isGuest);
+    tierEl.classList.toggle('tier-full', isOwnCard && !isGuest);
     // Online opponent whose presence heartbeat has gone stale: gray the
     // card out and surface why via its native hover tooltip.
     const isOpponentCard = mode === 'online' && side !== humanSide;
@@ -11778,6 +11790,7 @@ function applyAccessTier() {
   });
   GUEST_LOCKED_BUTTONS.forEach(id => decorateButtonLabel(document.getElementById(id), accessTier === 'guest'));
   refreshTierBadge();
+  updateScoreboard();
 }
 function showLockPopup() { document.getElementById('lockPopup').style.display = 'flex'; }
 document.getElementById('lockPopupClose').onclick = () => { document.getElementById('lockPopup').style.display = 'none'; };
