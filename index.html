@@ -4356,18 +4356,31 @@ function makeLabelMesh(kh, latin) {
 
 // Coordinates are marked on one side only (near edge for files, left edge
 // for ranks) — as on a real chess/Ouk board, not duplicated on all sides.
+// They follow the current viewer's seat: when the camera faces the board
+// from Black's side (e.g. playing Black online), the labels mirror across
+// the board to that viewer's own near/left edges and spin 180° so they
+// read upright from there instead of upside-down on the opponent's edge.
+let labelsFlipped = false;
 function buildLabels() {
   labelGroup.clear();
+  const flip = labelsFlipped;
   for (let f = 0; f < 8; f++) {
     const near = makeLabelMesh(KH_FILES[f], LAT_FILES[f]);
-    near.position.x = f - 3.5; near.position.z = 4.32;
+    near.position.x = f - 3.5; near.position.z = flip ? -4.32 : 4.32;
+    if (flip) near.rotation.z = Math.PI;
     labelGroup.add(near);
   }
   for (let r = 0; r < 8; r++) {
     const left = makeLabelMesh(KH_RANKS[r], String(r + 1));
-    left.position.x = -4.34; left.position.z = 3.5 - r;
+    left.position.x = flip ? 4.34 : -4.34; left.position.z = 3.5 - r;
+    if (flip) left.rotation.z = Math.PI;
     labelGroup.add(left);
   }
+}
+function setLabelOrientation(flip) {
+  if (flip === labelsFlipped) return;
+  labelsFlipped = flip;
+  buildLabels();
 }
 
 // ---------- pieces ----------
@@ -12274,6 +12287,10 @@ let viewSide = E.WHITE;       // which side the camera currently faces the board
 let viewAnimRaf = null;
 function setViewSide(side, animate) {
   viewSide = side;
+  // keep the coordinate labels on this viewer's own edge, reading upright
+  // (must run before the small-delta early return below: a new game can
+  // change sides while the camera is already at the target azimuth)
+  setLabelOrientation(side === E.BLACK);
   const dir = camera.position.clone().sub(controls.target);
   const radius = Math.hypot(dir.x, dir.z);
   const y = dir.y;
@@ -12312,7 +12329,7 @@ document.getElementById('autoFlipChk').onchange = (e) => {
 document.getElementById('flipViewBtn').onclick = () => setViewSide(viewSide === E.WHITE ? E.BLACK : E.WHITE, true);
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
-document.getElementById('zoomResetBtn').onclick = () => { resetView(); viewSide = E.WHITE; };
+document.getElementById('zoomResetBtn').onclick = () => { resetView(); viewSide = E.WHITE; setLabelOrientation(false); };
 document.getElementById('topViewBtn').onclick = topView;
 
 // ---------- hide/show the settings panel ----------
