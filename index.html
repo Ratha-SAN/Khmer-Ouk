@@ -1179,6 +1179,78 @@
     100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; }
   }
 
+  /* ============ Modern Ops theme: warfare motion effects ============
+     A capture reuses Contra's tracer/muzzle-flash for the shot itself
+     (see triggerModernEffect), then layers a bigger fireball blast and
+     chunkier metal shrapnel chips than Contra's small debris dots, over
+     an actual 3D shoot/turn/explode cinematic (see the 3D capture
+     cinematic JS below) -- the 2D burst here reinforces that 3D
+     explosion rather than standing alone. Check/checkmate get a
+     dedicated mushroom-cloud sequence instead of the generic
+     fxCheck/fxCheck2 red vignette, per the theme's "nuclear strike"
+     brief -- checkmate fires two staggered, bigger copies. */
+  .fx-modern-blast {
+    position: absolute; width: 48px; height: 48px; left: -24px; top: -24px; border-radius: 50%;
+    background: radial-gradient(circle, #fff6d8 0%, #ffb347 30%, #c23a1a 55%, #2a1a12 75%, transparent 85%);
+    animation: fxModernBlast 400ms ease-out forwards;
+  }
+  @keyframes fxModernBlast { 0% { transform: scale(.2); opacity: 1; } 55% { opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
+  .fx-modern-shrapnel {
+    position: absolute; width: 7px; height: 3px; left: -3.5px; top: -1.5px;
+    background: #6b6f76; box-shadow: 0 0 3px rgba(0,0,0,.6);
+    animation: fxModernShrapnel 480ms ease-out forwards;
+  }
+  @keyframes fxModernShrapnel {
+    0% { transform: translate(0,0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(var(--rot, 260deg)); opacity: 0; }
+  }
+  .fx-nuke-flash {
+    position: absolute; width: 60px; height: 60px; left: -30px; top: -30px; border-radius: 50%;
+    background: radial-gradient(circle, #fffdf0 0%, #ffe9a0 30%, #ff8a2a 55%, #7a2a10 75%, transparent 85%);
+    animation: fxNukeFlash 420ms ease-out forwards;
+  }
+  @keyframes fxNukeFlash { 0% { transform: scale(.15); opacity: 1; } 55% { opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+  .fx-nuke-stem {
+    position: absolute; width: 14px; height: 70px; left: -7px; top: -70px; border-radius: 6px 6px 2px 2px;
+    background: linear-gradient(0deg, rgba(120,70,30,.9), rgba(220,160,90,.7) 60%, rgba(255,220,160,.3));
+    transform-origin: 50% 100%;
+    animation: fxNukeStem 620ms cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes fxNukeStem {
+    0% { transform: scaleY(0); opacity: 0; }
+    25% { opacity: .95; }
+    100% { transform: scaleY(1) translateY(-18px); opacity: 0; }
+  }
+  .fx-nuke-cap {
+    position: absolute; width: 90px; height: 60px; left: -45px; top: -140px; border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(255,230,190,.9) 0%, rgba(190,120,60,.75) 45%, rgba(90,50,25,.55) 75%, transparent 90%);
+    filter: blur(1.5px);
+    animation: fxNukeCap 700ms ease-out forwards;
+    animation-delay: 120ms;
+    opacity: 0;
+  }
+  @keyframes fxNukeCap {
+    0% { transform: scale(.2) translateY(20px); opacity: 0; }
+    35% { opacity: .95; }
+    100% { transform: scale(1.6) translateY(-30px); opacity: 0; }
+  }
+  .fx-nuke-ring {
+    position: absolute; width: 20px; height: 20px; left: -10px; top: -10px; border-radius: 50%;
+    border: 4px solid #ffb347; box-shadow: 0 0 20px #ff8a2a, inset 0 0 16px #ff8a2a;
+    animation: fxNukeRing 560ms ease-out forwards;
+  }
+  @keyframes fxNukeRing { 0% { opacity: 1; transform: scale(.3); } 100% { opacity: 0; transform: scale(9); } }
+  #fxCheckVignette.modgo {
+    animation: fxModVignette 560ms ease-out forwards;
+    background: radial-gradient(ellipse at center, rgba(255,210,120,.15) 0%, rgba(255,140,40,.55) 55%, rgba(40,20,10,.75) 100%);
+  }
+  @keyframes fxModVignette { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
+  #fxCheckVignette.modmate {
+    animation: fxModMateVignette 900ms ease-out forwards;
+    background: radial-gradient(ellipse at center, rgba(255,255,240,.95) 0%, rgba(255,160,40,.85) 45%, rgba(30,10,5,.85) 100%);
+  }
+  @keyframes fxModMateVignette { 0% { opacity: 0; } 10% { opacity: 1; } 30% { opacity: .85; } 100% { opacity: 0; } }
+
   /* ============ Last Airbender theme: footstep-gust move / four-element capture effects ============
      A plain footstep gust for a normal move (no element -- the four
      bending elements are reserved for captures, see triggerAtlaEffect),
@@ -2233,7 +2305,7 @@
       <option value="none">No music</option>
       <optgroup label="Relaxing (6)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
-      <optgroup label="Arcade (4)"></optgroup>
+      <optgroup label="Arcade (5)"></optgroup>
       <optgroup label="Cinematic (2)"></optgroup>
       <optgroup label="Synth (2)"></optgroup>
       <optgroup label="World (1)"></optgroup>
@@ -4136,7 +4208,7 @@ const THEMES = {
     frame: 0x2a2d31, tileLight: 0x8a8f94, tileDark: 0x4a4e52,
     pieceW: 0xc9b088, pieceB: 0x3f4a34, rough: 0.55, metal: 0.25, pieceBFloor: 0.14,
     labelInk: '#f2c14e', tray: 0x1c1e21,
-    reflectOpacity: 0.14
+    reflectOpacity: 0.14, modernFx: true
   }
 };
 let themeKey = 'wood';
@@ -4628,6 +4700,7 @@ const MAT_MIL_GUNMETAL = new THREE.MeshStandardMaterial({ color: 0x3a3d42, rough
 const MAT_MIL_GLASS = new THREE.MeshStandardMaterial({ color: 0x1a2226, roughness: 0.15, metalness: 0.3 });
 const MAT_MIL_TREAD = new THREE.MeshStandardMaterial({ color: 0x18181a, roughness: 0.8, metalness: 0.1 });
 const MAT_MIL_BEACON = new THREE.MeshStandardMaterial({ color: 0xff3a2a, emissive: 0xff2010, emissiveIntensity: 0.9, roughness: 0.4, metalness: 0.0 });
+const MAT_MIL_TAILLIGHT = new THREE.MeshStandardMaterial({ color: 0xcc1408, emissive: 0xb01005, emissiveIntensity: 1.1, roughness: 0.35, metalness: 0.0 });
 // Fixed accent colors for the Mountain Valley piece set (see
 // buildNaturePiece): a shared bark-brown for tree trunks/stumps, two
 // leaf greens for canopy/foliage, a river blue for water accents, a
@@ -5360,6 +5433,10 @@ function buildModernPiece(g, add, type, promoted, color) {
       mast.position.z = 0.14;
       const flag = add(new THREE.BoxGeometry(0.005, 0.05, 0.09), 0.57, MAT_GOLD);
       flag.position.z = 0.185;
+      const tailL = add(new THREE.SphereGeometry(0.016, 8, 6), 0.16, MAT_MIL_TAILLIGHT);
+      tailL.position.set(-0.14, 0, 0.155);
+      const tailR = add(new THREE.SphereGeometry(0.016, 8, 6), 0.16, MAT_MIL_TAILLIGHT);
+      tailR.position.set(0.14, 0, 0.155);
       break;
     }
     case E.QUEEN: {
@@ -5378,6 +5455,8 @@ function buildModernPiece(g, add, type, promoted, color) {
       }
       const beacon = add(new THREE.SphereGeometry(0.02, 8, 8), 0.4, MAT_MIL_BEACON);
       beacon.position.z = -0.1;
+      const tail = add(new THREE.SphereGeometry(0.014, 8, 6), 0.34, MAT_MIL_TAILLIGHT);
+      tail.position.z = 0.1;
       break;
     }
     case E.BISHOP: {
@@ -5395,6 +5474,10 @@ function buildModernPiece(g, add, type, promoted, color) {
         tube.rotation.x = -0.85;
         tube.position.x = col * 0.06; tube.position.z = 0.06 + row * 0.02;
       }
+      const tailL = add(new THREE.SphereGeometry(0.014, 8, 6), 0.1, MAT_MIL_TAILLIGHT);
+      tailL.position.set(-0.13, 0, 0.23);
+      const tailR = add(new THREE.SphereGeometry(0.014, 8, 6), 0.1, MAT_MIL_TAILLIGHT);
+      tailR.position.set(0.13, 0, 0.23);
       break;
     }
     case E.KNIGHT: {
@@ -5414,6 +5497,8 @@ function buildModernPiece(g, add, type, promoted, color) {
       finR.position.x = 0.05; finR.position.z = 0.22; finR.rotation.z = -0.15;
       const finL = add(new THREE.BoxGeometry(0.018, 0.15, 0.11), 0.34);
       finL.position.x = -0.05; finL.position.z = 0.22; finL.rotation.z = 0.15;
+      const tail = add(new THREE.SphereGeometry(0.016, 8, 6), 0.22, MAT_MIL_TAILLIGHT);
+      tail.position.z = 0.27;
       break;
     }
     case E.ROOK: {
@@ -5428,6 +5513,10 @@ function buildModernPiece(g, add, type, promoted, color) {
       island.position.x = 0.12; island.position.z = 0.16;
       const antenna = add(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 6), 0.4, MAT_MIL_GUNMETAL);
       antenna.position.x = 0.12; antenna.position.z = 0.16;
+      const sternL = add(new THREE.SphereGeometry(0.014, 8, 6), 0.11, MAT_MIL_TAILLIGHT);
+      sternL.position.set(-0.09, 0, 0.25);
+      const sternR = add(new THREE.SphereGeometry(0.014, 8, 6), 0.11, MAT_MIL_TAILLIGHT);
+      sternR.position.set(0.09, 0, 0.25);
       break;
     }
     case E.PAWN:
@@ -5442,6 +5531,10 @@ function buildModernPiece(g, add, type, promoted, color) {
       barrel.rotation.x = Math.PI / 2; barrel.position.z = -0.23;
       const brake = add(new THREE.CylinderGeometry(0.026, 0.026, 0.03, 8), 0.32, MAT_MIL_GUNMETAL);
       brake.rotation.x = Math.PI / 2; brake.position.z = -0.38;
+      const tailL = add(new THREE.SphereGeometry(0.013, 8, 6), 0.14, MAT_MIL_TAILLIGHT);
+      tailL.position.set(-0.15, 0, 0.11);
+      const tailR = add(new THREE.SphereGeometry(0.013, 8, 6), 0.14, MAT_MIL_TAILLIGHT);
+      tailR.position.set(0.15, 0, 0.11);
       break;
     }
   }
@@ -7259,6 +7352,12 @@ function rebuildPieces() {
     if (showPieceNames) addPieceLabel(g, type, color);
     pieceGroup.add(g);
     pieceAt[sq] = g;
+    // Modern Ops: keep a square hidden across a rebuild triggered by some
+    // OTHER move while its own capture cinematic is still revealing --
+    // see modernHiddenSquares.
+    if (typeof modernHiddenSquares !== 'undefined' && modernHiddenSquares.has(sq)) g.visible = false;
+    // (if a *later* move reuses this square while a cinematic still holds
+    // it hidden, that cinematic's own cleanup will reveal it once done)
   }
 }
 
@@ -8135,7 +8234,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -8496,6 +8595,29 @@ const SFX = {
       noiseBurst({ dur: 0.07, filterFreq: 3800, q: 5, gain: 0.28, filterType: 'highpass', delay: 0.04 });
     } else {
       for (let i = 0; i < 6; i++) envOsc({ freq: i % 2 === 0 ? 740 : 555, type: 'square', dur: 0.08, gain: 0.27, delay: i * 0.08 });
+    }
+  },
+  // Modern Ops: a diesel-engine rev + metallic track clank for a move, a
+  // machine-gun rattle into a missile-launch whoosh and a low explosion
+  // boom for a capture (paired with the shoot/explode 3D cinematic --
+  // see triggerModernEffect), and a slow air-raid-siren wail for
+  // check/checkmate -- deeper and more mechanical than Contra's punchier
+  // arcade gunfire, reading as a real warzone rather than a run-and-gun.
+  modern(kind) {
+    if (kind === 'move') {
+      envOsc({ freq: 90, type: 'sawtooth', dur: 0.22, gain: 0.22, freqTo: 130 });
+      noiseBurst({ dur: 0.05, filterFreq: 1400, q: 3, gain: 0.16, delay: 0.08 });
+      noiseBurst({ dur: 0.05, filterFreq: 1400, q: 3, gain: 0.14, delay: 0.16 });
+    } else if (kind === 'capture') {
+      for (let i = 0; i < 4; i++) noiseBurst({ dur: 0.04, filterFreq: 2600, q: 4, gain: 0.24, delay: i * 0.045 });
+      envOsc({ freq: 500, type: 'sawtooth', dur: 0.22, gain: 0.2, freqTo: 1400, delay: 0.19 });
+      noiseBurst({ dur: 0.3, filterFreq: 220, q: 1.1, gain: 0.5, filterType: 'lowpass', delay: 0.4 });
+      envOsc({ freq: 120, type: 'sawtooth', dur: 0.36, gain: 0.4, freqTo: 30, delay: 0.4 });
+    } else {
+      for (let i = 0; i < 2; i++) {
+        envOsc({ freq: 300, type: 'sawtooth', dur: 0.6, gain: 0.24, freqTo: 620, delay: i * 0.7 });
+        envOsc({ freq: 620, type: 'sawtooth', dur: 0.6, gain: 0.22, freqTo: 300, delay: i * 0.7 + 0.6 });
+      }
     }
   }
 };
@@ -9760,6 +9882,257 @@ function triggerAnnoEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
     console.warn('anno-effect render failed (ignored):', err);
   }
 }
+
+// ============ Modern Ops theme: warfare motion effects ============
+// Unlike every other theme's capture effect (a 2D-only overlay layered on
+// an already-instantly-updated board), a Modern Ops capture drives an
+// actual 3D cinematic: the mover's own pre-move mesh -- grabbed from
+// pieceAt in applyMove BEFORE refreshAll()'s instant rebuild replaces it
+// -- turns to face the victim's square, fires a tracer, and the victim's
+// own mesh blows apart into real flying/tumbling debris fragments, all
+// layered under a 2D muzzle-flash/blast/shrapnel burst for extra punch.
+// Check/checkmate get a dedicated mushroom-cloud "nuclear strike"
+// sequence instead of the generic fxCheck/fxCheck2 red vignette --
+// checkmate fires two staggered, bigger copies (the "extra bomb").
+
+// ---- grabbed in applyMove, right after E.makeMove but before
+// refreshAll() rebuilds pieceGroup from scratch -- reparenting the two
+// meshes directly onto `scene` (identical coordinate space to
+// pieceGroup, see sqPos/rebuildPieces) keeps them alive and in place
+// once pieceGroup.clear() runs, so the cinematic below can animate the
+// real models instead of a stand-in.
+function grabModernCaptureCue(fromSq, toSq) {
+  try {
+    const moverG = pieceAt[fromSq], targetG = pieceAt[toSq];
+    if (!moverG || !targetG) return null;
+    scene.add(moverG); scene.add(targetG);
+    return { moverG, targetG, fromSq, toSq, fromPos: sqPos(fromSq), toPos: sqPos(toSq) };
+  } catch (err) {
+    console.warn('modern-capture-cue grab failed (ignored):', err);
+    return null;
+  }
+}
+
+let modernCinematics = [];
+let modernCineLastMs = null;
+// squares whose real (current) mesh must stay hidden until an in-flight
+// cinematic reveals it -- tracked by square (with a reference count, in
+// case the same square somehow gets captured onto again before the
+// first cinematic finishes) rather than by mesh reference, because ANY
+// move (even an unrelated one elsewhere on the board) calls
+// rebuildPieces(), which discards every mesh and builds fresh,
+// visible-by-default replacements; a stored mesh reference would go
+// stale and the real mover would pop back into view mid-cinematic.
+let modernHiddenSquares = new Map();
+function modernHideSquare(sq) {
+  modernHiddenSquares.set(sq, (modernHiddenSquares.get(sq) || 0) + 1);
+  if (pieceAt[sq]) pieceAt[sq].visible = false;
+}
+function modernRevealSquare(sq) {
+  const n = (modernHiddenSquares.get(sq) || 1) - 1;
+  if (n <= 0) { modernHiddenSquares.delete(sq); if (pieceAt[sq]) pieceAt[sq].visible = true; }
+  else modernHiddenSquares.set(sq, n);
+}
+function updateModernCinematics() {
+  if (!modernCinematics.length) { modernCineLastMs = null; return; }
+  const now = performance.now();
+  const dt = Math.min(0.1, modernCineLastMs == null ? 0.016 : (now - modernCineLastMs) / 1000);
+  modernCineLastMs = now;
+  for (let i = modernCinematics.length - 1; i >= 0; i--) {
+    const c = modernCinematics[i];
+    c.t += dt;
+    try { c.update(c.t, dt); } catch (err) { console.warn('modern-cinematic update failed (ignored):', err); c.t = c.duration; }
+    if (c.t >= c.duration) {
+      try { c.cleanup(); } catch (err) { console.warn('modern-cinematic cleanup failed (ignored):', err); }
+      modernCinematics.splice(i, 1);
+    }
+  }
+}
+// geometries only -- every add() call in buildModernPiece creates its own
+// fresh geometry instance, but the MAT_MIL_*/MAT_W/MAT_B materials are
+// shared module-level constants reused by every other piece on the
+// board, so they must never be disposed here.
+function disposeModernGhost(g) {
+  g.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose(); });
+}
+const MODERN_DEBRIS_GEOMS = [
+  new THREE.BoxGeometry(0.05, 0.05, 0.05),
+  new THREE.BoxGeometry(0.09, 0.03, 0.03),
+  new THREE.ConeGeometry(0.035, 0.08, 5)
+];
+function spawnModernDebris(pos, count) {
+  const frags = [];
+  for (let i = 0; i < count; i++) {
+    const geom = MODERN_DEBRIS_GEOMS[i % MODERN_DEBRIS_GEOMS.length];
+    const mat = new THREE.MeshStandardMaterial({
+      color: i % 3 === 0 ? 0xff8a2a : 0x4a4a46, roughness: 0.6, metalness: 0.3,
+      transparent: true, opacity: 1
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(pos.x, 0.2 + Math.random() * 0.15, pos.z);
+    const ang = Math.random() * Math.PI * 2;
+    const speed = 1.4 + Math.random() * 1.6;
+    mesh.userData.vel = new THREE.Vector3(Math.cos(ang) * speed, 2.2 + Math.random() * 1.6, Math.sin(ang) * speed);
+    mesh.userData.spin = new THREE.Vector3((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12);
+    scene.add(mesh);
+    frags.push(mesh);
+  }
+  return frags;
+}
+// the shoot/explode cinematic itself: aim (rotate to face the victim),
+// fire (tracer projectile + muzzle flash), impact (debris burst + 2D
+// blast/shrapnel), then debris tumbles/settles/fades before cleanup
+// reveals the real (already-current) mover mesh that was hidden for the
+// duration.
+function modernCaptureCinematic(cue) {
+  const { moverG, targetG, fromSq, toSq, fromPos, toPos } = cue;
+  modernHideSquare(toSq);
+  const dx = toPos.x - fromPos.x, dz = toPos.z - fromPos.z;
+  const targetAngle = Math.atan2(-dx, -dz);
+  const startAngle = moverG.rotation.y;
+  let deltaAngle = targetAngle - startAngle;
+  deltaAngle = ((deltaAngle + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  const AIM_END = 0.2, SHOT_END = 0.36, DURATION = 0.95, FADE_START = 0.55;
+  let projectile = null, firedMuzzle = false, firedImpact = false, debris = [];
+  const cine = {
+    t: 0, duration: DURATION,
+    update(t, dt) {
+      if (t <= AIM_END) {
+        const ease = 1 - Math.pow(1 - t / AIM_END, 3);
+        moverG.rotation.y = startAngle + deltaAngle * ease;
+        return;
+      }
+      moverG.rotation.y = targetAngle;
+      if (!firedMuzzle) {
+        firedMuzzle = true;
+        fxSpawn(fxAt(fxScreenPoint(fromSq), 'fx-contra-muzzle', {}), 160);
+        const mat = new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0xff6a1a, emissiveIntensity: 1.4 });
+        projectile = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.14, 8), mat);
+        projectile.rotation.x = Math.PI / 2;
+        projectile.position.set(fromPos.x, 0.34, fromPos.z);
+        scene.add(projectile);
+      }
+      if (projectile) {
+        const tt = Math.min(1, (t - AIM_END) / (SHOT_END - AIM_END));
+        projectile.position.set(fromPos.x + dx * tt, 0.34, fromPos.z + dz * tt);
+      }
+      if (t >= SHOT_END && !firedImpact) {
+        firedImpact = true;
+        if (projectile) { scene.remove(projectile); projectile.geometry.dispose(); projectile.material.dispose(); projectile = null; }
+        targetG.visible = false;
+        debris = spawnModernDebris(toPos, 10);
+        const pt = fxScreenPoint(toSq);
+        fxSpawn(fxAt(pt, 'fx-modern-blast', {}), 400);
+        for (let i = 0; i < 8; i++) {
+          const a2 = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+          const dist = 26 + Math.random() * 30;
+          fxSpawn(fxAt(pt, 'fx-modern-shrapnel', {
+            '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist - 10) + 'px',
+            '--rot': (200 + Math.random() * 200) + 'deg'
+          }), 480);
+        }
+        window.__oukFxLog.push({ tier: 2, key: 'modern_capture_cinematic' });
+      }
+      for (const d of debris) {
+        d.userData.vel.y -= 9 * dt;
+        d.position.addScaledVector(d.userData.vel, dt);
+        if (d.position.y < 0.03) {
+          d.position.y = 0.03; d.userData.vel.y *= -0.3; d.userData.vel.x *= 0.7; d.userData.vel.z *= 0.7;
+        }
+        d.rotation.x += d.userData.spin.x * dt;
+        d.rotation.y += d.userData.spin.y * dt;
+        d.rotation.z += d.userData.spin.z * dt;
+        if (t > FADE_START) d.material.opacity = Math.max(0, 1 - (t - FADE_START) / (DURATION - FADE_START));
+      }
+    },
+    cleanup() {
+      if (projectile) { scene.remove(projectile); projectile.geometry.dispose(); projectile.material.dispose(); }
+      scene.remove(moverG); disposeModernGhost(moverG);
+      scene.remove(targetG); disposeModernGhost(targetG);
+      for (const d of debris) { scene.remove(d); d.material.dispose(); }
+      modernRevealSquare(toSq);
+    }
+  };
+  modernCinematics.push(cine);
+}
+
+// ---- mushroom-cloud "nuclear strike" sequence for check/checkmate: a
+// bright flash, a rising stem, a blooming cap, and one or more shockwave
+// rings, reusing the shared #fxCheckVignette element (see fxCheck above)
+// with the theme's own amber/orange colors instead of the generic red.
+function fxModernNuke(kingSq, big) {
+  const pt = fxScreenPoint(kingSq);
+  fxSpawn(fxAt(pt, 'fx-nuke-flash', {}), 420);
+  fxSpawn(fxAt(pt, 'fx-nuke-stem', {}), 620);
+  fxSpawn(fxAt(pt, 'fx-nuke-cap', {}), 820);
+  const rings = big ? 3 : 2;
+  for (let i = 0; i < rings; i++) fxSpawn(fxAt(pt, 'fx-nuke-ring', { animationDelay: (i * 90) + 'ms' }), 560 + i * 90);
+  window.__oukFxLog.push({ tier: 3, key: big ? 'modern_nuke_big' : 'modern_nuke' });
+}
+function fxModernCheck(kingSq) {
+  const sceneEl = document.getElementById('scene');
+  if (fxPrefersReducedMotion()) {
+    fxCheckVignette.classList.remove('go', 'go2', 'simple', 'mategoflash', 'modgo', 'modmate');
+    void fxCheckVignette.offsetWidth;
+    fxCheckVignette.classList.add('simple', 'go');
+    setTimeout(() => fxCheckVignette.classList.remove('simple', 'go'), 280);
+    window.__oukFxLog.push({ tier: 3, key: 'modern_check_simple' });
+    return;
+  }
+  fxCheckVignette.classList.remove('modgo');
+  void fxCheckVignette.offsetWidth;
+  fxCheckVignette.classList.add('modgo');
+  sceneEl.classList.remove('fx-shake');
+  void sceneEl.offsetWidth;
+  sceneEl.classList.add('fx-shake');
+  clearTimeout(fxCheckTimer);
+  fxCheckTimer = setTimeout(() => { fxCheckVignette.classList.remove('modgo'); sceneEl.classList.remove('fx-shake'); }, 580);
+  fxModernNuke(kingSq, false);
+}
+// checkmate: the "extra bomb" -- two staggered, bigger nuke sequences
+// plus a longer, brighter full-screen flash and the bigger board shake.
+function fxModernCheckmate(kingSq) {
+  const sceneEl = document.getElementById('scene');
+  if (fxPrefersReducedMotion()) {
+    fxSimpleFlash(fxScreenPoint(kingSq), '#ff8a2a');
+    window.__oukFxLog.push({ tier: 4, key: 'modern_mate_simple' });
+    return;
+  }
+  fxModernNuke(kingSq, true);
+  setTimeout(() => { try { fxModernNuke(kingSq, true); } catch (err) { console.warn('modern-mate extra bomb failed (ignored):', err); } }, 260);
+  fxCheckVignette.classList.remove('go', 'go2', 'simple', 'mategoflash', 'modgo');
+  void fxCheckVignette.offsetWidth;
+  fxCheckVignette.classList.add('modmate');
+  sceneEl.classList.remove('fx-shake-big');
+  void sceneEl.offsetWidth;
+  sceneEl.classList.add('fx-shake-big');
+  clearTimeout(fxCheckTimer);
+  fxCheckTimer = setTimeout(() => { fxCheckVignette.classList.remove('modmate'); sceneEl.classList.remove('fx-shake-big'); }, 920);
+  window.__oukFxLog.push({ tier: 4, key: 'modern_checkmate_nuke' });
+}
+function triggerModernEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate, captureCue) {
+  const t = theme();
+  if (!t.modernFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced || !captureCue) fxSimpleFlash(fxScreenPoint(m.to), '#ff8a2a');
+      else modernCaptureCinematic(captureCue);
+    } else if (reduced) {
+      fxSimpleFlash(fxScreenPoint(m.to), '#c9b088');
+    } else {
+      const a = fxScreenPoint(m.from), b = fxScreenPoint(m.to);
+      const dx2 = a.x - b.x, dy2 = a.y - b.y, len = Math.hypot(dx2, dy2), ang = Math.atan2(dy2, dx2) * 180 / Math.PI;
+      fxSpawn(fxAt(b, 'fx-trail-line', { '--fxcol': '#c9b088', width: len + 'px', transform: `rotate(${ang}deg)` }), 320);
+      fxSpawn(fxAt(b, 'fx-glow', { '--fxcol': '#c9b088' }), 320);
+      window.__oukFxLog.push({ tier: 1, key: 'modern_move' });
+    }
+    if (isCheckmate) fxModernCheckmate(E.kingSq(state, state.turn));
+    else if (isCheck) fxModernCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('modern-effect render failed (ignored):', err);
+  }
+}
 // Ambient "sprinkle" twinkles: while Gem Blitz OR a Girly theme is active,
 // stray star glints pop at random board squares every second or so,
 // keeping the whole board alive with sparkle between moves -- skipped
@@ -9913,7 +10286,16 @@ const MUSIC_TRACKS = {
   // transcribing any existing film's actual theme.
   cine3: { label: 'កងទ័ពដែក Iron Legion (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 480, gain: 0.08,
     filterHz: 1600, detune: 2, sustain: 0.6,
-    notes: [261.63, null, 329.63, 392.00, 440.00, 392.00, null, 329.63] }
+    notes: [261.63, null, 329.63, 392.00, 440.00, 392.00, null, 329.63] },
+  // An original driving minor-key military-march chiptune for the Modern
+  // Ops theme -- a steady marching-drill tempo (not as frantic as Contra
+  // Assault's run-and-gun urgency) built on a stark, low-register
+  // interval pattern to read as "armored warzone" rather than any other
+  // theme's arcade/cinematic feel, not a transcription of any existing
+  // score.
+  arcade5: { label: 'ចម្បាំងទំនើប Iron Front (chiptune, solo)', instrument: 'chip', noteLen: 210, gain: 0.08,
+    filterHz: 2000,
+    notes: [196.00, 196.00, 233.08, 196.00, null, 174.61, 196.00, null, 220.00, 220.00, 196.00, 164.81, null, null, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
@@ -10428,6 +10810,12 @@ function applyMove(m) {
   history.push({ snap: E.toJSON(state), entries: moveEntries.length, lastMove });
   const mover = state.board[m.from], captured = state.board[m.to];
   const wasPawn = E.typeOf(mover) === E.PAWN;
+  // Modern Ops: grab the real pre-move 3D meshes for a capture's
+  // shoot/explode cinematic (see triggerModernEffect) before E.makeMove
+  // + refreshAll() below advance the board state and instantly rebuild
+  // pieceGroup out from under them.
+  const modernCaptureCue = (theme().modernFx && captured !== E.EMPTY && !fxPrefersReducedMotion())
+    ? grabModernCaptureCue(m.from, m.to) : null;
   E.makeMove(state, m);
   const promoted = wasPawn && E.isProm(state.board[m.to]);
   moveEntries.push(notation(m, mover, captured, promoted));
@@ -10467,6 +10855,7 @@ function applyMove(m) {
   triggerAnnoEffect(m, mover, captured, isCheck, isCheckmate);
   triggerGirlyEffect(m, mover, captured, isCheck, isCheckmate);
   triggerTransformersEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerModernEffect(m, mover, captured, isCheck, isCheckmate, modernCaptureCue);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
@@ -12964,6 +13353,19 @@ window.__ouk = {
   // Test-only entry point into online mode without a real Firestore match
   // (used by the local Playwright harness, where Firebase is stubbed out).
   debugBeginOnlineMatch: (color, oppName) => beginOnlineMatch('debug-match', color, oppName, E.toJSON(E.initialState(currentVariant())), () => {}),
+  // Test-only: load an arbitrary board position (engine JSON) and apply a
+  // raw move object directly through the real applyMove() pipeline, so
+  // Playwright can exercise capture/check/checkmate effects without
+  // having to play out a whole game through UI clicks.
+  debugLoadState: (json) => { state = E.fromJSON(json); lastMove = null; selected = -1; legalForSelected = []; gameOver = false; clearMarkers(); refreshAll(); },
+  debugApplyMove: (m) => applyMove(m),
+  debugFxLog: () => window.__oukFxLog.slice(),
+  debugSfxLog: () => window.__oukSfxLog.slice(),
+  debugFireModernNuke: (mate) => { if (mate) fxModernCheckmate(E.kingSq(state, state.turn)); else fxModernCheck(E.kingSq(state, state.turn)); },
+  debugModernCineCount: () => modernCinematics.length,
+  debugSceneChildCount: () => scene.children.length,
+  debugPieceVisible: (sq) => pieceAt[sq] ? pieceAt[sq].visible : null,
+  debugPieceRotY: (sq) => pieceAt[sq] ? pieceAt[sq].rotation.y : null,
   debugSetOpponentPresence: (ms) => { onlineOpponentPresence = ms; updateScoreboard(); },
   debugShowOnlineBalloon: (msg) => showOnlineBalloon(msg),
   moves: () => moveEntries.slice(),
@@ -13356,6 +13758,7 @@ function loop() {
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   retrackOnlineThinkingTip();
   retrackFlat2DArt(); // keep 2D standee artwork facing the camera
+  updateModernCinematics(); // advance any in-flight Modern Ops shoot/explode cinematics
   renderer.render(scene, camera);
 }
 
