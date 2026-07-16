@@ -5195,64 +5195,82 @@ function buildAngkorPiece(g, add, type, promoted, color) {
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
-// Naga piece set: the serpent guardian of Khmer myth. Every piece is a
-// coiled naga -- stacked coils (flat tori) with a rising neck and a
-// flattened, fanned hood, taller and broader up the piece hierarchy;
-// the Rook keeps its Touk identity as a naga-prowed longboat.
+// Naga piece set: the serpent guardian of Khmer myth, as temple-balustrade
+// sculpture rather than toy coils -- a smoothly tapering cone of body
+// rings on a two-step pedestal, a slender rising neck, and a leaf-shaped
+// hood (a strongly flattened cone, the classic naga silhouette) framing a
+// small forward head; royalty carries a gold flame crest, and the King's
+// hood is flanked by two smaller side hoods (the multi-headed royal
+// naga). The Rook keeps its Touk identity as a naga-prowed longboat.
 function buildNagaPiece(g, add, type, promoted, color) {
-  add(new THREE.CylinderGeometry(0.3, 0.34, 0.12, 18), 0.06);
-  const coil = (r, tube, y) => { const t = add(new THREE.TorusGeometry(r, tube, 10, 22), y); t.rotation.x = Math.PI / 2; return t; };
-  const hood = (y, s) => {
-    const h = add(new THREE.SphereGeometry(0.15, 12, 10), y);
-    h.scale.set(1.45 * s, 1.05 * s, 0.42 * s);
-    const head = add(new THREE.SphereGeometry(0.06 * s, 10, 8), y + 0.02);
-    head.position.z = 0.05 * s;
-    return h;
+  add(new THREE.CylinderGeometry(0.28, 0.33, 0.08, 18), 0.04);
+  add(new THREE.CylinderGeometry(0.23, 0.27, 0.06, 18), 0.11);
+  // tapering stack of body rings -- reads as one coiled cone, not donuts
+  const coils = (n, r0, h) => {
+    let y = 0.14;
+    for (let i = 0; i < n; i++) {
+      const r = r0 * (1 - i * 0.2);
+      const ch = h / n;
+      add(new THREE.CylinderGeometry(r * 0.82, r, ch, 16), y + ch / 2);
+      y += ch;
+    }
+    return y;
+  };
+  const neckHood = (y, s, royal) => {
+    add(new THREE.CylinderGeometry(0.032 * s, 0.055 * s, 0.3 * s, 10), y + 0.13 * s);
+    const leaf = add(new THREE.ConeGeometry(0.13 * s, 0.32 * s, 12), y + 0.36 * s);
+    leaf.scale.z = 0.32;
+    const head = add(new THREE.SphereGeometry(0.05 * s, 10, 8), y + 0.31 * s);
+    head.position.z = 0.045 * s;
+    if (royal) add(new THREE.ConeGeometry(0.028 * s, 0.12 * s, 8), y + 0.56 * s, MAT_GOLD);
   };
   switch (type) {
-    case E.KING:
-      coil(0.2, 0.075, 0.17);
-      coil(0.16, 0.065, 0.3);
-      coil(0.12, 0.055, 0.41);
-      add(new THREE.CylinderGeometry(0.05, 0.08, 0.3, 10), 0.6);
-      hood(0.88, 1.15);
+    case E.KING: {
+      const top = coils(4, 0.22, 0.32);
+      neckHood(top, 1.2, true);
+      for (const dir of [-1, 1]) { // flanking side hoods
+        const side = add(new THREE.ConeGeometry(0.08, 0.2, 10), top + 0.34);
+        side.scale.z = 0.3;
+        side.position.x = dir * 0.13;
+        side.rotation.z = dir * -0.3;
+      }
       break;
+    }
     case E.QUEEN:
-      coil(0.19, 0.07, 0.17);
-      coil(0.14, 0.06, 0.29);
-      add(new THREE.CylinderGeometry(0.045, 0.07, 0.24, 10), 0.45);
-      hood(0.68, 1);
+      neckHood(coils(3, 0.2, 0.26), 1.05, true);
       break;
     case E.BISHOP:
-      coil(0.18, 0.07, 0.17);
-      add(new THREE.CylinderGeometry(0.045, 0.07, 0.26, 10), 0.4);
-      hood(0.62, 0.85);
+      neckHood(coils(3, 0.18, 0.24), 0.88, false);
       break;
     case E.KNIGHT: {
-      coil(0.18, 0.07, 0.17);
-      const neck = add(new THREE.CylinderGeometry(0.05, 0.075, 0.3, 10), 0.4);
-      neck.rotation.x = -0.35;
-      hood(0.6, 0.9).position.z = 0.1;
+      const top = coils(2, 0.19, 0.18);
+      const neck = add(new THREE.CylinderGeometry(0.035, 0.06, 0.3, 10), top + 0.13);
+      neck.rotation.x = -0.4; neck.position.z = 0.05;
+      const leaf = add(new THREE.ConeGeometry(0.11, 0.28, 12), top + 0.32);
+      leaf.scale.z = 0.32; leaf.rotation.x = -0.4; leaf.position.z = 0.12;
+      const head = add(new THREE.SphereGeometry(0.045, 10, 8), top + 0.28);
+      head.position.z = 0.17;
       break;
     }
     case E.ROOK: {
-      const hull = add(new THREE.CylinderGeometry(0.15, 0.075, 0.6, 4, 1), 0.24);
+      const hull = add(new THREE.CylinderGeometry(0.14, 0.07, 0.58, 4, 1), 0.24);
       hull.rotation.z = Math.PI / 2;
       hull.rotation.y = Math.PI / 4;
-      hull.scale.set(1, 1, 0.55);
-      const prow = add(new THREE.ConeGeometry(0.05, 0.22, 8), 0.4);
-      prow.position.z = 0.26; prow.rotation.x = 0.35;
-      const stern = add(new THREE.ConeGeometry(0.05, 0.22, 8), 0.4);
-      stern.position.z = -0.26; stern.rotation.x = -0.35;
+      hull.scale.set(1, 1, 0.5);
+      // naga-head prow: rising neck + tiny flattened hood
+      const prowNeck = add(new THREE.CylinderGeometry(0.03, 0.045, 0.2, 8), 0.42);
+      prowNeck.position.z = 0.27; prowNeck.rotation.x = 0.5;
+      const prowHood = add(new THREE.ConeGeometry(0.055, 0.14, 10), 0.53);
+      prowHood.scale.z = 0.35; prowHood.position.z = 0.31;
+      const stern = add(new THREE.ConeGeometry(0.04, 0.18, 8), 0.4);
+      stern.position.z = -0.27; stern.rotation.x = -0.45;
       break;
     }
     case E.PAWN:
-      coil(0.15, 0.06, 0.15);
-      add(new THREE.CylinderGeometry(0.035, 0.055, 0.16, 8), 0.3);
-      hood(0.44, 0.62);
+      neckHood(coils(2, 0.16, 0.14), 0.62, false);
       break;
   }
-  if (promoted) add(new THREE.TorusGeometry(0.24, 0.035, 10, 22), 0.18, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (promoted) add(new THREE.TorusGeometry(0.24, 0.035, 10, 22), 0.16, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -5285,6 +5303,21 @@ function flat2DArtTexture(setStyle, type, color) {
   const ctx = cv.getContext('2d');
   ctx.clearRect(0, 0, 256, 256);
   ctx.lineJoin = 'round';
+  // Centers a glyph by its actual INK box, not its font metrics -- Khmer
+  // stacked clusters carry tall ascenders/subscripts that make baseline-
+  // or middle-anchored text sit visibly off the card's center.
+  const glyphCentered = (text, cx, cy, font, fill) => {
+    ctx.font = font;
+    ctx.fillStyle = fill;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    const m = ctx.measureText(text);
+    const dx = (m.actualBoundingBoxLeft != null && m.actualBoundingBoxRight != null)
+      ? (m.actualBoundingBoxLeft - m.actualBoundingBoxRight) / 2 : 0;
+    const dy = (m.actualBoundingBoxAscent != null && m.actualBoundingBoxDescent != null)
+      ? (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2 : 0;
+    ctx.fillText(text, cx + dx, cy + dy);
+  };
   if (setStyle === '2dkhmer') {
     // Lotus-arch standee card: concave sides sweeping to a pointed top
     // (the classic Khmer arch/stupa silhouette), gold rim, side-colored
@@ -5327,85 +5360,125 @@ function flat2DArtTexture(setStyle, type, color) {
     for (let i = 0; i < 5; i++) {
       ctx.beginPath(); ctx.arc(76 + i * 26, 214, 3.4, 0, Math.PI * 2); ctx.fill();
     }
-    // central Khmer glyph
-    ctx.fillStyle = ink;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // central Khmer glyph, centered on the card body by its real ink box
     const kh = NAMES[type].kh;
-    ctx.font = '600 ' + (kh.length > 3 ? 56 : 66) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
-    ctx.fillText(kh, 128, 138);
+    glyphCentered(kh, 128, 128,
+      '600 ' + (kh.length > 3 ? 56 : 66) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink);
     // latin transliteration, small, under the glyph
     ctx.font = '600 22px "Segoe UI",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = ink;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(NAMES[type].tr, 128, 196);
+    ctx.fillText(NAMES[type].tr, 128, 198);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dlacquer') {
-    // Khmer lacquerware (kreung khmuk): a rectangular lacquered panel
-    // with double gold filigree borders, scrolled corner dots and a
-    // lotus-dot foot -- the piece's Khmer name in gold-on-dark or
-    // dark-on-gold depending on the side color.
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(44, 26, 168, 208, 18); else ctx.rect(44, 26, 168, 208);
+    // Khmer lacquerware (kreung khmuk), styled to match the lotus-arch
+    // set's vocabulary: the same pointed-arch card silhouette, but
+    // dressed as a lacquered panel -- heavy gold rim, an inner gold arch
+    // echo, corner filigree scrolls, a gold finial on the tip, a
+    // pedestal band with lotus dots, and the ink-centered Khmer glyph
+    // with its transliteration below.
+    const panel = () => {
+      ctx.beginPath();
+      ctx.moveTo(48, 238);
+      ctx.lineTo(48, 140);
+      ctx.quadraticCurveTo(48, 66, 128, 30);
+      ctx.quadraticCurveTo(208, 66, 208, 140);
+      ctx.lineTo(208, 238);
+      ctx.closePath();
+    };
+    panel();
     ctx.fillStyle = body; ctx.fill();
-    ctx.strokeStyle = gold; ctx.lineWidth = 8; ctx.stroke();
+    ctx.strokeStyle = gold; ctx.lineWidth = 9; ctx.stroke();
+    // inner gold arch echo
     ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(58, 40, 140, 180, 12); else ctx.rect(58, 40, 140, 180);
+    ctx.moveTo(62, 238); ctx.lineTo(62, 144);
+    ctx.quadraticCurveTo(62, 78, 128, 46);
+    ctx.quadraticCurveTo(194, 78, 194, 144);
+    ctx.lineTo(194, 238);
     ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
-    // corner scroll dots
+    // corner filigree scrolls (quarter arcs) + shoulder dots
+    ctx.strokeStyle = gold; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(66, 232, 14, Math.PI, Math.PI * 1.5); ctx.stroke();
+    ctx.beginPath(); ctx.arc(190, 232, 14, Math.PI * 1.5, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = gold;
-    for (const [cx2, cy2] of [[58, 40], [198, 40], [58, 220], [198, 220]]) {
-      ctx.beginPath(); ctx.arc(cx2, cy2, 6, 0, Math.PI * 2); ctx.fill();
+    for (const [sx, sy] of [[74, 92], [182, 92]]) {
+      ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI * 2); ctx.fill();
     }
-    // lotus-dot foot band
+    // gold finial bud on the tip
+    ctx.beginPath(); ctx.arc(128, 22, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(128, 0); ctx.lineTo(134, 16); ctx.lineTo(122, 16); ctx.closePath(); ctx.fill();
+    // pedestal band with lotus dots
+    ctx.fillRect(48, 224, 160, 6);
     for (let i = 0; i < 5; i++) {
-      ctx.beginPath(); ctx.arc(84 + i * 22, 208, 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(76 + i * 26, 214, 3.4, 0, Math.PI * 2); ctx.fill();
     }
-    const inkL = light ? '#5a3410' : gold; // gold reads poorly on gold, dark bronze instead
-    ctx.fillStyle = inkL;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const inkL = light ? '#5a3410' : gold; // gold ink reads poorly on a gold card, dark bronze instead
     const khL = NAMES[type].kh;
-    ctx.font = '600 ' + (khL.length > 3 ? 52 : 62) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
-    ctx.fillText(khL, 128, 118);
+    glyphCentered(khL, 128, 126,
+      '600 ' + (khL.length > 3 ? 52 : 62) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', inkL);
     ctx.font = '600 20px "Segoe UI",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = inkL;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(NAMES[type].tr, 128, 182);
+    ctx.fillText(NAMES[type].tr, 128, 198);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dsbek') {
-    // Sbek Thom shadow-puppet: a leather panel with REAL punched holes
-    // (destination-out, so the board shows through, exactly like light
-    // through perforated hide), a bold central glyph, and the puppet's
-    // handle stick below.
-    ctx.fillStyle = body;
-    ctx.beginPath();
-    ctx.moveTo(60, 210);
-    ctx.lineTo(60, 110);
-    ctx.quadraticCurveTo(60, 44, 128, 30);
-    ctx.quadraticCurveTo(196, 44, 196, 110);
-    ctx.lineTo(196, 210);
-    ctx.closePath();
-    ctx.fill();
+    // Sbek Thom shadow-puppet, styled to match the lotus-arch set: the
+    // same pointed-arch silhouette cut from hide, with REAL punched
+    // perforations (destination-out, the board shows through like lamp
+    // light through leather) following the arch, flame-curl shoulder
+    // cutouts, the puppet's handle stick, and the ink-centered glyph
+    // with its transliteration below.
+    const hide = () => {
+      ctx.beginPath();
+      ctx.moveTo(54, 234);
+      ctx.lineTo(54, 136);
+      ctx.quadraticCurveTo(54, 64, 128, 30);
+      ctx.quadraticCurveTo(202, 64, 202, 136);
+      ctx.lineTo(202, 234);
+      ctx.closePath();
+    };
+    hide();
+    ctx.fillStyle = body; ctx.fill();
     ctx.strokeStyle = light ? 'rgba(58,28,16,0.55)' : 'rgba(242,216,168,0.55)';
     ctx.lineWidth = 4; ctx.stroke();
     // handle stick
     ctx.fillStyle = body;
-    ctx.fillRect(122, 208, 12, 44);
-    // punched perforations: a border ring of holes + a crown arc
+    ctx.fillRect(122, 232, 12, 24);
+    // punched perforations: an arch-following ring, flame-curl shoulder
+    // cuts, and a foot row
     ctx.save();
     ctx.globalCompositeOperation = 'destination-out';
-    for (let i = 0; i < 9; i++) {
-      const a = Math.PI + (i / 8) * Math.PI;
-      ctx.beginPath();
-      ctx.arc(128 + Math.cos(a) * 54, 118 + Math.sin(a) * 60, 4.4, 0, Math.PI * 2);
-      ctx.fill();
+    for (let i = 0; i <= 10; i++) {
+      const u = i / 10;
+      const px = 70 + (256 - 140) * u;
+      // follow the arch curve: parametric on the outer quadratic
+      const qx = (a, b, c, tt) => (1 - tt) * (1 - tt) * a + 2 * (1 - tt) * tt * b + tt * tt * c;
+      const side = u < 0.5 ? u * 2 : (u - 0.5) * 2;
+      const x = u < 0.5 ? qx(66, 66, 128, side) : qx(128, 190, 190, side);
+      const y = u < 0.5 ? qx(224, 86, 48, side) : qx(48, 86, 224, side);
+      ctx.beginPath(); ctx.arc(x, y, 4.2, 0, Math.PI * 2); ctx.fill();
     }
+    // flame-curl shoulder cutouts (small crescent pairs)
+    for (const sx of [84, 172]) {
+      ctx.beginPath(); ctx.arc(sx, 118, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx, 136, 4.5, 0, Math.PI * 2); ctx.fill();
+    }
+    // foot row
     for (let i = 0; i < 5; i++) {
-      ctx.beginPath(); ctx.arc(80 + i * 24, 192, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(80 + i * 24, 210, 4, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
-    ctx.fillStyle = ink;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const khS = NAMES[type].kh;
-    ctx.font = '600 ' + (khS.length > 3 ? 50 : 60) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
-    ctx.fillText(khS, 128, 126);
+    glyphCentered(khS, 128, 126,
+      '600 ' + (khS.length > 3 ? 50 : 60) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink);
+    ctx.font = '600 20px "Segoe UI",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = 0.8;
+    ctx.fillText(NAMES[type].tr, 128, 190);
+    ctx.globalAlpha = 1;
   } else if (setStyle === '2dclassic') {
     // Round medallion with the classic (western) chess glyph -- the
     // filled glyph variants tint cleanly with the side color.
@@ -6574,47 +6647,16 @@ let pieceAt = {};
 // no-build project) -- kept in a separate scene-level group (not nested
 // under pieceGroup) so it never interferes with pieceGroup-based
 // raycasting/picking. Applies to every theme, at a fixed subtle opacity.
-const reflectionGroup = new THREE.Group();
-scene.add(reflectionGroup);
-const REFLECT_MAT_W = new THREE.MeshBasicMaterial({ color: 0xe9dabb, transparent: true, opacity: 0.16, depthWrite: false });
-const REFLECT_MAT_B = new THREE.MeshBasicMaterial({ color: 0x6d2a18, transparent: true, opacity: 0.16, depthWrite: false });
-let reflectBaseOpacity = 0.16; // the active theme's tuned strength; Fresnel-scaled per frame below
-function buildPieceReflection(pieceGroupObj, color) {
-  const refl = pieceGroupObj.clone(true);
-  const mat = color === E.WHITE ? REFLECT_MAT_W : REFLECT_MAT_B;
-  refl.traverse((o) => { if (o.isMesh) { o.material = mat; o.castShadow = false; o.receiveShadow = false; } });
-  refl.scale.set(1.35, -0.1, 1.35);
-  refl.position.y = 0.004;
-  return refl;
-}
-// Fresnel-style view dependence, the physically-motivated half of a real
-// planar reflection this fake can actually afford (a true mirror needs a
-// render-to-texture Reflector pass, ruled out above): on a glossy
-// dielectric surface, reflectance rises sharply at glancing view angles
-// (Schlick's approximation) and the mirrored image stretches along the
-// floor toward the viewer. Cheap per-frame approximation of both: scale
-// the two shared reflection materials' opacity by a glancing factor, and
-// stretch/aim each smear toward the camera azimuth. Looking straight
-// down, reflections almost vanish (as they should); at a low, across-the-
-// board angle they lengthen and deepen.
-function retrackReflections() {
-  const n = reflectionGroup.children.length;
-  if (!n) return;
-  const dx = camera.position.x - controls.target.x;
-  const dz = camera.position.z - controls.target.z;
-  const dy = Math.max(0.001, camera.position.y - controls.target.y);
-  const horiz = Math.hypot(dx, dz);
-  const glance = horiz / Math.hypot(horiz, dy); // 0 = top-down, 1 = grazing
-  const fresnel = 0.35 + 0.65 * glance * glance;
-  REFLECT_MAT_W.opacity = reflectBaseOpacity * fresnel;
-  REFLECT_MAT_B.opacity = reflectBaseOpacity * fresnel;
-  const az = Math.atan2(dx, dz);
-  const stretch = 1.35 * (1 + glance * 0.9);
-  for (const r of reflectionGroup.children) {
-    r.rotation.y = az;
-    r.scale.set(1.35, -0.1, stretch);
-  }
-}
+// Board-surface reflectivity: instead of faking piece mirrors with
+// flattened clone meshes laid on the tiles (which never lined up with
+// what a real reflection would show), the board MATERIAL itself is now
+// reflective -- each square's physical material gets a clearcoat layer
+// plus a stronger pull from the procedural studio environment map, so
+// the surface genuinely picks up specular light and reads as polished
+// the way a real varnished board does. The per-theme reflect strength
+// (THEME_REFLECT / reflectOpacity, applied in applyTheme's square loop)
+// scales how glossy each board finish is.
+let reflectBaseOpacity = 0.16; // the active theme's tuned board-gloss strength
 
 // Piece-name billboards: a THREE.Sprite always faces the camera regardless
 // of how the board is orbited, and (since it's offset only along the local
@@ -6809,7 +6851,6 @@ function retrackOnlineThinkingTip() {
 }
 function rebuildPieces() {
   pieceGroup.clear();
-  reflectionGroup.clear();
   pieceAt = {};
   for (let sq = 0; sq < 64; sq++) {
     const p = state.board[sq];
@@ -6819,7 +6860,6 @@ function rebuildPieces() {
     const g = buildPiece(type, color, E.isProm(p));
     const pos = sqPos(sq);
     g.position.set(pos.x, 0, pos.z);
-    reflectionGroup.add(buildPieceReflection(g, color)); // built before the label is added, so the label sprite is never cloned into it
     if (showPieceNames) addPieceLabel(g, type, color);
     pieceGroup.add(g);
     pieceAt[sq] = g;
@@ -7519,8 +7559,6 @@ function applyTheme(key) {
   setGemHue(MAT_GEM_EMERALD, 'emerald');
   setGemHue(MAT_GEM_SAPPHIRE, 'sapphire');
   setGemHue(MAT_GEM_AMETHYST, 'amethyst');
-  REFLECT_MAT_W.color.copy(MAT_W.color);
-  REFLECT_MAT_B.color.copy(MAT_B.color);
   // Per-theme piece-mirror strength, tuned board-by-board to match each
   // surface's implied finish: polished/lacquered boards (glass, marble,
   // gems) read as near-mirrors and get a stronger gleam; matte/textured
@@ -7538,7 +7576,6 @@ function applyTheme(key) {
   reflectBaseOpacity =
     t.reflectOpacity != null ? t.reflectOpacity
       : (THEME_REFLECT[themeKey] != null ? THEME_REFLECT[themeKey] : 0.16);
-  REFLECT_MAT_W.opacity = REFLECT_MAT_B.opacity = reflectBaseOpacity;
   // Glass/Marble-only physical properties (clearcoat, a stronger pull from
   // the procedural studio environment map above). These materials are
   // reused across every theme switch, so anything a previous theme turned
@@ -7662,6 +7699,16 @@ function applyTheme(key) {
     // into gray; light squares always use the theme's own sharp values.
     m.material.clearcoatRoughness = (!khmerBoardStyle && !light && t.boardClearcoatRoughnessDark != null) ? t.boardClearcoatRoughnessDark : (t.clearcoatRoughness || 0);
     m.material.envMapIntensity = (!khmerBoardStyle && !light && t.boardEnvMapIntensityDark != null) ? t.boardEnvMapIntensityDark : (t.envMapIntensity || 0.15);
+    // Board-surface gloss (see reflectBaseOpacity above): themes without
+    // their own clearcoat treatment get a varnished finish on the squares
+    // themselves -- clearcoat + a stronger environment pull scaled by the
+    // theme's tuned reflect strength -- so the surface genuinely reflects
+    // light instead of relying on painted-on piece mirrors.
+    if (!t.clearcoat) {
+      m.material.clearcoat = Math.min(0.55, reflectBaseOpacity * 2.4);
+      m.material.clearcoatRoughness = 0.22;
+      m.material.envMapIntensity = Math.max(m.material.envMapIntensity, Math.min(0.45, reflectBaseOpacity * 1.9));
+    }
     // Glass's light/dark squares are two different materials (clear vs.
     // black glass), not one material in two colors, so transmission is
     // looked up per-square by light/dark rather than being a single theme
@@ -12681,13 +12728,9 @@ window.__ouk = {
   maybeAutoCount: () => maybeAutoCount(),
   refreshCountPanel: () => refreshCountPanel(),
   countPanelHTML: () => countPanel.innerHTML,
-  reflectionGroupCount: () => reflectionGroup.children.length,
-  reflectionMeshInfo: () => {
-    const r = reflectionGroup.children[0];
-    if (!r) return null;
-    let mesh = null;
-    r.traverse((o) => { if (!mesh && o.isMesh) mesh = o; });
-    return mesh ? { opacity: mesh.material.opacity, color: mesh.material.color.getHex(), scaleY: r.scale.y, scaleXZ: r.scale.x } : null;
+  boardGlossInfo: () => {
+    const m = squareMeshes[0] && squareMeshes[0].material;
+    return m ? { clearcoat: m.clearcoat, clearcoatRoughness: m.clearcoatRoughness, envMapIntensity: m.envMapIntensity } : null;
   },
   goldAccentsOn: () => !!theme().goldAccents,
   matAccentPhysical: () => ({ w: { color: MAT_ACCENT_W.color.getHex(), roughness: MAT_ACCENT_W.roughness, metalness: MAT_ACCENT_W.metalness }, b: { color: MAT_ACCENT_B.color.getHex(), roughness: MAT_ACCENT_B.roughness, metalness: MAT_ACCENT_B.metalness } }),
@@ -12913,7 +12956,6 @@ function loop() {
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   retrackOnlineThinkingTip();
   retrackFlat2DArt(); // keep 2D standee artwork facing the camera
-  retrackReflections(); // Fresnel view-dependence for the piece mirrors
   renderer.render(scene, camera);
 }
 
