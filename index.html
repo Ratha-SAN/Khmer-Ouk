@@ -5325,7 +5325,9 @@ function buildNagaPiece(g, add, type, promoted, color) {
 // toward the opponent -- the same "faces forward, Black is spun 180" rule
 // every other custom set already follows.
 function buildModernPiece(g, add, type, promoted, color) {
-  add(new THREE.CylinderGeometry(0.3, 0.34, 0.08, 20), 0.04); // display base
+  // display base: broad foundation plate + a thin gunmetal trim collar
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.07, 24), 0.035);
+  add(new THREE.CylinderGeometry(0.305, 0.305, 0.014, 24), 0.077, MAT_MIL_GUNMETAL);
   const wheelRow = (geom, y, xs, zs) => {
     for (const wz of zs) for (const wx of xs) {
       const wheel = add(geom, y, MAT_MIL_TREAD);
@@ -5333,94 +5335,117 @@ function buildModernPiece(g, add, type, promoted, color) {
       wheel.position.x = wx; wheel.position.z = wz;
     }
   };
+  // Local -Z is "forward" (toward the opponent) for every vehicle below --
+  // the world maps +Z to White's home rank and -Z to Black's, so an
+  // unrotated (White) piece built nose-first at -Z already points at
+  // Black, and the shared Black-flip (rotation.y = PI at the very end)
+  // then carries that same -Z-is-forward convention back across the
+  // board at White.
   switch (type) {
     case E.KING: {
-      // wheeled armored undercarriage + cabin
-      add(new THREE.BoxGeometry(0.4, 0.12, 0.34), 0.14, MAT_MIL_TREAD);
-      add(new THREE.BoxGeometry(0.34, 0.16, 0.28), 0.26);
-      wheelRow(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 10), 0.09, [-0.19, 0.19], [-0.12, 0, 0.12]);
-      // radar/satellite dome
-      add(new THREE.SphereGeometry(0.12, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), 0.42, MAT_MIL_GUNMETAL);
-      const mast = add(new THREE.CylinderGeometry(0.008, 0.008, 0.2, 6), 0.52, MAT_MIL_GUNMETAL);
-      mast.position.x = -0.12;
-      // small gold command pennant -- the one royal touch on the vehicle
-      const flag = add(new THREE.BoxGeometry(0.09, 0.05, 0.006), 0.6, MAT_GOLD);
-      flag.position.x = -0.12; flag.position.z = 0.045;
+      // mobile command center: sloped front step + headlights face the
+      // opponent, radar dome sits amidships, antenna + gold pennant fly
+      // off the stern -- the least combative, most-guarded unit
+      add(new THREE.BoxGeometry(0.38, 0.1, 0.32), 0.13, MAT_MIL_TREAD);
+      add(new THREE.BoxGeometry(0.32, 0.14, 0.26), 0.24).position.z = 0.02;
+      add(new THREE.BoxGeometry(0.26, 0.1, 0.08), 0.19).position.z = -0.17;
+      wheelRow(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 12), 0.09, [-0.18, 0.18], [-0.12, 0, 0.12]);
+      const lightL = add(new THREE.BoxGeometry(0.045, 0.03, 0.015), 0.16, MAT_MIL_GLASS);
+      lightL.position.set(-0.12, 0, -0.205);
+      const lightR = add(new THREE.BoxGeometry(0.045, 0.03, 0.015), 0.16, MAT_MIL_GLASS);
+      lightR.position.set(0.12, 0, -0.205);
+      add(new THREE.SphereGeometry(0.12, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), 0.38, MAT_MIL_GUNMETAL);
+      add(new THREE.TorusGeometry(0.12, 0.012, 8, 24), 0.32, MAT_MIL_GUNMETAL).rotation.x = Math.PI / 2;
+      const mast = add(new THREE.CylinderGeometry(0.007, 0.007, 0.22, 6), 0.48, MAT_MIL_GUNMETAL);
+      mast.position.z = 0.14;
+      const flag = add(new THREE.BoxGeometry(0.005, 0.05, 0.09), 0.57, MAT_GOLD);
+      flag.position.z = 0.185;
       break;
     }
     case E.QUEEN: {
       // quadcopter drone: flattened body, a diagonal cross of arms, four
-      // rotor discs, an under-slung camera ball and a beacon light
-      const body = add(new THREE.SphereGeometry(0.1, 14, 10), 0.36);
-      body.scale.set(1.3, 0.42, 1.3);
-      add(new THREE.SphereGeometry(0.035, 10, 8), 0.29, MAT_MIL_GLASS);
+      // rotor discs, a forward camera gimbal and a forward beacon light
+      const body = add(new THREE.SphereGeometry(0.1, 16, 12), 0.36);
+      body.scale.set(1.3, 0.4, 1.3);
+      const gimbal = add(new THREE.SphereGeometry(0.038, 12, 10), 0.28, MAT_MIL_GLASS);
+      gimbal.position.z = -0.09;
       for (const ang of [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4]) {
         const arm = add(new THREE.BoxGeometry(0.3, 0.016, 0.016), 0.36, MAT_MIL_GUNMETAL);
         arm.rotation.y = ang;
         arm.position.x = Math.cos(ang) * 0.15; arm.position.z = Math.sin(ang) * 0.15;
-        const rotor = add(new THREE.CylinderGeometry(0.06, 0.06, 0.012, 14), 0.385, MAT_MIL_GUNMETAL);
+        const rotor = add(new THREE.CylinderGeometry(0.06, 0.06, 0.012, 16), 0.385, MAT_MIL_GUNMETAL);
         rotor.position.x = Math.cos(ang) * 0.3; rotor.position.z = Math.sin(ang) * 0.3;
       }
-      const beacon = add(new THREE.SphereGeometry(0.022, 8, 8), 0.42, MAT_MIL_BEACON);
-      beacon.position.z = 0.1;
+      const beacon = add(new THREE.SphereGeometry(0.02, 8, 8), 0.4, MAT_MIL_BEACON);
+      beacon.position.z = -0.1;
       break;
     }
     case E.BISHOP: {
-      // MLRS rocket truck: chassis, cab, wheels, and a tilted tube pod
-      // aimed up-and-forward like the bishop's own diagonal line of attack
-      add(new THREE.BoxGeometry(0.32, 0.1, 0.5), 0.13);
-      const cab = add(new THREE.BoxGeometry(0.24, 0.14, 0.14), 0.24, MAT_MIL_GLASS);
-      cab.position.z = 0.18;
-      wheelRow(new THREE.CylinderGeometry(0.05, 0.05, 0.055, 10), 0.06, [-0.15, 0.15], [-0.16, 0.04, 0.16]);
-      const podBase = add(new THREE.BoxGeometry(0.22, 0.1, 0.2), 0.26);
-      podBase.rotation.x = -0.5; podBase.position.z = -0.06;
-      const tubeGeom = new THREE.CylinderGeometry(0.022, 0.022, 0.3, 8);
+      // MLRS rocket truck: cab up front facing the opponent, launcher pod
+      // mounted aft and tilted to fire forward, over the cab
+      add(new THREE.BoxGeometry(0.3, 0.1, 0.48), 0.13);
+      const cab = add(new THREE.BoxGeometry(0.22, 0.14, 0.14), 0.24, MAT_MIL_GLASS);
+      cab.position.z = -0.17;
+      wheelRow(new THREE.CylinderGeometry(0.05, 0.05, 0.055, 12), 0.06, [-0.15, 0.15], [-0.16, 0.02, 0.16]);
+      const podBase = add(new THREE.BoxGeometry(0.2, 0.1, 0.2), 0.26);
+      podBase.rotation.x = -0.5; podBase.position.z = 0.08;
+      const tubeGeom = new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8);
       for (let row = 0; row < 2; row++) for (let col = -1; col <= 1; col++) {
         const tube = add(tubeGeom, 0.32 + row * 0.05, MAT_MIL_GUNMETAL);
         tube.rotation.x = -0.85;
-        tube.position.x = col * 0.06; tube.position.z = -0.04 - row * 0.02;
+        tube.position.x = col * 0.06; tube.position.z = 0.06 + row * 0.02;
       }
       break;
     }
     case E.KNIGHT: {
-      // fighter jet: fuselage + nose cone, swept wings, tail fin, canopy
-      const fuselage = add(new THREE.CylinderGeometry(0.05, 0.08, 0.5, 10), 0.22);
+      // fighter jet: fuselage + forward nose cone, swept wings, twin tail
+      // fins at the rear, canopy set just behind the nose
+      const fuselage = add(new THREE.CylinderGeometry(0.05, 0.08, 0.5, 12), 0.22);
       fuselage.rotation.x = Math.PI / 2;
-      const nose = add(new THREE.ConeGeometry(0.05, 0.14, 10), 0.22);
-      nose.rotation.x = Math.PI / 2; nose.position.z = 0.32;
-      const canopy = add(new THREE.SphereGeometry(0.05, 10, 8), 0.28, MAT_MIL_GLASS);
-      canopy.scale.set(0.8, 0.7, 1.6); canopy.position.z = 0.06;
-      const wingR = add(new THREE.BoxGeometry(0.3, 0.018, 0.13), 0.2);
-      wingR.position.x = 0.17; wingR.rotation.z = -0.08;
-      const wingL = add(new THREE.BoxGeometry(0.3, 0.018, 0.13), 0.2);
-      wingL.position.x = -0.17; wingL.rotation.z = 0.08;
-      const tailFin = add(new THREE.BoxGeometry(0.018, 0.16, 0.1), 0.34);
-      tailFin.position.z = -0.22;
+      const nose = add(new THREE.ConeGeometry(0.05, 0.16, 12), 0.22);
+      nose.rotation.x = -Math.PI / 2; nose.position.z = -0.33;
+      const canopy = add(new THREE.SphereGeometry(0.05, 12, 8), 0.28, MAT_MIL_GLASS);
+      canopy.scale.set(0.8, 0.7, 1.6); canopy.position.z = -0.07;
+      const wingR = add(new THREE.BoxGeometry(0.32, 0.018, 0.14), 0.2);
+      wingR.position.set(0.18, 0.2, 0.02); wingR.rotation.z = -0.1;
+      const wingL = add(new THREE.BoxGeometry(0.32, 0.018, 0.14), 0.2);
+      wingL.position.set(-0.18, 0.2, 0.02); wingL.rotation.z = 0.1;
+      const finR = add(new THREE.BoxGeometry(0.018, 0.15, 0.11), 0.34);
+      finR.position.x = 0.05; finR.position.z = 0.22; finR.rotation.z = -0.15;
+      const finL = add(new THREE.BoxGeometry(0.018, 0.15, 0.11), 0.34);
+      finL.position.x = -0.05; finL.position.z = 0.22; finL.rotation.z = 0.15;
       break;
     }
     case E.ROOK: {
-      // aircraft carrier: hull, wide flight deck, offset island
-      // superstructure with an antenna, exactly like a real flattop
-      add(new THREE.BoxGeometry(0.2, 0.1, 0.6), 0.09);
-      add(new THREE.BoxGeometry(0.34, 0.03, 0.62), 0.15);
+      // aircraft carrier: hull steps down to a bow facing the opponent,
+      // wide flight deck runs the length, island set back near the stern
+      add(new THREE.BoxGeometry(0.2, 0.1, 0.34), 0.09).position.z = 0.09;
+      add(new THREE.BoxGeometry(0.15, 0.1, 0.14), 0.09).position.z = -0.15;
+      add(new THREE.BoxGeometry(0.08, 0.09, 0.1), 0.085).position.z = -0.27;
+      const deck = add(new THREE.BoxGeometry(0.34, 0.03, 0.58), 0.15);
+      deck.position.z = 0.03;
       const island = add(new THREE.BoxGeometry(0.08, 0.18, 0.16), 0.26);
-      island.position.x = 0.12; island.position.z = -0.14;
+      island.position.x = 0.12; island.position.z = 0.16;
       const antenna = add(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 6), 0.4, MAT_MIL_GUNMETAL);
-      antenna.position.x = 0.12; antenna.position.z = -0.14;
+      antenna.position.x = 0.12; antenna.position.z = 0.16;
       break;
     }
     case E.PAWN:
     default: {
-      // main battle tank: tracked hull, upper deck, turret and barrel
+      // main battle tank: tracked hull with a stepped-down front glacis,
+      // low turret and a long barrel with a muzzle brake, aimed forward
       add(new THREE.BoxGeometry(0.4, 0.1, 0.26), 0.13, MAT_MIL_TREAD);
-      add(new THREE.BoxGeometry(0.32, 0.1, 0.24), 0.22);
-      add(new THREE.CylinderGeometry(0.13, 0.15, 0.1, 14), 0.32);
-      const barrel = add(new THREE.CylinderGeometry(0.018, 0.02, 0.3, 8), 0.32, MAT_MIL_GUNMETAL);
-      barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.22;
+      add(new THREE.BoxGeometry(0.32, 0.1, 0.22), 0.22).position.z = 0.02;
+      add(new THREE.BoxGeometry(0.28, 0.08, 0.08), 0.19).position.z = -0.13;
+      add(new THREE.CylinderGeometry(0.13, 0.15, 0.1, 16), 0.32);
+      const barrel = add(new THREE.CylinderGeometry(0.018, 0.02, 0.32, 8), 0.32, MAT_MIL_GUNMETAL);
+      barrel.rotation.x = Math.PI / 2; barrel.position.z = -0.23;
+      const brake = add(new THREE.CylinderGeometry(0.026, 0.026, 0.03, 8), 0.32, MAT_MIL_GUNMETAL);
+      brake.rotation.x = Math.PI / 2; brake.position.z = -0.38;
       break;
     }
   }
-  if (promoted) add(new THREE.TorusGeometry(0.24, 0.035, 10, 22), 0.05, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (promoted) add(new THREE.TorusGeometry(0.29, 0.03, 10, 24), 0.09, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
