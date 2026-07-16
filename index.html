@@ -4087,7 +4087,13 @@ const THEMES = {
     name: 'Naga Jade', style: 'naga',
     bg: 0x081410, fog: null,
     frame: 0x2f2414, tileLight: 0x6fae94, tileDark: 0x2f5c4a,
-    pieceW: 0xd8ead9, pieceB: 0x24453a, rough: 0.35, metal: 0.1, pieceBFloor: 0.16,
+    // pieceB was a dark emerald (0x24453a) -- nearly the same hue AND
+    // lightness as tileDark's jade-green (contrast ratio ~1.4, read as
+    // "the same color as the tile"). Switched to the theme's own bronze
+    // half (see the theme comment) instead of a third shade of green, so
+    // Black reads as a distinct warm-metal color against the cool jade
+    // board rather than camouflaging into it.
+    pieceW: 0xd8ead9, pieceB: 0x4a2f18, rough: 0.35, metal: 0.15, pieceBFloor: 0.16,
     labelInk: '#d9f0e2', tray: 0x1d160c,
     clearcoat: 0.5, clearcoatRoughness: 0.2,
     reflectOpacity: 0.2
