@@ -2311,8 +2311,8 @@
       <option value="none">No music</option>
       <optgroup label="Relaxing (6)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
-      <optgroup label="Arcade (4)"></optgroup>
-      <optgroup label="Cinematic (4)"></optgroup>
+      <optgroup label="Arcade (5)"></optgroup>
+      <optgroup label="Cinematic (2)"></optgroup>
       <optgroup label="Synth (2)"></optgroup>
       <optgroup label="World (1)"></optgroup>
       <optgroup label="National (1)"></optgroup>
@@ -8240,7 +8240,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'cine4' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -8603,27 +8603,26 @@ const SFX = {
       for (let i = 0; i < 6; i++) envOsc({ freq: i % 2 === 0 ? 740 : 555, type: 'square', dur: 0.08, gain: 0.27, delay: i * 0.08 });
     }
   },
-  // Modern Ops: a smooth, resonant engine swell + a soft mechanical clunk
-  // for a move, a clean launch whoosh into a deep rounded boom for a
-  // capture (paired with the shoot/explode 3D cinematic -- see
-  // triggerModernEffect), and a slow, measured two-note alert swell for
-  // check/checkmate -- rounded triangle/sine tones throughout rather than
-  // buzzy sawtooth or a machine-gun rattle of noise bursts, reading as a
-  // disciplined, professional operation rather than arcade gunfire.
+  // Modern Ops: a diesel-engine rev + metallic track clank for a move, a
+  // machine-gun rattle into a missile-launch whoosh and a low explosion
+  // boom for a capture (paired with the shoot/explode 3D cinematic --
+  // see triggerModernEffect), and a slow air-raid-siren wail for
+  // check/checkmate -- deeper and more mechanical than Contra's punchier
+  // arcade gunfire, reading as a real warzone rather than a run-and-gun.
   modern(kind) {
     if (kind === 'move') {
-      envOsc({ freq: 85, type: 'triangle', dur: 0.28, gain: 0.22, freqTo: 120, filterHz: 500 });
-      noiseBurst({ dur: 0.06, filterFreq: 500, q: 1.6, gain: 0.14, filterType: 'lowpass', delay: 0.12 });
+      envOsc({ freq: 90, type: 'sawtooth', dur: 0.22, gain: 0.22, freqTo: 130 });
+      noiseBurst({ dur: 0.05, filterFreq: 1400, q: 3, gain: 0.16, delay: 0.08 });
+      noiseBurst({ dur: 0.05, filterFreq: 1400, q: 3, gain: 0.14, delay: 0.16 });
     } else if (kind === 'capture') {
-      noiseBurst({ dur: 0.18, filterFreq: 2600, q: 1.4, gain: 0.22, filterType: 'bandpass' });
-      envOsc({ freq: 700, type: 'sine', dur: 0.2, gain: 0.16, freqTo: 1400, delay: 0.05 });
-      noiseBurst({ dur: 0.34, filterFreq: 200, q: 1, gain: 0.4, filterType: 'lowpass', delay: 0.4 });
-      envOsc({ freq: 100, type: 'sine', dur: 0.42, gain: 0.4, freqTo: 32, delay: 0.4 });
-      envOsc({ freq: 60, type: 'triangle', dur: 0.5, gain: 0.22, freqTo: 28, delay: 0.42 });
+      for (let i = 0; i < 4; i++) noiseBurst({ dur: 0.04, filterFreq: 2600, q: 4, gain: 0.24, delay: i * 0.045 });
+      envOsc({ freq: 500, type: 'sawtooth', dur: 0.22, gain: 0.2, freqTo: 1400, delay: 0.19 });
+      noiseBurst({ dur: 0.3, filterFreq: 220, q: 1.1, gain: 0.5, filterType: 'lowpass', delay: 0.4 });
+      envOsc({ freq: 120, type: 'sawtooth', dur: 0.36, gain: 0.4, freqTo: 30, delay: 0.4 });
     } else {
       for (let i = 0; i < 2; i++) {
-        envOsc({ freq: 260, type: 'triangle', dur: 0.7, gain: 0.22, freqTo: 340, delay: i * 0.85, filterHz: 1200 });
-        envOsc({ freq: 340, type: 'triangle', dur: 0.55, gain: 0.16, freqTo: 260, delay: i * 0.85 + 0.55, filterHz: 1200 });
+        envOsc({ freq: 300, type: 'sawtooth', dur: 0.6, gain: 0.24, freqTo: 620, delay: i * 0.7 });
+        envOsc({ freq: 620, type: 'sawtooth', dur: 0.6, gain: 0.22, freqTo: 300, delay: i * 0.7 + 0.6 });
       }
     }
   }
@@ -9997,17 +9996,19 @@ function spawnModernDebris(pos, count) {
 // look and flight path rather than one reused tracer for every capture --
 // a tank's direct cannon shell, a carrier's long-range cruise missile
 // (high lazy arc + smoke trail), a fighter jet's air-to-ground missile
-// (tighter/faster arc + smoke), an MLRS truck's three-rocket barrage, and
-// a drone/command-vehicle's called-in guided strike (a designator
-// laser/flare, then a bomb or shell dropping straight in from above,
-// since neither realistically fires a direct shot of its own).
+// (tighter/faster arc + smoke), an MLRS truck's three-rocket barrage, a
+// drone's called-in guided strike (a designator laser, then a bomb
+// dropping straight in from above, since it doesn't fire a direct shot
+// of its own), and the command vehicle's called-in fire support: a
+// flare, then several missiles converging on the target from outside
+// the board at once, from different directions.
 const MODERN_ATTACK = {
   [E.PAWN]: { kind: 'flat', color: 0xffb347, glow: 0xff6a1a, fxcol: '#ffcc66', shotDur: 0.16 },
   [E.ROOK]: { kind: 'arc', color: 0xd8e2ea, glow: 0x6a8aa8, fxcol: '#cfe0ee', shotDur: 0.6, arcHeight: 1.7, smoke: true },
   [E.KNIGHT]: { kind: 'arc', color: 0xff6a3a, glow: 0xff2a10, fxcol: '#ffa066', shotDur: 0.32, arcHeight: 0.75, smoke: true },
   [E.BISHOP]: { kind: 'multi', color: 0xffb347, glow: 0xff6a1a, fxcol: '#ffcc66', shotDur: 0.4, count: 3 },
   [E.QUEEN]: { kind: 'drop', color: 0xd6f8ff, glow: 0x59e8ff, fxcol: '#8fe8ff', shotDur: 0.55, designator: true },
-  [E.KING]: { kind: 'drop', color: 0xffe9a0, glow: 0xffb347, fxcol: '#ffdca0', shotDur: 0.75, flare: true }
+  [E.KING]: { kind: 'strike', color: 0xffe9a0, glow: 0xffb347, fxcol: '#ffdca0', shotDur: 0.85, count: 3, flare: true, smoke: true }
 };
 function modernMakeProjectile(style, radius, length) {
   const mat = new THREE.MeshStandardMaterial({ color: style.color, emissive: style.glow, emissiveIntensity: 1.35 });
@@ -10019,6 +10020,25 @@ function modernMakeProjectile(style, radius, length) {
   return proj;
 }
 function modernRemoveProjectile(p) { if (p) { scene.remove(p); p.geometry.dispose(); p.material.dispose(); } }
+// a missile that needs to point along its own travel direction (unlike
+// the other attack kinds, whose projectiles all fly a fixed board-plane
+// direction) -- the cone is nested in a pivot Group so lookAt() can
+// orient it freely without fighting a separately-applied base rotation.
+function modernMakeMissile(style) {
+  const mat = new THREE.MeshStandardMaterial({ color: style.color, emissive: style.glow, emissiveIntensity: 1.35 });
+  const mesh = new THREE.Mesh(new THREE.ConeGeometry(0.026, 0.17, 8), mat);
+  mesh.rotation.x = -Math.PI / 2; // local +Y (the cone's tip) -> local -Z
+  const pivot = new THREE.Group();
+  pivot.add(mesh);
+  scene.add(pivot);
+  return pivot;
+}
+function modernRemoveMissile(pivot) {
+  if (!pivot) return;
+  scene.remove(pivot);
+  const mesh = pivot.children[0];
+  if (mesh) { mesh.geometry.dispose(); mesh.material.dispose(); }
+}
 // the shoot/explode cinematic itself: aim (rotate to face the victim),
 // fire (per-type projectile + muzzle/designator cue), impact (debris
 // burst + 2D blast/shrapnel, escalated when a lower-value piece takes
@@ -10037,12 +10057,25 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
   const AIM_END = 0.2, SHOT_END = AIM_END + style.shotDur, DURATION = SHOT_END + (isUpset ? 0.65 : 0.55);
   const FADE_START = DURATION - 0.4;
   let firedLaunch = false, firedImpact = false, lastSmokeT = -1, debris = [];
-  let proj = null, multi = null;
+  let proj = null, multi = null, strike = null;
   if (style.kind === 'multi') {
     multi = Array.from({ length: style.count }, (_, i) => ({
       t0: AIM_END + i * (style.shotDur / style.count), mesh: null, done: false,
       jx: (Math.random() - 0.5) * 0.14, jz: (Math.random() - 0.5) * 0.14
     }));
+  } else if (style.kind === 'strike') {
+    // each missile starts well outside the board at a random bearing
+    // around the target and a random height, so they visibly streak in
+    // from different directions rather than all riding the same line
+    strike = Array.from({ length: style.count }, () => {
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 5.5 + Math.random() * 1.8;
+      return {
+        sx: toPos.x + Math.cos(ang) * dist, sz: toPos.z + Math.sin(ang) * dist,
+        sy: 1.8 + Math.random() * 1.2, launchDelay: Math.random() * 0.1,
+        pivot: null, lastSmokeT: -1, done: false
+      };
+    });
   }
   const cine = {
     t: 0, duration: DURATION,
@@ -10088,6 +10121,35 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
           );
           if (tt >= 1) { shot.done = true; modernRemoveProjectile(shot.mesh); shot.mesh = null; }
         }
+      } else if (style.kind === 'strike') {
+        // a flare cue at the mover, then several missiles already inbound
+        // from outside the board (see the `strike` array set up above),
+        // each on its own straight line from its own outside starting
+        // point to the target -- so they converge from different bearings
+        // instead of riding a shared trajectory.
+        if (!firedLaunch) {
+          firedLaunch = true;
+          if (style.flare) fxSpawn(fxAt(fxScreenPoint(fromSq), 'fx-glow', { '--fxcol': style.fxcol, width: '40px', height: '40px', left: '-20px', top: '-20px' }), 380);
+        }
+        const strikeStart = style.shotDur * 0.28;
+        for (const ms of strike) {
+          if (ms.done) continue;
+          const localStart = strikeStart + ms.launchDelay;
+          if (flightT < localStart) continue;
+          if (!ms.pivot) {
+            ms.pivot = modernMakeMissile(style);
+            ms.pivot.position.set(ms.sx, ms.sy, ms.sz);
+            ms.pivot.lookAt(toPos.x, 0.3, toPos.z);
+          }
+          const localDur = Math.max(0.1, (style.shotDur - localStart));
+          const tt = Math.min(1, (flightT - localStart) / localDur);
+          ms.pivot.position.set(ms.sx + (toPos.x - ms.sx) * tt, ms.sy + (0.3 - ms.sy) * tt, ms.sz + (toPos.z - ms.sz) * tt);
+          if (style.smoke && flightT - ms.lastSmokeT > 0.05 && tt < 0.92) {
+            ms.lastSmokeT = flightT;
+            const pt = fxWorldScreenPoint(ms.pivot.position.x, ms.pivot.position.y, ms.pivot.position.z);
+            fxSpawn(fxAt(pt, 'fx-mote', { '--fxcol': style.fxcol, '--mx': ((Math.random() - 0.5) * 8) + 'px', '--my': ((Math.random() - 0.5) * 8) + 'px' }), 380);
+          }
+        }
       } else { // 'drop': a designator/flare cue, then a bomb/shell falling in from above
         if (!firedLaunch) {
           firedLaunch = true;
@@ -10112,6 +10174,7 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
         firedImpact = true;
         modernRemoveProjectile(proj); proj = null;
         if (multi) for (const shot of multi) { modernRemoveProjectile(shot.mesh); shot.mesh = null; shot.done = true; }
+        if (strike) for (const ms of strike) { modernRemoveMissile(ms.pivot); ms.pivot = null; ms.done = true; }
         targetG.visible = false;
         debris = spawnModernDebris(toPos, isUpset ? 16 : 10);
         const pt = fxScreenPoint(toSq);
@@ -10148,6 +10211,7 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
     cleanup() {
       modernRemoveProjectile(proj);
       if (multi) for (const shot of multi) modernRemoveProjectile(shot.mesh);
+      if (strike) for (const ms of strike) modernRemoveMissile(ms.pivot);
       scene.remove(moverG); disposeModernGhost(moverG);
       scene.remove(targetG); disposeModernGhost(targetG);
       for (const d of debris) { scene.remove(d); d.material.dispose(); }
@@ -10388,15 +10452,15 @@ const MUSIC_TRACKS = {
   cine3: { label: 'កងទ័ពដែក Iron Legion (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 480, gain: 0.08,
     filterHz: 1600, detune: 2, sustain: 0.6,
     notes: [261.63, null, 329.63, 392.00, 440.00, 392.00, null, 329.63] },
-  // An original slow, dignified minor-key march for the Modern Ops theme
-  // -- a measured pad-and-piano processional (paired with Star Wars'
-  // Galactic Overture and Transformers' Iron Legion in the Cinematic
-  // group) rather than a buzzy 8-bit chiptune, evoking a disciplined
-  // military parade-ground gravity instead of arcade run-and-gun energy,
-  // not a transcription of any existing score.
-  cine4: { label: 'ចម្បាំងទំនើប Iron Front (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 640, gain: 0.08,
-    filterHz: 1300, detune: 2, sustain: 0.55,
-    notes: [196.00, 233.08, 261.63, null, 220.00, 196.00, null, null] }
+  // An original driving minor-key military-march chiptune for the Modern
+  // Ops theme -- a steady marching-drill tempo (not as frantic as Contra
+  // Assault's run-and-gun urgency) built on a stark, low-register
+  // interval pattern to read as "armored warzone" rather than any other
+  // theme's arcade/cinematic feel, not a transcription of any existing
+  // score.
+  arcade5: { label: 'ចម្បាំងទំនើប Iron Front (chiptune, solo)', instrument: 'chip', noteLen: 210, gain: 0.08,
+    filterHz: 2000,
+    notes: [196.00, 196.00, 233.08, 196.00, null, 174.61, 196.00, null, 220.00, 220.00, 196.00, 164.81, null, null, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
