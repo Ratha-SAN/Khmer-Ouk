@@ -6008,29 +6008,33 @@ const FLAT2D_SIZE = {
 const FLAT2D_FLOATING = { '2dwarrior': true };
 function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
   const floating = !!FLAT2D_FLOATING[setStyle];
-  // a smaller platform for floating sets -- a full-size coin base would
-  // dwarf the hovering figure and read as "character glued to a puck"
-  // rather than "standing above a marker", the effect we're after
-  const base = add(new THREE.CylinderGeometry(floating ? 0.16 : 0.24, floating ? 0.19 : 0.28, 0.08, 20), 0.04);
-  base.castShadow = true;
+  // floating sets skip the solid coin base entirely -- just the ground
+  // glow below (see the `floating` block further down) marking where the
+  // figure hovers, so it reads as genuinely levitating rather than
+  // standing on a platform; every other flat set keeps its base puck.
+  if (!floating) {
+    const base = add(new THREE.CylinderGeometry(0.24, 0.28, 0.08, 20), 0.04);
+    base.castShadow = true;
+  }
   const size = FLAT2D_SIZE[type];
   const tex = flat2DArtTexture(setStyle, type, color);
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(size, size),
     new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide }));
-  // floating gap above the puck's top surface is ~20% of the character's
-  // own size (restY is the plane's CENTER, so + size/2 to clear the plane's
-  // own half-height, then + size*0.2 for the visible hover gap)
+  // floating gap above ground level is ~20% of the character's own size
+  // (restY is the plane's CENTER, so + size/2 to clear the plane's own
+  // half-height, then + size*0.2 for the visible hover gap)
   const restY = floating ? 0.08 + size * 0.7 : 0.08 + size / 2;
   plane.position.y = restY;
   plane.castShadow = false; // a square shadow would betray the card
   g.add(plane);
   g.userData.flat2dPlane = plane;
   if (floating) {
-    // a soft grounded glow on the puck under the hovering figure, so the
-    // gap reads as "floating" rather than "detached by accident" -- sized
-    // to the small base puck itself (not the character), just a touch
-    // larger for a gentle halo
+    // a soft glow on the ground under the hovering figure, marking where
+    // it floats above -- since there's no base puck for a floating set,
+    // this is the only thing anchoring the figure to its square, so the
+    // gap reads as "genuinely levitating" rather than "detached by
+    // accident"
     const glow = new THREE.Mesh(
       new THREE.CircleGeometry(0.22, 24),
       new THREE.MeshBasicMaterial({ color: color === E.WHITE ? MAT_W.color : MAT_B.color, transparent: true, opacity: 0.3, depthWrite: false }));
@@ -6041,7 +6045,9 @@ function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
     g.userData.floatPhase = Math.random() * Math.PI * 2;
     g.userData.floatGlow = glow;
   }
-  if (promoted) add(new THREE.TorusGeometry(0.2, 0.03, 8, 20), 0.05, MAT_GOLD).rotation.x = Math.PI / 2;
+  // resting on the ground glow for a floating piece (there's no base
+  // puck to wrap around any more) rather than hovering alone partway up
+  if (promoted) add(new THREE.TorusGeometry(0.2, 0.03, 8, 20), floating ? 0.081 : 0.05, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -9994,24 +10000,26 @@ function spawnModernDebris(pos, count) {
 }
 // Per-piece-type attack profile: each vehicle gets its own projectile
 // look and flight path rather than one reused tracer for every capture --
-// a tank's direct cannon shell, a carrier's long-range cruise missile
-// (high lazy arc + smoke trail), a fighter jet's air-to-ground missile
-// (tighter/faster arc + smoke), an MLRS truck's three-rocket barrage, a
-// drone's called-in guided strike (a designator laser, then a bomb
+// a tank's direct cannon shell volley, a carrier's long-range cruise
+// missiles (high lazy arc + smoke trail), a fighter jet's air-to-ground
+// missiles (tighter/faster arc + smoke), an MLRS truck's rocket barrage,
+// a drone's called-in guided strike (a designator laser, then bombs
 // dropping straight in from above, since it doesn't fire a direct shot
 // of its own), and the command vehicle's called-in fire support: a
 // flare, then several missiles converging on the target from outside
-// the board at once, from different directions.
+// the board at once, from different directions. Every profile fires
+// multiple, bigger, faster projectiles than a single lone shot --
+// heavier ordnance, not just one tracer per capture.
 const MODERN_ATTACK = {
-  [E.PAWN]: { kind: 'flat', color: 0xffb347, glow: 0xff6a1a, fxcol: '#ffcc66', shotDur: 0.16 },
-  [E.ROOK]: { kind: 'arc', color: 0xd8e2ea, glow: 0x6a8aa8, fxcol: '#cfe0ee', shotDur: 0.6, arcHeight: 1.7, smoke: true },
-  [E.KNIGHT]: { kind: 'arc', color: 0xff6a3a, glow: 0xff2a10, fxcol: '#ffa066', shotDur: 0.32, arcHeight: 0.75, smoke: true },
-  [E.BISHOP]: { kind: 'multi', color: 0xffb347, glow: 0xff6a1a, fxcol: '#ffcc66', shotDur: 0.4, count: 3 },
-  [E.QUEEN]: { kind: 'drop', color: 0xd6f8ff, glow: 0x59e8ff, fxcol: '#8fe8ff', shotDur: 0.55, designator: true },
-  [E.KING]: { kind: 'strike', color: 0xffe9a0, glow: 0xffb347, fxcol: '#ffdca0', shotDur: 0.85, count: 3, flare: true, smoke: true }
+  [E.PAWN]: { kind: 'multi', color: 0xffb347, glow: 0xff6a1a, fxcol: '#ffcc66', shotDur: 0.2, count: 2, radius: 0.03, length: 0.2 },
+  [E.ROOK]: { kind: 'multi', color: 0xd8e2ea, glow: 0x6a8aa8, fxcol: '#cfe0ee', shotDur: 0.7, count: 2, arcHeight: 1.9, radius: 0.045, length: 0.32, smoke: true },
+  [E.KNIGHT]: { kind: 'multi', color: 0xff6a3a, glow: 0xff2a10, fxcol: '#ffa066', shotDur: 0.4, count: 2, arcHeight: 0.9, radius: 0.04, length: 0.26, smoke: true },
+  [E.BISHOP]: { kind: 'multi', color: 0xffb347, glow: 0xff6a1a, fxcol: '#ffcc66', shotDur: 0.5, count: 5, arcHeight: 0.5, radius: 0.03, length: 0.18 },
+  [E.QUEEN]: { kind: 'drop', color: 0xd6f8ff, glow: 0x59e8ff, fxcol: '#8fe8ff', shotDur: 0.4, count: 2, designator: true, radius: 0.045, length: 0.16 },
+  [E.KING]: { kind: 'strike', color: 0xffe9a0, glow: 0xffb347, fxcol: '#ffdca0', shotDur: 0.55, count: 5, flare: true, smoke: true, radius: 0.04, length: 0.26 }
 };
 function modernMakeProjectile(style, radius, length) {
-  const mat = new THREE.MeshStandardMaterial({ color: style.color, emissive: style.glow, emissiveIntensity: 1.35 });
+  const mat = new THREE.MeshStandardMaterial({ color: style.color, emissive: style.glow, emissiveIntensity: 1.5 });
   const proj = style.kind === 'drop'
     ? new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.3, length, 8), mat)
     : new THREE.Mesh(new THREE.ConeGeometry(radius, length, 8), mat);
@@ -10025,8 +10033,8 @@ function modernRemoveProjectile(p) { if (p) { scene.remove(p); p.geometry.dispos
 // direction) -- the cone is nested in a pivot Group so lookAt() can
 // orient it freely without fighting a separately-applied base rotation.
 function modernMakeMissile(style) {
-  const mat = new THREE.MeshStandardMaterial({ color: style.color, emissive: style.glow, emissiveIntensity: 1.35 });
-  const mesh = new THREE.Mesh(new THREE.ConeGeometry(0.026, 0.17, 8), mat);
+  const mat = new THREE.MeshStandardMaterial({ color: style.color, emissive: style.glow, emissiveIntensity: 1.5 });
+  const mesh = new THREE.Mesh(new THREE.ConeGeometry(style.radius, style.length, 8), mat);
   mesh.rotation.x = -Math.PI / 2; // local +Y (the cone's tip) -> local -Z
   const pivot = new THREE.Group();
   pivot.add(mesh);
@@ -10056,18 +10064,21 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
   const style = MODERN_ATTACK[moverType] || MODERN_ATTACK[E.PAWN];
   const AIM_END = 0.2, SHOT_END = AIM_END + style.shotDur, DURATION = SHOT_END + (isUpset ? 0.65 : 0.55);
   const FADE_START = DURATION - 0.4;
-  let firedLaunch = false, firedImpact = false, lastSmokeT = -1, debris = [];
-  let proj = null, multi = null, strike = null;
+  let firedLaunch = false, firedImpact = false, debris = [];
+  let multi = null, strike = null, dropShots = null;
+  const count = style.count || 1;
   if (style.kind === 'multi') {
-    multi = Array.from({ length: style.count }, (_, i) => ({
-      t0: AIM_END + i * (style.shotDur / style.count), mesh: null, done: false,
-      jx: (Math.random() - 0.5) * 0.14, jz: (Math.random() - 0.5) * 0.14
+    // N shots fired from the mover toward the target, each one stagger-
+    // slot long so the last-launched shot lands right at SHOT_END
+    // instead of still being mid-flight when the explosion fires
+    multi = Array.from({ length: count }, (_, i) => ({
+      t0: AIM_END + i * (style.shotDur / count), mesh: null, done: false, lastSmokeT: -1
     }));
   } else if (style.kind === 'strike') {
     // each missile starts well outside the board at a random bearing
     // around the target and a random height, so they visibly streak in
     // from different directions rather than all riding the same line
-    strike = Array.from({ length: style.count }, () => {
+    strike = Array.from({ length: count }, () => {
       const ang = Math.random() * Math.PI * 2;
       const dist = 5.5 + Math.random() * 1.8;
       return {
@@ -10076,6 +10087,12 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
         pivot: null, lastSmokeT: -1, done: false
       };
     });
+  } else if (style.kind === 'drop') {
+    // N bombs, each with its own small scatter offset above the target
+    // that shrinks to zero as it falls, so they don't perfectly overlap
+    dropShots = Array.from({ length: count }, (_, i) => ({
+      ox: (Math.random() - 0.5) * 0.35, oz: (Math.random() - 0.5) * 0.35, delay: i * 0.07, mesh: null, done: false
+    }));
   }
   const cine = {
     t: 0, duration: DURATION,
@@ -10088,37 +10105,23 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
       moverG.rotation.y = targetAngle;
       const flightT = t - AIM_END;
 
-      if (style.kind === 'flat' || style.kind === 'arc') {
-        if (!firedLaunch) {
-          firedLaunch = true;
-          fxSpawn(fxAt(fxScreenPoint(fromSq), 'fx-contra-muzzle', {}), 160);
-          proj = modernMakeProjectile(style, style.kind === 'arc' ? 0.03 : 0.025, style.kind === 'arc' ? 0.2 : 0.14);
-          proj.position.set(fromPos.x, 0.3, fromPos.z);
-        }
-        const tt = Math.min(1, flightT / style.shotDur);
-        const arcY = style.kind === 'arc' ? style.arcHeight * 4 * tt * (1 - tt) : 0;
-        proj.position.set(fromPos.x + dx * tt, 0.3 + arcY, fromPos.z + dz * tt);
-        if (style.smoke && flightT - lastSmokeT > 0.05 && tt < 0.95) {
-          lastSmokeT = flightT;
-          const pt = fxWorldScreenPoint(proj.position.x, proj.position.y, proj.position.z);
-          fxSpawn(fxAt(pt, 'fx-mote', { '--fxcol': style.fxcol, '--mx': ((Math.random() - 0.5) * 8) + 'px', '--my': (-6 - Math.random() * 8) + 'px' }), 400);
-        }
-      } else if (style.kind === 'multi') {
+      if (style.kind === 'multi') {
         for (const shot of multi) {
           if (shot.done || t < shot.t0) continue;
           if (!shot.mesh) {
-            shot.mesh = modernMakeProjectile(style, 0.018, 0.11);
-            shot.mesh.position.set(fromPos.x, 0.32, fromPos.z);
-            fxSpawn(fxAt(fxScreenPoint(fromSq), 'fx-contra-muzzle', {}), 130);
+            shot.mesh = modernMakeProjectile(style, style.radius, style.length);
+            shot.mesh.position.set(fromPos.x, 0.3, fromPos.z);
+            fxSpawn(fxAt(fxScreenPoint(fromSq), 'fx-contra-muzzle', {}), 150);
           }
-          // each rocket's own flight time is exactly one stagger-slot long,
-          // so the last-launched rocket lands right at SHOT_END instead of
-          // still being mid-flight when the explosion below fires
-          const shotDur = style.shotDur / style.count;
+          const shotDur = style.shotDur / count;
           const tt = Math.min(1, (t - shot.t0) / shotDur);
-          shot.mesh.position.set(
-            fromPos.x + dx * tt + shot.jx * (1 - tt), 0.32 + 0.55 * 4 * tt * (1 - tt), fromPos.z + dz * tt + shot.jz * (1 - tt)
-          );
+          const arcY = style.arcHeight ? style.arcHeight * 4 * tt * (1 - tt) : 0;
+          shot.mesh.position.set(fromPos.x + dx * tt, 0.3 + arcY, fromPos.z + dz * tt);
+          if (style.smoke && t - shot.lastSmokeT > 0.05 && tt < 0.92) {
+            shot.lastSmokeT = t;
+            const pt = fxWorldScreenPoint(shot.mesh.position.x, shot.mesh.position.y, shot.mesh.position.z);
+            fxSpawn(fxAt(pt, 'fx-mote', { '--fxcol': style.fxcol, '--mx': ((Math.random() - 0.5) * 8) + 'px', '--my': (-6 - Math.random() * 8) + 'px' }), 400);
+          }
           if (tt >= 1) { shot.done = true; modernRemoveProjectile(shot.mesh); shot.mesh = null; }
         }
       } else if (style.kind === 'strike') {
@@ -10150,7 +10153,7 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
             fxSpawn(fxAt(pt, 'fx-mote', { '--fxcol': style.fxcol, '--mx': ((Math.random() - 0.5) * 8) + 'px', '--my': ((Math.random() - 0.5) * 8) + 'px' }), 380);
           }
         }
-      } else { // 'drop': a designator/flare cue, then a bomb/shell falling in from above
+      } else { // 'drop': a designator/flare cue, then N bombs/shells falling in from above
         if (!firedLaunch) {
           firedLaunch = true;
           if (style.designator) {
@@ -10161,20 +10164,24 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
             fxSpawn(fxAt(fxScreenPoint(fromSq), 'fx-glow', { '--fxcol': style.fxcol, width: '40px', height: '40px', left: '-20px', top: '-20px' }), 380);
           }
         }
-        const fallStart = style.shotDur * 0.4;
-        if (flightT >= fallStart) {
-          if (!proj) { proj = modernMakeProjectile(style, 0.03, 0.11); proj.position.set(toPos.x, 3.2, toPos.z); }
-          const fallDur = style.shotDur - fallStart;
-          const tt = Math.min(1, (flightT - fallStart) / fallDur);
-          proj.position.y = 3.2 - (3.2 - 0.3) * tt;
+        const fallStart = style.shotDur * 0.35;
+        for (const b of dropShots) {
+          if (b.done) continue;
+          const localStart = fallStart + b.delay;
+          if (flightT < localStart) continue;
+          if (!b.mesh) { b.mesh = modernMakeProjectile(style, style.radius, style.length); b.mesh.position.set(toPos.x + b.ox, 3.2, toPos.z + b.oz); }
+          const fallDur = Math.max(0.08, style.shotDur - localStart);
+          const tt = Math.min(1, (flightT - localStart) / fallDur);
+          b.mesh.position.set(toPos.x + b.ox * (1 - tt), 3.2 - (3.2 - 0.3) * tt, toPos.z + b.oz * (1 - tt));
+          if (tt >= 1) { b.done = true; modernRemoveProjectile(b.mesh); b.mesh = null; }
         }
       }
 
       if (t >= SHOT_END && !firedImpact) {
         firedImpact = true;
-        modernRemoveProjectile(proj); proj = null;
         if (multi) for (const shot of multi) { modernRemoveProjectile(shot.mesh); shot.mesh = null; shot.done = true; }
         if (strike) for (const ms of strike) { modernRemoveMissile(ms.pivot); ms.pivot = null; ms.done = true; }
+        if (dropShots) for (const b of dropShots) { modernRemoveProjectile(b.mesh); b.mesh = null; b.done = true; }
         targetG.visible = false;
         debris = spawnModernDebris(toPos, isUpset ? 16 : 10);
         const pt = fxScreenPoint(toSq);
@@ -10209,9 +10216,9 @@ function modernCaptureCinematic(cue, moverType, isUpset) {
       }
     },
     cleanup() {
-      modernRemoveProjectile(proj);
       if (multi) for (const shot of multi) modernRemoveProjectile(shot.mesh);
       if (strike) for (const ms of strike) modernRemoveMissile(ms.pivot);
+      if (dropShots) for (const b of dropShots) modernRemoveProjectile(b.mesh);
       scene.remove(moverG); disposeModernGhost(moverG);
       scene.remove(targetG); disposeModernGhost(targetG);
       for (const d of debris) { scene.remove(d); d.material.dispose(); }
