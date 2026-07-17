@@ -5404,9 +5404,12 @@ function buildNagaPiece(g, add, type, promoted, color) {
 // toward the opponent -- the same "faces forward, Black is spun 180" rule
 // every other custom set already follows.
 function buildModernPiece(g, add, type, promoted, color) {
-  // display base: broad foundation plate + a thin gunmetal trim collar
-  add(new THREE.CylinderGeometry(0.3, 0.34, 0.07, 24), 0.035);
-  add(new THREE.CylinderGeometry(0.305, 0.305, 0.014, 24), 0.077, MAT_MIL_GUNMETAL);
+  // no display base -- vehicles sit flush on the tile instead of on a
+  // round pedestal. Every part's y below was authored assuming the old
+  // 0.084-tall base underneath it, so shift the whole build down by that
+  // same amount rather than recalculating each part's height by hand.
+  const rawAdd = add;
+  add = (geom, y, mat) => rawAdd(geom, y - 0.084, mat);
   const wheelRow = (geom, y, xs, zs) => {
     for (const wz of zs) for (const wx of xs) {
       const wheel = add(geom, y, MAT_MIL_TREAD);
@@ -6008,33 +6011,29 @@ const FLAT2D_SIZE = {
 const FLAT2D_FLOATING = { '2dwarrior': true };
 function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
   const floating = !!FLAT2D_FLOATING[setStyle];
-  // floating sets skip the solid coin base entirely -- just the ground
-  // glow below (see the `floating` block further down) marking where the
-  // figure hovers, so it reads as genuinely levitating rather than
-  // standing on a platform; every other flat set keeps its base puck.
-  if (!floating) {
-    const base = add(new THREE.CylinderGeometry(0.24, 0.28, 0.08, 20), 0.04);
-    base.castShadow = true;
-  }
+  // a smaller platform for floating sets -- a full-size coin base would
+  // dwarf the hovering figure and read as "character glued to a puck"
+  // rather than "standing above a marker", the effect we're after
+  const base = add(new THREE.CylinderGeometry(floating ? 0.16 : 0.24, floating ? 0.19 : 0.28, 0.08, 20), 0.04);
+  base.castShadow = true;
   const size = FLAT2D_SIZE[type];
   const tex = flat2DArtTexture(setStyle, type, color);
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(size, size),
     new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide }));
-  // floating gap above ground level is ~20% of the character's own size
-  // (restY is the plane's CENTER, so + size/2 to clear the plane's own
-  // half-height, then + size*0.2 for the visible hover gap)
+  // floating gap above the puck's top surface is ~20% of the character's
+  // own size (restY is the plane's CENTER, so + size/2 to clear the plane's
+  // own half-height, then + size*0.2 for the visible hover gap)
   const restY = floating ? 0.08 + size * 0.7 : 0.08 + size / 2;
   plane.position.y = restY;
   plane.castShadow = false; // a square shadow would betray the card
   g.add(plane);
   g.userData.flat2dPlane = plane;
   if (floating) {
-    // a soft glow on the ground under the hovering figure, marking where
-    // it floats above -- since there's no base puck for a floating set,
-    // this is the only thing anchoring the figure to its square, so the
-    // gap reads as "genuinely levitating" rather than "detached by
-    // accident"
+    // a soft grounded glow on the puck under the hovering figure, so the
+    // gap reads as "floating" rather than "detached by accident" -- sized
+    // to the small base puck itself (not the character), just a touch
+    // larger for a gentle halo
     const glow = new THREE.Mesh(
       new THREE.CircleGeometry(0.22, 24),
       new THREE.MeshBasicMaterial({ color: color === E.WHITE ? MAT_W.color : MAT_B.color, transparent: true, opacity: 0.3, depthWrite: false }));
@@ -6045,9 +6044,7 @@ function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
     g.userData.floatPhase = Math.random() * Math.PI * 2;
     g.userData.floatGlow = glow;
   }
-  // resting on the ground glow for a floating piece (there's no base
-  // puck to wrap around any more) rather than hovering alone partway up
-  if (promoted) add(new THREE.TorusGeometry(0.2, 0.03, 8, 20), floating ? 0.081 : 0.05, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (promoted) add(new THREE.TorusGeometry(0.2, 0.03, 8, 20), 0.05, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
