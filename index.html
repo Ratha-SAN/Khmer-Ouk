@@ -1189,15 +1189,21 @@
      dedicated mushroom-cloud sequence instead of the generic
      fxCheck/fxCheck2 red vignette, per the theme's "nuclear strike"
      brief -- checkmate fires two staggered, bigger copies. */
+  /* A more restrained palette than a cartoon fireball: an ivory-white
+     core through the theme's own HUD amber (#f2c14e) into a burnished
+     copper and warm charcoal, rather than pure saturated orange/yellow --
+     and a cool steel-blue shockwave ring (instead of a second orange
+     ring) so the cold blast wave reads distinctly against the warm
+     fireball, the way real ordnance footage looks. */
   .fx-modern-blast {
     position: absolute; width: 48px; height: 48px; left: -24px; top: -24px; border-radius: 50%;
-    background: radial-gradient(circle, #fff6d8 0%, #ffb347 30%, #c23a1a 55%, #2a1a12 75%, transparent 85%);
+    background: radial-gradient(circle, #fdf6ea 0%, #f2c14e 28%, #b5501f 55%, #241c18 78%, transparent 88%);
     animation: fxModernBlast 400ms ease-out forwards;
   }
   @keyframes fxModernBlast { 0% { transform: scale(.2); opacity: 1; } 55% { opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
   .fx-modern-shrapnel {
     position: absolute; width: 7px; height: 3px; left: -3.5px; top: -1.5px;
-    background: #6b6f76; box-shadow: 0 0 3px rgba(0,0,0,.6);
+    background: #5c6268; box-shadow: 0 0 3px rgba(0,0,0,.6);
     animation: fxModernShrapnel 480ms ease-out forwards;
   }
   @keyframes fxModernShrapnel {
@@ -1206,13 +1212,13 @@
   }
   .fx-nuke-flash {
     position: absolute; width: 60px; height: 60px; left: -30px; top: -30px; border-radius: 50%;
-    background: radial-gradient(circle, #fffdf0 0%, #ffe9a0 30%, #ff8a2a 55%, #7a2a10 75%, transparent 85%);
+    background: radial-gradient(circle, #fdf6ea 0%, #f2c14e 28%, #b5501f 55%, #241c18 78%, transparent 88%);
     animation: fxNukeFlash 420ms ease-out forwards;
   }
   @keyframes fxNukeFlash { 0% { transform: scale(.15); opacity: 1; } 55% { opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
   .fx-nuke-stem {
     position: absolute; width: 14px; height: 70px; left: -7px; top: -70px; border-radius: 6px 6px 2px 2px;
-    background: linear-gradient(0deg, rgba(120,70,30,.9), rgba(220,160,90,.7) 60%, rgba(255,220,160,.3));
+    background: linear-gradient(0deg, rgba(36,28,24,.92), rgba(181,80,31,.6) 60%, rgba(242,193,78,.3));
     transform-origin: 50% 100%;
     animation: fxNukeStem 620ms cubic-bezier(.2,.7,.3,1) forwards;
   }
@@ -1223,7 +1229,7 @@
   }
   .fx-nuke-cap {
     position: absolute; width: 90px; height: 60px; left: -45px; top: -140px; border-radius: 50%;
-    background: radial-gradient(ellipse, rgba(255,230,190,.9) 0%, rgba(190,120,60,.75) 45%, rgba(90,50,25,.55) 75%, transparent 90%);
+    background: radial-gradient(ellipse, rgba(230,222,212,.9) 0%, rgba(128,98,76,.72) 45%, rgba(52,40,34,.55) 75%, transparent 90%);
     filter: blur(1.5px);
     animation: fxNukeCap 700ms ease-out forwards;
     animation-delay: 120ms;
@@ -1236,18 +1242,18 @@
   }
   .fx-nuke-ring {
     position: absolute; width: 20px; height: 20px; left: -10px; top: -10px; border-radius: 50%;
-    border: 4px solid #ffb347; box-shadow: 0 0 20px #ff8a2a, inset 0 0 16px #ff8a2a;
+    border: 4px solid #bfe3ff; box-shadow: 0 0 20px #6fb8e6, inset 0 0 16px #6fb8e6;
     animation: fxNukeRing 560ms ease-out forwards;
   }
   @keyframes fxNukeRing { 0% { opacity: 1; transform: scale(.3); } 100% { opacity: 0; transform: scale(9); } }
   #fxCheckVignette.modgo {
     animation: fxModVignette 560ms ease-out forwards;
-    background: radial-gradient(ellipse at center, rgba(255,210,120,.15) 0%, rgba(255,140,40,.55) 55%, rgba(40,20,10,.75) 100%);
+    background: radial-gradient(ellipse at center, rgba(242,193,78,.12) 0%, rgba(181,80,31,.42) 55%, rgba(18,13,11,.72) 100%);
   }
   @keyframes fxModVignette { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
   #fxCheckVignette.modmate {
     animation: fxModMateVignette 900ms ease-out forwards;
-    background: radial-gradient(ellipse at center, rgba(255,255,240,.95) 0%, rgba(255,160,40,.85) 45%, rgba(30,10,5,.85) 100%);
+    background: radial-gradient(ellipse at center, rgba(253,246,234,.92) 0%, rgba(181,80,31,.78) 45%, rgba(18,10,8,.85) 100%);
   }
   @keyframes fxModMateVignette { 0% { opacity: 0; } 10% { opacity: 1; } 30% { opacity: .85; } 100% { opacity: 0; } }
 
@@ -2305,8 +2311,8 @@
       <option value="none">No music</option>
       <optgroup label="Relaxing (6)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
-      <optgroup label="Arcade (5)"></optgroup>
-      <optgroup label="Cinematic (2)"></optgroup>
+      <optgroup label="Arcade (4)"></optgroup>
+      <optgroup label="Cinematic (4)"></optgroup>
       <optgroup label="Synth (2)"></optgroup>
       <optgroup label="World (1)"></optgroup>
       <optgroup label="National (1)"></optgroup>
@@ -8234,7 +8240,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'cine4' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -8597,26 +8603,27 @@ const SFX = {
       for (let i = 0; i < 6; i++) envOsc({ freq: i % 2 === 0 ? 740 : 555, type: 'square', dur: 0.08, gain: 0.27, delay: i * 0.08 });
     }
   },
-  // Modern Ops: a diesel-engine rev + metallic track clank for a move, a
-  // machine-gun rattle into a missile-launch whoosh and a low explosion
-  // boom for a capture (paired with the shoot/explode 3D cinematic --
-  // see triggerModernEffect), and a slow air-raid-siren wail for
-  // check/checkmate -- deeper and more mechanical than Contra's punchier
-  // arcade gunfire, reading as a real warzone rather than a run-and-gun.
+  // Modern Ops: a smooth, resonant engine swell + a soft mechanical clunk
+  // for a move, a clean launch whoosh into a deep rounded boom for a
+  // capture (paired with the shoot/explode 3D cinematic -- see
+  // triggerModernEffect), and a slow, measured two-note alert swell for
+  // check/checkmate -- rounded triangle/sine tones throughout rather than
+  // buzzy sawtooth or a machine-gun rattle of noise bursts, reading as a
+  // disciplined, professional operation rather than arcade gunfire.
   modern(kind) {
     if (kind === 'move') {
-      envOsc({ freq: 90, type: 'sawtooth', dur: 0.22, gain: 0.22, freqTo: 130 });
-      noiseBurst({ dur: 0.05, filterFreq: 1400, q: 3, gain: 0.16, delay: 0.08 });
-      noiseBurst({ dur: 0.05, filterFreq: 1400, q: 3, gain: 0.14, delay: 0.16 });
+      envOsc({ freq: 85, type: 'triangle', dur: 0.28, gain: 0.22, freqTo: 120, filterHz: 500 });
+      noiseBurst({ dur: 0.06, filterFreq: 500, q: 1.6, gain: 0.14, filterType: 'lowpass', delay: 0.12 });
     } else if (kind === 'capture') {
-      for (let i = 0; i < 4; i++) noiseBurst({ dur: 0.04, filterFreq: 2600, q: 4, gain: 0.24, delay: i * 0.045 });
-      envOsc({ freq: 500, type: 'sawtooth', dur: 0.22, gain: 0.2, freqTo: 1400, delay: 0.19 });
-      noiseBurst({ dur: 0.3, filterFreq: 220, q: 1.1, gain: 0.5, filterType: 'lowpass', delay: 0.4 });
-      envOsc({ freq: 120, type: 'sawtooth', dur: 0.36, gain: 0.4, freqTo: 30, delay: 0.4 });
+      noiseBurst({ dur: 0.18, filterFreq: 2600, q: 1.4, gain: 0.22, filterType: 'bandpass' });
+      envOsc({ freq: 700, type: 'sine', dur: 0.2, gain: 0.16, freqTo: 1400, delay: 0.05 });
+      noiseBurst({ dur: 0.34, filterFreq: 200, q: 1, gain: 0.4, filterType: 'lowpass', delay: 0.4 });
+      envOsc({ freq: 100, type: 'sine', dur: 0.42, gain: 0.4, freqTo: 32, delay: 0.4 });
+      envOsc({ freq: 60, type: 'triangle', dur: 0.5, gain: 0.22, freqTo: 28, delay: 0.42 });
     } else {
       for (let i = 0; i < 2; i++) {
-        envOsc({ freq: 300, type: 'sawtooth', dur: 0.6, gain: 0.24, freqTo: 620, delay: i * 0.7 });
-        envOsc({ freq: 620, type: 'sawtooth', dur: 0.6, gain: 0.22, freqTo: 300, delay: i * 0.7 + 0.6 });
+        envOsc({ freq: 260, type: 'triangle', dur: 0.7, gain: 0.22, freqTo: 340, delay: i * 0.85, filterHz: 1200 });
+        envOsc({ freq: 340, type: 'triangle', dur: 0.55, gain: 0.16, freqTo: 260, delay: i * 0.85 + 0.55, filterHz: 1200 });
       }
     }
   }
@@ -10381,15 +10388,15 @@ const MUSIC_TRACKS = {
   cine3: { label: 'កងទ័ពដែក Iron Legion (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 480, gain: 0.08,
     filterHz: 1600, detune: 2, sustain: 0.6,
     notes: [261.63, null, 329.63, 392.00, 440.00, 392.00, null, 329.63] },
-  // An original driving minor-key military-march chiptune for the Modern
-  // Ops theme -- a steady marching-drill tempo (not as frantic as Contra
-  // Assault's run-and-gun urgency) built on a stark, low-register
-  // interval pattern to read as "armored warzone" rather than any other
-  // theme's arcade/cinematic feel, not a transcription of any existing
-  // score.
-  arcade5: { label: 'ចម្បាំងទំនើប Iron Front (chiptune, solo)', instrument: 'chip', noteLen: 210, gain: 0.08,
-    filterHz: 2000,
-    notes: [196.00, 196.00, 233.08, 196.00, null, 174.61, 196.00, null, 220.00, 220.00, 196.00, 164.81, null, null, null, null] }
+  // An original slow, dignified minor-key march for the Modern Ops theme
+  // -- a measured pad-and-piano processional (paired with Star Wars'
+  // Galactic Overture and Transformers' Iron Legion in the Cinematic
+  // group) rather than a buzzy 8-bit chiptune, evoking a disciplined
+  // military parade-ground gravity instead of arcade run-and-gun energy,
+  // not a transcription of any existing score.
+  cine4: { label: 'ចម្បាំងទំនើប Iron Front (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 640, gain: 0.08,
+    filterHz: 1300, detune: 2, sustain: 0.55,
+    notes: [196.00, 233.08, 261.63, null, 220.00, 196.00, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
