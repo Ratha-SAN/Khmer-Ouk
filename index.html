@@ -5549,6 +5549,11 @@ function buildModernPiece(g, add, type, promoted, color) {
   }
   if (promoted) add(new THREE.TorusGeometry(0.29, 0.03, 10, 24), 0.09, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
+  // 15% bigger overall -- scaling from the group's own origin (already
+  // sitting right at the tile surface, see the base-removal shim above)
+  // grows every vehicle upward/outward from the ground it's standing on
+  // instead of sinking it into the tile or lifting it off.
+  g.scale.setScalar(1.15);
   return g;
 }
 
@@ -8374,7 +8379,15 @@ function voiceChip(freq, dur, gain, filterHz) {
   // the softer/slower voices above, for the Mario theme's arcade track.
   envOsc({ freq, type: 'square', dur, gain, bus: musicGain, attack: 0.002, filterHz: filterHz || 6000 });
 }
-const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck, guitar: voiceGuitar, chip: voiceChip };
+function voiceDrum(freq, dur, gain) {
+  // A war-drum hit, not a pitched note -- a low tom thump (a fast downward
+  // sine sweep) plus a short bandpass noise crack for the stick attack,
+  // ignoring `freq` entirely since this is percussion carrying the march's
+  // rhythm, not its melody (see arcade5's drum+guitar mix).
+  envOsc({ freq: 95, type: 'sine', dur: Math.min(dur, 0.22), gain, bus: musicGain, attack: 0.002, freqTo: 42 });
+  noiseBurst({ dur: Math.min(dur * 0.35, 0.05), filterFreq: 1500, q: 1.3, gain: gain * 0.55, bus: musicGain });
+}
+const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck, guitar: voiceGuitar, chip: voiceChip, drum: voiceDrum };
 // One sound palette per board-theme style: wood thump, stone knock, soft
 // electronic tick, 8-bit blip — move/capture/check for each.
 const SFX = {
@@ -10456,15 +10469,15 @@ const MUSIC_TRACKS = {
   cine3: { label: 'កងទ័ពដែក Iron Legion (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 480, gain: 0.08,
     filterHz: 1600, detune: 2, sustain: 0.6,
     notes: [261.63, null, 329.63, 392.00, 440.00, 392.00, null, 329.63] },
-  // An original driving minor-key military-march chiptune for the Modern
-  // Ops theme -- a steady marching-drill tempo (not as frantic as Contra
-  // Assault's run-and-gun urgency) built on a stark, low-register
-  // interval pattern to read as "armored warzone" rather than any other
+  // An original driving minor-key war march for the Modern Ops theme --
+  // a pounding low war-drum (voiceDrum) carrying the marching-drill beat
+  // under a tense, gritty guitar line, heavier and more percussive than
+  // Contra Assault's brighter run-and-gun chiptune urgency or any other
   // theme's arcade/cinematic feel, not a transcription of any existing
   // score.
-  arcade5: { label: 'ចម្បាំងទំនើប Iron Front (chiptune, solo)', instrument: 'chip', noteLen: 210, gain: 0.08,
-    filterHz: 2000,
-    notes: [196.00, 196.00, 233.08, 196.00, null, 174.61, 196.00, null, 220.00, 220.00, 196.00, 164.81, null, null, null, null] }
+  arcade5: { label: 'ចម្បាំងទំនើប Iron Front (drum + guitar mix)', instrument: 'drum', instrument2: 'guitar', noteLen: 260, gain: 0.1,
+    filterHz: 1400,
+    notes: [130.81, null, 130.81, null, 155.56, 130.81, null, null, 116.54, null, 116.54, null, 130.81, 116.54, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
