@@ -6619,8 +6619,12 @@ function flat2DArtTexture(setStyle, type, color) {
     // sized to that shape's width at glyphOy; topY/botY (the seal's own
     // topmost/bottommost extent) place the red accent dot and the
     // transliteration label consistently across all six differently
-    // shaped seals.
-    let glyphOy = 0, glyphMaxW = 120, topY = 24, botY = 232;
+    // shaped seals. redDotGap is how far above topY that floating red
+    // dot sits -- pulled in close to the seal's own top vertex (not
+    // touching it) for every rank except the Knight, whose wider gap
+    // (its dot sits well clear of the rhombus's own sharp point) is
+    // left as it was.
+    let glyphOy = 0, glyphMaxW = 120, topY = 24, botY = 232, redDotGap = 5;
 
     switch (type) {
       case E.KING: {
@@ -6722,6 +6726,7 @@ function flat2DArtTexture(setStyle, type, color) {
         // Bishop's/Pawn's own.
         const rv = 100, rh = 59;
         outerSeal([[cxp, cyp - rv], [cxp + rh, cyp], [cxp, cyp + rv], [cxp - rh, cyp]]);
+        redDotGap = 8; // kept at the original wider gap -- not pulled in like every other rank's dot
         // true incircle of this rhombus -- symmetric on both axes, so it
         // stays centered on cxp/cyp; r is the actual distance from center
         // to each edge line (not an arbitrary clearance-padded guess).
@@ -6799,7 +6804,7 @@ function flat2DArtTexture(setStyle, type, color) {
         break;
       }
     }
-    redDot(cxp, topY - 8);
+    redDot(cxp, topY - redDotGap);
     const khY = NAMES[type].kh;
     glyphCentered(khY, cxp, cyp + glyphOy,
       '700 ' + (khY.length > 3 ? 42 : 50) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink, glyphMaxW);
@@ -13987,8 +13992,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.6';
+const APP_VERSION = '1.5.7';
 const WHATS_NEW = [
+  {
+    version: '1.5.7',
+    date: '2026-07-18',
+    title: { kh: 'សាក់យន្ត៖ ចំណុចក្រហមអណ្ដែតកៀកទៅស៊ុមជាងមុន (លើកលែងតែសេះ)', en: 'Sak Yantra: floating red dot pulled in closer to the frame (except the Knight)' },
+    items: [
+      { kh: 'ចំណុចក្រហមអណ្ដែតនៅលើកំពូលកូនអុកសាក់យន្ត (ស្តេច នាង គោល ទូក ត្រី) ឥឡូវសិតកៀកទៅចំណុចកំពូលស៊ុមខាងក្រៅជាងមុន ខណៈនៅតែមានគម្លាតតូចមួយ មិនប៉ះគ្នា។ សេះមួយប៉ុណ្ណោះនៅរក្សាគម្លាតដើមធំជាងគេ។',
+        en: "The floating red dot above each Sak Yantra piece's own top tip (King, Queen, Bishop, Rook, Pawn) now sits noticeably closer to its outer seal's own top vertex, while still leaving a small gap rather than touching. The Knight alone keeps its original wider gap." }
+    ]
+  },
   {
     version: '1.5.6',
     date: '2026-07-18',
