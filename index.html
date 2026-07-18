@@ -5822,12 +5822,25 @@ function flat2DArtTexture(setStyle, type, color) {
   // Centers a glyph by its actual INK box, not its font metrics -- Khmer
   // stacked clusters carry tall ascenders/subscripts that make baseline-
   // or middle-anchored text sit visibly off the card's center.
-  const glyphCentered = (text, cx, cy, font, fill) => {
+  // maxWidth (optional): shrinks the font down to fit when a piece's own
+  // ink width would overflow the card -- Khmer stacked clusters vary a
+  // lot in real width at a single fixed px size (a 5-character name like
+  // the King's can measure noticeably wider than a 3-character one at the
+  // same font size), so a fixed font-size-by-character-count guess alone
+  // still overflows some names on the narrower card shapes.
+  const glyphCentered = (text, cx, cy, font, fill, maxWidth) => {
     ctx.font = font;
     ctx.fillStyle = fill;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    const m = ctx.measureText(text);
+    let m = ctx.measureText(text);
+    const inkW = (m.actualBoundingBoxLeft || 0) + (m.actualBoundingBoxRight || 0);
+    if (maxWidth && inkW > maxWidth) {
+      const scale = maxWidth / inkW;
+      font = font.replace(/(\d+(?:\.\d+)?)px/, (_, px) => (parseFloat(px) * scale).toFixed(1) + 'px');
+      ctx.font = font;
+      m = ctx.measureText(text);
+    }
     const dx = (m.actualBoundingBoxLeft != null && m.actualBoundingBoxRight != null)
       ? (m.actualBoundingBoxLeft - m.actualBoundingBoxRight) / 2 : 0;
     const dy = (m.actualBoundingBoxAscent != null && m.actualBoundingBoxDescent != null)
@@ -5876,16 +5889,21 @@ function flat2DArtTexture(setStyle, type, color) {
     for (let i = 0; i < 5; i++) {
       ctx.beginPath(); ctx.arc(76 + i * 26, 214, 3.4, 0, Math.PI * 2); ctx.fill();
     }
-    // central Khmer glyph, centered on the card body by its real ink box
+    // central Khmer glyph, centered on the card body by its real ink box.
+    // The arch is a pointed-window silhouette (full-width band from
+    // y=150-238, tapering to a point at y=34) -- its own visual center of
+    // mass sits well below the canvas's numeric center (128), so the
+    // glyph anchor is pulled down to roughly where the shape actually
+    // reads as centered, not just where the canvas measures as centered.
     const kh = NAMES[type].kh;
-    glyphCentered(kh, 128, 128,
-      '600 ' + (kh.length > 3 ? 56 : 66) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink);
+    glyphCentered(kh, 128, 142,
+      '600 ' + (kh.length > 3 ? 56 : 66) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink, 132);
     // latin transliteration, small, under the glyph
     ctx.font = '600 22px "Segoe UI",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = ink;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(NAMES[type].tr, 128, 198);
+    ctx.fillText(NAMES[type].tr, 128, 204);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dwarrior') {
     // Khmer Warrior: no card frame at all -- just the character cutout,
@@ -6114,13 +6132,16 @@ function flat2DArtTexture(setStyle, type, color) {
     }
     const inkL = light ? '#5a3410' : gold; // gold ink reads poorly on a gold card, dark bronze instead
     const khL = NAMES[type].kh;
-    glyphCentered(khL, 128, 126,
-      '600 ' + (khL.length > 3 ? 52 : 62) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', inkL);
+    // pulled down from the canvas's numeric center for the same reason as
+    // the 2dkhmer arch above -- the panel's own visual mass sits lower,
+    // full-width from y=140-238 and tapering to a point above that
+    glyphCentered(khL, 128, 140,
+      '600 ' + (khL.length > 3 ? 52 : 62) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', inkL, 138);
     ctx.font = '600 20px "Segoe UI",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = inkL;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(NAMES[type].tr, 128, 198);
+    ctx.fillText(NAMES[type].tr, 128, 204);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dsbek') {
     // Sbek Thom shadow-puppet, styled to match the lotus-arch set: the
@@ -6170,64 +6191,147 @@ function flat2DArtTexture(setStyle, type, color) {
     }
     ctx.restore();
     const khS = NAMES[type].kh;
-    glyphCentered(khS, 128, 126,
-      '600 ' + (khS.length > 3 ? 50 : 60) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink);
+    // pulled down from the canvas's numeric center for the same reason as
+    // the 2dkhmer arch above -- the hide's own visual mass sits lower,
+    // full-width from y=136-234 and tapering to a point above that
+    glyphCentered(khS, 128, 138,
+      '600 ' + (khS.length > 3 ? 50 : 60) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink, 126);
     ctx.font = '600 20px "Segoe UI",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = ink;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(NAMES[type].tr, 128, 190);
+    ctx.fillText(NAMES[type].tr, 128, 198);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dyantra') {
     // Sak Yantra: each rank gets its own real sacred-geometry composition
-    // (not one shared frame with a small per-type accent) -- six actually
-    // different silhouettes, each drawn from a real yantra/Sak Yant
-    // pattern chosen for what that rank represents:
-    //   King   - Gao Yord (nine spires): a nine-point radiating crown,
-    //            the classic highest-protection/royalty yantra.
-    //   Queen  - Paed Tidt (eight directions): an 8-point compass star.
+    // -- six distinct silhouettes, each drawn from a real yantra/Sak Yant
+    // pattern chosen for what that rank represents -- redesigned after
+    // real Sak Yant reference plates (wheel yantras, sun/Rahu plates, a
+    // yantra icon atlas) to carry the vocabulary those actually use
+    // instead of plain dots and bare lines: khom SCRIPT curving around a
+    // ring (scriptRing) rather than a row of dots, a thin sunburst-ray
+    // halo just outside the piece's own silhouette (sunburst -- the one
+    // motif every reference plate shares), coil-tipped ray/spire ends
+    // (the little spring-like flourish those plates finish their spikes
+    // with), and, on the King specifically, a ring of oval script
+    // cartouches (the beaded pods a classic wheel-yantra amulet rings
+    // its center with):
+    //   King   - Gao Yord (nine spires): a nine-point radiating,
+    //            coil-tipped crown over a script ring and a cartouche
+    //            band -- closest of the six to a classic wheel plate.
+    //   Queen  - Paed Tidt (eight directions): an 8-point compass star,
+    //            each point coil-tipped, over an inner script ring.
     //   Bishop - Hah Taew (five rows): a tall panel of khom-script rows,
     //            the wisdom/mantra yantra -- deliberately the one non-
-    //            circular silhouette, for real shape variety.
+    //            circular silhouette, now in actual script marks instead
+    //            of plain dots.
     //   Knight - a four-armed swirling tomoe/pinwheel, for the horse's
-    //            leap and speed.
+    //            leap and speed, over a script ring.
     //   Rook   - a Sema boundary-stone silhouette (a tall pointed hull),
-    //            doubling as the Tuuk's boat hull, with water-wave bands.
-    //   Pawn   - a small plain circular seal, deliberately the simplest.
+    //            doubling as the Tuuk's boat hull, water-wave bands plus
+    //            a script ring following the hull's own curve.
+    //   Pawn   - a small plain circular seal with a light script ring --
+    //            deliberately the simplest of the six.
     // All six stay in the same family: plain ink linework (no gold, unlike
     // every other Khmer Heritage set -- a tattoo/cloth yantra is
-    // monochrome), a khom-script-stand-in dot border, a small sacred-red
-    // accent mark, and the Khmer name glyph centered on each shape's own
-    // true geometric center (128,128 for every one of the six here, so it
-    // sits centered both mathematically -- glyphCentered measures the
-    // real ink box -- and visually, since each shape is itself symmetric
-    // around that point).
+    // monochrome), a small sacred-red accent mark, and the Khmer name
+    // glyph centered on each shape's own true geometric center (128,128
+    // for every one of the six here, so it sits centered both
+    // mathematically -- glyphCentered measures the real ink box -- and
+    // visually, since each shape is itself symmetric around that point).
     const cxp = 128, cyp = 128;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    const dotRing = (r, n, startAngle) => {
-      ctx.fillStyle = ink;
-      for (let i = 0; i < n; i++) {
-        const a = (startAngle || 0) + (i / n) * Math.PI * 2;
-        ctx.beginPath(); ctx.arc(cxp + Math.cos(a) * r, cyp + Math.sin(a) * r, 2.6, 0, Math.PI * 2); ctx.fill();
+    // A small abstract "sacred script" mark -- stands in for a khom-script
+    // syllable: a stem plus a hook, bar, or curl (one of three variants,
+    // cycled), rotated to align with whatever ring it's placed on so it
+    // reads as script curving around the piece rather than a bare dot.
+    const scriptMark = (x, y, scale, rot, variant) => {
+      ctx.save();
+      ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(scale || 1, scale || 1);
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, -6); ctx.lineTo(0, 6); // stem
+      if (variant === 1) {
+        ctx.moveTo(-4, -6); ctx.quadraticCurveTo(4, -8, 4, -2); // top hook
+        ctx.moveTo(-3, 3); ctx.lineTo(3, 3); // cross tick
+      } else if (variant === 2) {
+        ctx.moveTo(-4, -3); ctx.lineTo(4, -3); // top bar
+        ctx.moveTo(0, 6); ctx.quadraticCurveTo(5, 8, 3, 3); // bottom curl
+      } else {
+        ctx.moveTo(-3, -6); ctx.lineTo(3, -6); // top bar
+        ctx.moveTo(-4, 4); ctx.quadraticCurveTo(0, 7, 4, 4); // bottom curve
+      }
+      ctx.stroke();
+      ctx.restore();
+    };
+    // A ring of script marks curving around a circle at radius r, each
+    // rotated tangential to the ring so it reads as script written
+    // around the piece rather than a plain row of dots.
+    const scriptRing = (r, count, startAngle, oy2) => {
+      for (let i = 0; i < count; i++) {
+        const a = (startAngle || 0) + (i / count) * Math.PI * 2;
+        scriptMark(cxp + Math.cos(a) * r, cyp + (oy2 || 0) + Math.sin(a) * r, 0.6, a + Math.PI / 2, i % 3);
+      }
+    };
+    // A small oval cartouche holding a pair of tiny script strokes -- the
+    // radial pods a classic wheel-yantra plate rings its center with.
+    const cartouche = (x, y, rot) => {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+      ctx.beginPath(); ctx.ellipse(0, 0, 9, 6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 1.3; ctx.stroke();
+      ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.moveTo(-3, -3); ctx.lineTo(-3, 3); ctx.moveTo(3, -3); ctx.lineTo(3, 3); ctx.stroke();
+      ctx.restore();
+    };
+    // A thin sunburst-ray halo just outside the piece's own silhouette --
+    // the one motif every reference plate shares -- with a small coil
+    // near the tip of every third ray for texture.
+    const sunburst = (r0, r1, count, oy2) => {
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const coil = i % 3 === 0;
+        const rr1 = coil ? r1 : r1 - 6;
+        const x0 = cxp + Math.cos(a) * r0, y0 = cyp + (oy2 || 0) + Math.sin(a) * r0;
+        const x1 = cxp + Math.cos(a) * rr1, y1 = cyp + (oy2 || 0) + Math.sin(a) * rr1;
+        ctx.strokeStyle = ink; ctx.lineWidth = 1.3;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        if (coil) {
+          ctx.save(); ctx.translate(x1, y1); ctx.rotate(a);
+          ctx.beginPath();
+          ctx.moveTo(0, -3); ctx.quadraticCurveTo(4, -1, 0, 1); ctx.quadraticCurveTo(-4, 3, 0, 5);
+          ctx.stroke();
+          ctx.restore();
+        }
       }
     };
     const redDot = (x, y) => { ctx.fillStyle = '#b3261e'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); };
     let translitY = 244;
     switch (type) {
       case E.KING: {
-        // Gao Yord: nine graduated spires radiating from the top of a
-        // circular seal, like a crown.
+        // Gao Yord: nine graduated coil-tipped spires radiating from the
+        // top of a circular seal like a crown, a script ring, and a band
+        // of oval cartouches around the lower arc.
         const R = 74, oy = 8;
+        sunburst(R + 26, R + 42, 20, oy);
         ctx.beginPath(); ctx.arc(cxp, cyp + oy, R, 0, Math.PI * 2);
         ctx.fillStyle = body; ctx.fill();
         ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
         const spire = (angle, len) => {
           const b1 = angle - 0.09, b2 = angle + 0.09;
+          const tx = cxp + Math.cos(angle) * (R + len), ty = cyp + oy + Math.sin(angle) * (R + len);
           ctx.beginPath();
           ctx.moveTo(cxp + Math.cos(b1) * R, cyp + oy + Math.sin(b1) * R);
-          ctx.lineTo(cxp + Math.cos(angle) * (R + len), cyp + oy + Math.sin(angle) * (R + len));
+          ctx.lineTo(tx, ty);
           ctx.lineTo(cxp + Math.cos(b2) * R, cyp + oy + Math.sin(b2) * R);
           ctx.closePath(); ctx.fill();
+          // a small coil at the very tip, echoing the spring-like ray
+          // ends real yantra wheel plates finish their spikes with
+          ctx.save(); ctx.translate(tx, ty); ctx.rotate(angle);
+          ctx.strokeStyle = ink; ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(0, -2); ctx.quadraticCurveTo(4, 0, 0, 2); ctx.quadraticCurveTo(-4, 4, 0, 6);
+          ctx.stroke();
+          ctx.restore();
         };
         ctx.fillStyle = ink;
         for (let i = 0; i < 9; i++) {
@@ -6237,13 +6341,18 @@ function flat2DArtTexture(setStyle, type, color) {
           const len = 14 + (4 - Math.abs(i - 4)) * 5;
           spire(angle, len);
         }
-        dotRing(R - 14, 14, Math.PI * 0.28);
-        redDot(cxp, cyp + oy - R - 42);
+        scriptRing(R - 16, 10, Math.PI * 0.5, oy);
+        for (let i = 0; i < 6; i++) {
+          const a = Math.PI * 0.18 + (i / 6) * Math.PI * 1.64; // lower 3/4 arc, clear of the spires
+          cartouche(cxp + Math.cos(a) * R, cyp + oy + Math.sin(a) * R, a + Math.PI / 2);
+        }
+        redDot(cxp, cyp + oy - R - 48);
         translitY = cyp + oy + R + 20;
         break;
       }
       case E.QUEEN: {
-        // Paed Tidt: an 8-point compass star inscribed in a circular seal.
+        // Paed Tidt: an 8-point compass star, each point coil-tipped,
+        // inscribed in a circular seal with an inner script ring.
         const Rout = 88, Rin = 54, Rcirc = 60, oy = 0;
         ctx.beginPath();
         for (let i = 0; i < 16; i++) {
@@ -6259,9 +6368,15 @@ function flat2DArtTexture(setStyle, type, color) {
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         for (let i = 0; i < 8; i++) {
           const a = -Math.PI / 2 + i * (Math.PI / 4);
-          ctx.beginPath(); ctx.arc(cxp + Math.cos(a) * Rout, cyp + oy + Math.sin(a) * Rout, 2.8, 0, Math.PI * 2);
-          ctx.fillStyle = ink; ctx.fill();
+          const tx = cxp + Math.cos(a) * Rout, ty = cyp + oy + Math.sin(a) * Rout;
+          ctx.save(); ctx.translate(tx, ty); ctx.rotate(a);
+          ctx.strokeStyle = ink; ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(0, -2); ctx.quadraticCurveTo(4, 0, 0, 2); ctx.quadraticCurveTo(-4, 4, 0, 6);
+          ctx.stroke();
+          ctx.restore();
         }
+        scriptRing(Rcirc - 8, 8, Math.PI * 0.4, oy);
         redDot(cxp, cyp + oy - Rout - 12);
         translitY = cyp + oy + Rout + 16;
         break;
@@ -6281,13 +6396,12 @@ function flat2DArtTexture(setStyle, type, color) {
           ctx.beginPath(); ctx.moveTo(x0 + 8, y); ctx.lineTo(x1 - 8, y);
           ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.stroke();
         }
-        ctx.fillStyle = ink;
         for (let r = 0; r < rows; r++) {
           if (r === 2) continue; // glyph row
           const y = y0 + rh * (r + 0.5);
           for (let i = 0; i < 6; i++) {
             const x = x0 + (x1 - x0) * ((i + 0.5) / 6);
-            ctx.beginPath(); ctx.arc(x, y, 2.4, 0, Math.PI * 2); ctx.fill();
+            scriptMark(x, y, 0.62, 0, (r + i) % 3);
           }
         }
         redDot(cxp, y0 - 10);
@@ -6295,8 +6409,10 @@ function flat2DArtTexture(setStyle, type, color) {
         break;
       }
       case E.KNIGHT: {
-        // a four-armed swirling tomoe/pinwheel -- the horse's leap and speed.
+        // a four-armed swirling tomoe/pinwheel -- the horse's leap and
+        // speed -- over a script ring, with a sunburst halo.
         const R = 74;
+        sunburst(R + 4, R + 20, 18, 0);
         ctx.beginPath(); ctx.arc(cxp, cyp, R, 0, Math.PI * 2);
         ctx.fillStyle = body; ctx.fill();
         ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
@@ -6315,14 +6431,15 @@ function flat2DArtTexture(setStyle, type, color) {
         };
         ctx.fillStyle = ink;
         for (let i = 0; i < 4; i++) tomoe(i * Math.PI / 2);
-        dotRing(R - 12, 12, Math.PI / 8);
+        scriptRing(R - 12, 12, Math.PI / 8, 0);
         redDot(cxp, cyp - R - 14);
         translitY = cyp + R + 20;
         break;
       }
       case E.ROOK: {
         // Sema boundary-stone: a tall pointed hull (also reads as the
-        // Tuuk's boat), with water-wave bands across the lower third.
+        // Tuuk's boat), with water-wave bands and a script ring
+        // following the hull's own curve.
         ctx.beginPath();
         ctx.moveTo(cxp, 24);
         ctx.quadraticCurveTo(204, 66, 204, 128);
@@ -6342,19 +6459,20 @@ function flat2DArtTexture(setStyle, type, color) {
           }
           ctx.stroke();
         }
-        dotRing(84, 16, Math.PI * 0.05);
+        scriptRing(84, 16, Math.PI * 0.05, 0);
         redDot(cxp, 10);
         translitY = 246;
         break;
       }
       case E.PAWN:
       default: {
-        // a small plain circular seal -- deliberately the simplest of the six.
+        // a small plain circular seal with a light script ring --
+        // deliberately the simplest of the six.
         const R = 50;
         ctx.beginPath(); ctx.arc(cxp, cyp, R, 0, Math.PI * 2);
         ctx.fillStyle = body; ctx.fill();
         ctx.strokeStyle = ink; ctx.lineWidth = 5; ctx.stroke();
-        dotRing(R - 12, 10, 0);
+        scriptRing(R - 12, 8, 0, 0);
         redDot(cxp, cyp - R - 12);
         translitY = cyp + R + 22;
         break;
@@ -12900,8 +13018,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const WHATS_NEW = [
+  {
+    version: '1.3.1',
+    date: '2026-07-18',
+    title: { kh: 'រចនាស្បែកយន្តតាមរូបភាពសាក់ពិត និងជួសជុលអក្សរខ្មែរនៅចំកណ្ដាល', en: 'Yantra art redrawn from real Sak Yant plates, Khmer text centering fix' },
+    items: [
+      { kh: 'រចនារូបយន្តរបស់ស្ដេច នាង គោល សេះ ទូក និងត្រីឡើងវិញ ដោយផ្អែកលើសាក់យន្តពិតប្រាកដ៖ បន្ថែមខ្សែអក្សរខមកោងជារង្វង់ជុំវិញកូនអុកនីមួយៗ កាំពន្លឺរាលដាលព័ទ្ធជុំវិញកៅយស និងស្នូល និងប្រអប់អក្សរខមរាងពងក្រពើជុំវិញមកុដស្ដេច — ជំនួសចំណុចសាមញ្ញពីមុន។',
+        en: 'Redrew the King, Queen, Bishop, Knight, Rook, and Pawn yantra art based on real Sak Yant reference plates -- adding curving khom-script rings around each piece, radiating sunburst rays with coiled tips around the King\'s crown and Knight\'s core, and oval script cartouches around the King\'s wheel, replacing the earlier plain dot borders.' },
+      { kh: 'ជួសជុលអក្សរខ្មែរនៅលើកាតកូនអុករាងធ្នូ (ស្បែកខ្មែរ, ស្បែកលង្ការ, ស្បែកស្បែក) ឲ្យនៅចំកណ្ដាលរាងកាតកាន់តែត្រឹមត្រូវ ហើយបន្ថយទំហំអក្សរដោយស្វ័យប្រវត្តិសម្រាប់ឈ្មោះវែងៗដូចជា "ស្ដេច" និង "គោល" ដើម្បីកុំឲ្យលើសពីគែមកាត។',
+        en: 'Fixed Khmer text centering on the arch-shaped card styles (Khmer, Lacquer, Shadow-Puppet) so the glyph sits closer to the shape\'s true visual center, and made long names like the King\'s and Bishop\'s auto-shrink to fit so they no longer overflow the card edges.' }
+    ]
+  },
   {
     version: '1.3.0',
     date: '2026-07-18',
