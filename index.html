@@ -12493,7 +12493,30 @@ undoBtn.onclick = () => {
   gameOver = false;
   refreshAll();
 };
-document.getElementById('rulesBtn').onclick = (e) => { e.preventDefault(); document.getElementById('modal').style.display = 'flex'; };
+// ---------- popup windows ----------
+// Rules, What's New, the lock prompt, the online End Session confirm, and
+// the profile screen all behave as one mutually-exclusive group of
+// "on top of gameplay" popups -- distinct from the sequential start/
+// login/mode-select screens, which already manage their own handoffs and
+// aren't touched here. openPopup(id) closes whichever other one of these
+// might already be open, and -- on the mobile layout, where the settings
+// panel (#panel) is a full-width sheet rather than a persistent sidebar,
+// so a popup opening on top of it just looks like visual clutter behind
+// the popup's translucent backdrop -- collapses that sheet first too,
+// since the popup takes over as the active view rather than layering on
+// top of the settings sheet. Closing a popup is unaffected: it's still
+// just `getElementById(id).style.display = 'none'` at each call site,
+// same as before -- only opening needed this shared choke point.
+const POPUP_IDS = ['modal', 'whatsNewModal', 'lockPopup', 'onlineEndConfirmPopup', 'profileScreen'];
+function openPopup(id) {
+  POPUP_IDS.forEach((pid) => { if (pid !== id) document.getElementById(pid).style.display = 'none'; });
+  if (document.body.classList.contains('is-mobile') && !document.body.classList.contains('panel-hidden')) {
+    document.body.classList.add('panel-hidden');
+    resize();
+  }
+  document.getElementById(id).style.display = 'flex';
+}
+document.getElementById('rulesBtn').onclick = (e) => { e.preventDefault(); openPopup('modal'); };
 // Rules modal language toggle: the button always labels the language
 // clicking it switches TO, not the one currently shown.
 let rulesLang = 'kh';
@@ -12561,7 +12584,7 @@ document.getElementById('appVersionTag').textContent = 'v' + APP_VERSION;
 updateWhatsNewDot();
 document.getElementById('whatsNewBtn').onclick = (e) => {
   e.preventDefault();
-  document.getElementById('whatsNewModal').style.display = 'flex';
+  openPopup('whatsNewModal');
   try { localStorage.setItem(WHATS_NEW_SEEN_KEY, APP_VERSION); } catch (err) {}
   document.getElementById('whatsNewDot').style.display = 'none';
 };
@@ -13061,7 +13084,7 @@ document.getElementById('cancelGameBtn').onclick = showStartScreen;
 // confirm popup rather than acting immediately like Cancel Game -- an
 // accidental tap here quits on both players, not just the local session.
 document.getElementById('onlineEndBtn').onclick = () => {
-  document.getElementById('onlineEndConfirmPopup').style.display = 'flex';
+  openPopup('onlineEndConfirmPopup');
 };
 document.getElementById('onlineEndConfirmNo').onclick = () => {
   document.getElementById('onlineEndConfirmPopup').style.display = 'none';
@@ -13610,7 +13633,7 @@ function openProfileScreen() {
   const grid = document.getElementById('profileGradientGrid');
   Array.from(grid.children).forEach((c) => c.classList.toggle('selected', c.dataset.gradient === currentProfile.avatarGradient && !currentProfile.avatarPhoto));
   paintAvatar(document.getElementById('profileAvatarImg'), document.getElementById('profileAvatarInitial'), document.getElementById('profileAvatarPreview'), currentProfile);
-  document.getElementById('profileScreen').style.display = 'flex';
+  openPopup('profileScreen');
   refreshStatsUI();
 }
 function closeProfileScreen() {
@@ -13880,7 +13903,7 @@ function refreshThemeCategoryUI() {
     });
   });
 }
-function showLockPopup() { document.getElementById('lockPopup').style.display = 'flex'; }
+function showLockPopup() { openPopup('lockPopup'); }
 document.getElementById('lockPopupClose').onclick = () => { document.getElementById('lockPopup').style.display = 'none'; };
 // Opens the login screen without disturbing whatever's currently on
 // screen (mode selection, an in-progress game, etc.) -- finishLogin()
