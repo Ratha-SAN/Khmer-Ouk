@@ -3734,7 +3734,14 @@ const THEMES = {
     // plus a lower envMapIntensity of their own, so they stay convincingly
     // dark rather than reflecting the whole room.
     boardClearcoatRoughnessDark: 0.4, boardEnvMapIntensityDark: 0.9,
-    labelInk: '#20242a', tray: 0xe8ebee,
+    // Modern Ops' "look" isn't just a neutral palette -- it's a neutral
+    // base plus ONE confident accent hue (its amber HUD ink) doing all
+    // the identity work. Glass had no accent at all (labelInk was a flat
+    // neutral gray, same lightness role but no hue); this swaps it for a
+    // deep sapphire ink instead, and pins the same hue as the UI accent
+    // (accentSeedHex) -- a cool "edge-lit display case" pop against the
+    // clear/black glass, the same restrained-base-plus-one-hue structure.
+    labelInk: '#173a5c', tray: 0xe8ebee, accentSeedHex: 0x2f8fe0,
     envMapIntensity: 2.2, pieceBFloor: 0.18
   },
   // Polished marble chess set: black and white marble pieces + a checkered
@@ -3745,7 +3752,13 @@ const THEMES = {
     bg: 0xcac6bd, fog: null,
     frame: 0x121214, tileLight: 0xf0ede6, tileDark: 0x111113,
     pieceW: 0xf1eee6, pieceB: 0x1b1b1d, rough: 0.2, metal: 0.0,
-    labelInk: '#f5f2ea', tray: 0x1b1b1d,
+    // Same "neutral base + one confident accent" structure Modern Ops
+    // uses (see its own comment): Marble was pure black-and-white stone
+    // with no accent hue at all. Real luxury marble sets are often gold-
+    // veined or gold-inlaid, so a rich gold ink -- instead of a flat
+    // cream -- gives it that same single identity pop, pinned as the UI
+    // accent too (accentSeedHex).
+    labelInk: '#e8c25a', tray: 0x1b1b1d, accentSeedHex: 0xc9a227,
     clearcoat: 1, clearcoatRoughness: 0.15, envMapIntensity: 1.0,
     // Same washout as Glass's dark squares: a sharp clearcoat mirroring
     // the studio environment lifts a near-black polished-stone tile
@@ -3830,7 +3843,13 @@ const THEMES = {
     bg: 0x1c1c20, fog: null,
     frame: 0x38383e, tileLight: 0xd9d9de, tileDark: 0x2a2a2e,
     pieceW: 0xe9e9ee, pieceB: 0x232326, rough: 0.16, metal: 0.82,
-    labelInk: '#e9e9ee', tray: 0x141416,
+    // Same "neutral base + one confident accent" structure Modern Ops
+    // uses: Sofisticate was pure platinum/space-black with no accent hue
+    // at all. A premium titanium watch/phone usually gets exactly one
+    // warm metal-accent highlight (a rose-gold crown, a copper trim) --
+    // this gives labelInk that same warm rose-gold pop instead of a flat
+    // near-white, pinned as the UI accent too (accentSeedHex).
+    labelInk: '#e8c19a', tray: 0x141416, accentSeedHex: 0xc9955c,
     clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 1.3,
     sofisticateBackdrop: true, pieceBFloor: 0.14
   },
@@ -3893,9 +3912,11 @@ const THEMES = {
     // the frame is dark ink for all three Girly themes, labelInk needs to
     // be a LIGHT color (the same "dark frame -> light labelInk" pattern
     // Sofisticate/Night/Glass already use), not a dark one, or the
-    // letters just disappear into the frame. Reuses this theme's own
-    // tileLight for a bit of per-theme identity in the labels.
-    labelInk: '#f5ddd0', tray: 0x1c1613,
+    // letters just disappear into the frame. Pushed past this theme's own
+    // pale tileLight to a genuinely vivid coral -- the same "one confident
+    // accent pop" role Modern Ops' amber HUD ink plays, rather than a
+    // soft, blend-in pastel.
+    labelInk: '#ffb08c', tray: 0x1c1613,
     clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
     frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
     ambientScale: 0.55, hemiScale: 0.5,
@@ -3914,7 +3935,7 @@ const THEMES = {
     bg: 0xfaf9f5, fog: null,
     frame: 0x141413, tileLight: 0xe8d4e0, tileDark: 0xa8508f,
     pieceW: 0xfaf6ee, pieceB: 0x6b2f5c, rough: 0.35, metal: 0.15,
-    labelInk: '#e8d4e0', tray: 0x181316,
+    labelInk: '#e8a8d8', tray: 0x181316,
     clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
     frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
     ambientScale: 0.55, hemiScale: 0.5,
@@ -3933,7 +3954,7 @@ const THEMES = {
     bg: 0xfaf9f5, fog: null,
     frame: 0x141413, tileLight: 0xf5e0a8, tileDark: 0xe0a52e,
     pieceW: 0xfaf6ee, pieceB: 0x9c6f10, rough: 0.35, metal: 0.15,
-    labelInk: '#f5e0a8', tray: 0x1c1712,
+    labelInk: '#ffcf5c', tray: 0x1c1712,
     clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
     frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
     ambientScale: 0.55, hemiScale: 0.5,
@@ -4839,9 +4860,16 @@ const gemPhys = (color, emissive) => new THREE.MeshPhysicalMaterial({
 // this classic set for any theme (Gem Blitz included) that doesn't
 // override a slot -- the same "reset every switch, override per theme"
 // pattern MAT_W/MAT_B already use.
+// Re-tuned by sampling an actual Jeweled-Blitz-style match-3 board's gem
+// colors (a red ruby square, an orange-amber hexagon, a grass-emerald
+// hexagon, a royal-sapphire diamond, and a vivid magenta-violet amethyst
+// triangle) -- the previous set read as neon/electric (a hot-pink "ruby",
+// a minty "emerald", a pale sky-blue "sapphire"); these are richer, more
+// grounded true jewel-tones, matching that reference's saturated-but-
+// polished-gemstone vibe instead of an e-sports glow.
 const GEM_HUE_DEFAULTS = {
-  ruby: [0xff3b6b, 0x99102e], amber: [0xffb830, 0x995f08], emerald: [0x3bff8a, 0x0e9944],
-  sapphire: [0x3b9dff, 0x0e4f99], amethyst: [0xb13bff, 0x580e99],
+  ruby: [0xe8342f, 0x8a1512], amber: [0xf0862c, 0x8f4610], emerald: [0x4ecf42, 0x1f7a1a],
+  sapphire: [0x3060d8, 0x142f6e], amethyst: [0xd83bf0, 0x6e1580],
 };
 const MAT_GEM_RUBY = gemPhys(...GEM_HUE_DEFAULTS.ruby);
 const MAT_GEM_AMBER = gemPhys(...GEM_HUE_DEFAULTS.amber);
@@ -6031,118 +6059,184 @@ function flat2DArtTexture(setStyle, type, color) {
     ctx.fillText(NAMES[type].tr, 128, 190);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dyantra') {
-    // Sak Yantra: the sacred geometric tattoo/cloth-diagram tradition --
-    // an axis-aligned square seal (deliberately NOT the lotus-arch shape
-    // every other Khmer set here shares, since a yantra diagram is
-    // fundamentally a symmetric square/circle figure, not an arch) with
-    // classic nested "square in diamond in circle" sacred geometry, a
-    // syllable-dot border standing in for the khom-script rows a real
-    // yantra is inscribed with, and outward corner flame points -- all
-    // drawn in plain ink with no gold trim, the one deliberate break from
-    // the gilded language the rest of the Khmer Heritage sets share, since
-    // a tattoo/cloth yantra is monochrome linework. A small sacred-red dot
-    // crowns the seal like the accent mark on a real Sak Yant. Per-type
-    // touches vary the shared frame: a triple flame tip (a small crown)
-    // for the King, lotus-petal border marks for the Queen, cardinal
-    // wisdom-triangles around the circle for the Bishop, horseshoe arcs
-    // for the Knight, a water-wave base for the Rook (the boat), and
-    // plain scale-arcs flanking the glyph for the Pawn.
-    const S = 40, EDGE = 216, cxp = 128, cyp = 128;
+    // Sak Yantra: each rank gets its own real sacred-geometry composition
+    // (not one shared frame with a small per-type accent) -- six actually
+    // different silhouettes, each drawn from a real yantra/Sak Yant
+    // pattern chosen for what that rank represents:
+    //   King   - Gao Yord (nine spires): a nine-point radiating crown,
+    //            the classic highest-protection/royalty yantra.
+    //   Queen  - Paed Tidt (eight directions): an 8-point compass star.
+    //   Bishop - Hah Taew (five rows): a tall panel of khom-script rows,
+    //            the wisdom/mantra yantra -- deliberately the one non-
+    //            circular silhouette, for real shape variety.
+    //   Knight - a four-armed swirling tomoe/pinwheel, for the horse's
+    //            leap and speed.
+    //   Rook   - a Sema boundary-stone silhouette (a tall pointed hull),
+    //            doubling as the Tuuk's boat hull, with water-wave bands.
+    //   Pawn   - a small plain circular seal, deliberately the simplest.
+    // All six stay in the same family: plain ink linework (no gold, unlike
+    // every other Khmer Heritage set -- a tattoo/cloth yantra is
+    // monochrome), a khom-script-stand-in dot border, a small sacred-red
+    // accent mark, and the Khmer name glyph centered on each shape's own
+    // true geometric center (128,128 for every one of the six here, so it
+    // sits centered both mathematically -- glyphCentered measures the
+    // real ink box -- and visually, since each shape is itself symmetric
+    // around that point).
+    const cxp = 128, cyp = 128;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.rect(S, S, EDGE - S, EDGE - S);
-    ctx.fillStyle = body; ctx.fill();
-    ctx.strokeStyle = ink; ctx.lineWidth = 7; ctx.stroke();
-    // corner flame points
-    const flame = (fx, fy, dx, dy) => {
-      ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(fx + dx * 16, fy + dy * 4);
-      ctx.lineTo(fx + dx * 22, fy + dy * 22);
-      ctx.lineTo(fx + dx * 4, fy + dy * 16);
-      ctx.closePath();
-      ctx.fill();
-    };
-    ctx.fillStyle = ink;
-    flame(S, S, -1, -1); flame(EDGE, S, 1, -1);
-    flame(S, EDGE, -1, 1); flame(EDGE, EDGE, 1, 1);
-    // syllable-dot border (khom-script stand-in), 5 per side
-    const inset = 14;
-    for (let i = 1; i <= 5; i++) {
-      const p = S + (EDGE - S) * (i / 6);
-      for (const [px, py] of [[p, S + inset], [p, EDGE - inset], [S + inset, p], [EDGE - inset, p]]) {
-        ctx.beginPath(); ctx.arc(px, py, 2.6, 0, Math.PI * 2); ctx.fill();
+    const dotRing = (r, n, startAngle) => {
+      ctx.fillStyle = ink;
+      for (let i = 0; i < n; i++) {
+        const a = (startAngle || 0) + (i / n) * Math.PI * 2;
+        ctx.beginPath(); ctx.arc(cxp + Math.cos(a) * r, cyp + Math.sin(a) * r, 2.6, 0, Math.PI * 2); ctx.fill();
       }
-    }
-    // nested diamond, then nested circle -- the classic square/diamond/
-    // circle layering
-    const dr = 68;
-    ctx.beginPath();
-    ctx.moveTo(cxp, cyp - dr); ctx.lineTo(cxp + dr, cyp); ctx.lineTo(cxp, cyp + dr); ctx.lineTo(cxp - dr, cyp);
-    ctx.closePath();
-    ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
-    ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
-    // sacred-red accent mark at the top
-    ctx.fillStyle = '#b3261e';
-    ctx.beginPath(); ctx.arc(cxp, S - 8, 5, 0, Math.PI * 2); ctx.fill();
-    // per-type frame accent
+    };
+    const redDot = (x, y) => { ctx.fillStyle = '#b3261e'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); };
+    let translitY = 244;
     switch (type) {
       case E.KING: {
-        ctx.fillStyle = ink;
-        for (const off of [-14, 0, 14]) {
-          const tipY = S - 22 - (off === 0 ? 8 : 0);
+        // Gao Yord: nine graduated spires radiating from the top of a
+        // circular seal, like a crown.
+        const R = 74, oy = 8;
+        ctx.beginPath(); ctx.arc(cxp, cyp + oy, R, 0, Math.PI * 2);
+        ctx.fillStyle = body; ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
+        const spire = (angle, len) => {
+          const b1 = angle - 0.09, b2 = angle + 0.09;
           ctx.beginPath();
-          ctx.moveTo(cxp + off, S - 6);
-          ctx.lineTo(cxp + off + 5, tipY);
-          ctx.lineTo(cxp + off - 5, tipY);
+          ctx.moveTo(cxp + Math.cos(b1) * R, cyp + oy + Math.sin(b1) * R);
+          ctx.lineTo(cxp + Math.cos(angle) * (R + len), cyp + oy + Math.sin(angle) * (R + len));
+          ctx.lineTo(cxp + Math.cos(b2) * R, cyp + oy + Math.sin(b2) * R);
           ctx.closePath(); ctx.fill();
+        };
+        ctx.fillStyle = ink;
+        for (let i = 0; i < 9; i++) {
+          // spans -170deg to -10deg (i.e. -90deg/straight-up +/- 80deg),
+          // so the fan sits centered over the TOP of the circle like a crown
+          const angle = -Math.PI / 2 + (i / 8 - 0.5) * (160 * Math.PI / 180);
+          const len = 14 + (4 - Math.abs(i - 4)) * 5;
+          spire(angle, len);
         }
+        dotRing(R - 14, 14, Math.PI * 0.28);
+        redDot(cxp, cyp + oy - R - 42);
+        translitY = cyp + oy + R + 20;
         break;
       }
       case E.QUEEN: {
-        ctx.strokeStyle = ink; ctx.lineWidth = 2;
-        for (const px of [cxp - 40, cxp - 13, cxp + 13, cxp + 40]) {
-          ctx.beginPath(); ctx.arc(px, S + 10, 6, Math.PI, Math.PI * 2); ctx.stroke();
+        // Paed Tidt: an 8-point compass star inscribed in a circular seal.
+        const Rout = 88, Rin = 54, Rcirc = 60, oy = 0;
+        ctx.beginPath();
+        for (let i = 0; i < 16; i++) {
+          const a = -Math.PI / 2 + i * (Math.PI / 8);
+          const r = i % 2 === 0 ? Rout : Rin * 0.72;
+          const x = cxp + Math.cos(a) * r, y = cyp + oy + Math.sin(a) * r;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
+        ctx.closePath();
+        ctx.fillStyle = body; ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.stroke();
+        ctx.beginPath(); ctx.arc(cxp, cyp + oy, Rcirc, 0, Math.PI * 2);
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        for (let i = 0; i < 8; i++) {
+          const a = -Math.PI / 2 + i * (Math.PI / 4);
+          ctx.beginPath(); ctx.arc(cxp + Math.cos(a) * Rout, cyp + oy + Math.sin(a) * Rout, 2.8, 0, Math.PI * 2);
+          ctx.fillStyle = ink; ctx.fill();
+        }
+        redDot(cxp, cyp + oy - Rout - 12);
+        translitY = cyp + oy + Rout + 16;
         break;
       }
       case E.BISHOP: {
+        // Hah Taew: a tall panel of five script rows -- the one panel
+        // (not circular) silhouette, for the wisdom/mantra yantra. The
+        // middle row is left clear for the glyph.
+        const x0 = 62, x1 = 194, y0 = 26, y1 = 230, rows = 5;
+        const rh = (y1 - y0) / rows;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x0, y0, x1 - x0, y1 - y0, 10); else ctx.rect(x0, y0, x1 - x0, y1 - y0);
+        ctx.fillStyle = body; ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
+        for (let i = 1; i < rows; i++) {
+          const y = y0 + rh * i;
+          ctx.beginPath(); ctx.moveTo(x0 + 8, y); ctx.lineTo(x1 - 8, y);
+          ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.stroke();
+        }
         ctx.fillStyle = ink;
-        const tri = (px, py, rot) => {
-          ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
-          ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 6); ctx.lineTo(-7, 6); ctx.closePath(); ctx.fill();
-          ctx.restore();
-        };
-        tri(cxp, cyp - 52, 0); tri(cxp + 52, cyp, Math.PI / 2);
-        tri(cxp, cyp + 52, Math.PI); tri(cxp - 52, cyp, -Math.PI / 2);
+        for (let r = 0; r < rows; r++) {
+          if (r === 2) continue; // glyph row
+          const y = y0 + rh * (r + 0.5);
+          for (let i = 0; i < 6; i++) {
+            const x = x0 + (x1 - x0) * ((i + 0.5) / 6);
+            ctx.beginPath(); ctx.arc(x, y, 2.4, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        redDot(cxp, y0 - 10);
+        translitY = y1 + 14;
         break;
       }
       case E.KNIGHT: {
-        ctx.strokeStyle = ink; ctx.lineWidth = 3;
-        for (const sx of [S + 22, EDGE - 22]) {
-          ctx.beginPath(); ctx.arc(sx, EDGE - 20, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
-        }
+        // a four-armed swirling tomoe/pinwheel -- the horse's leap and speed.
+        const R = 74;
+        ctx.beginPath(); ctx.arc(cxp, cyp, R, 0, Math.PI * 2);
+        ctx.fillStyle = body; ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
+        // inner edge kept a good 24-30px clear of center so the tails
+        // never encroach on the glyph sitting there
+        const tomoe = (rot) => {
+          ctx.save(); ctx.translate(cxp, cyp); ctx.rotate(rot);
+          ctx.beginPath();
+          ctx.moveTo(0, -24);
+          ctx.quadraticCurveTo(42, -24, 39, -50);
+          ctx.quadraticCurveTo(35, -63, 18, -58);
+          ctx.quadraticCurveTo(27, -45, 14, -37);
+          ctx.quadraticCurveTo(4, -30, 0, -24);
+          ctx.closePath(); ctx.fill();
+          ctx.restore();
+        };
+        ctx.fillStyle = ink;
+        for (let i = 0; i < 4; i++) tomoe(i * Math.PI / 2);
+        dotRing(R - 12, 12, Math.PI / 8);
+        redDot(cxp, cyp - R - 14);
+        translitY = cyp + R + 20;
         break;
       }
       case E.ROOK: {
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5;
+        // Sema boundary-stone: a tall pointed hull (also reads as the
+        // Tuuk's boat), with water-wave bands across the lower third.
         ctx.beginPath();
-        ctx.moveTo(S + 10, EDGE - 12);
-        for (let i = 0; i < 4; i++) {
-          const wx = S + 10 + (EDGE - S - 20) * ((i + 0.5) / 4);
-          ctx.quadraticCurveTo(wx, EDGE - (i % 2 ? 18 : 6), wx + (EDGE - S - 20) / 8, EDGE - 12);
+        ctx.moveTo(cxp, 24);
+        ctx.quadraticCurveTo(204, 66, 204, 128);
+        ctx.quadraticCurveTo(204, 190, cxp, 232);
+        ctx.quadraticCurveTo(52, 190, 52, 128);
+        ctx.quadraticCurveTo(52, 66, cxp, 24);
+        ctx.closePath();
+        ctx.fillStyle = body; ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.2;
+        for (const wy of [176, 194]) {
+          ctx.beginPath();
+          ctx.moveTo(66, wy);
+          for (let i = 0; i < 4; i++) {
+            const wx = 66 + (190 - 66) * ((i + 0.5) / 4);
+            ctx.quadraticCurveTo(wx, wy + (i % 2 ? 8 : -8), wx + (190 - 66) / 8, wy);
+          }
+          ctx.stroke();
         }
-        ctx.stroke();
+        dotRing(84, 16, Math.PI * 0.05);
+        redDot(cxp, 10);
+        translitY = 246;
         break;
       }
       case E.PAWN:
       default: {
-        // below the glyph, clear of it regardless of glyph width
-        ctx.strokeStyle = ink; ctx.lineWidth = 2;
-        for (const sx of [cxp - 30, cxp + 30]) {
-          ctx.beginPath(); ctx.arc(sx, cyp + 44, 9, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
-        }
+        // a small plain circular seal -- deliberately the simplest of the six.
+        const R = 50;
+        ctx.beginPath(); ctx.arc(cxp, cyp, R, 0, Math.PI * 2);
+        ctx.fillStyle = body; ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 5; ctx.stroke();
+        dotRing(R - 12, 10, 0);
+        redDot(cxp, cyp - R - 12);
+        translitY = cyp + R + 22;
         break;
       }
     }
@@ -6153,7 +6247,7 @@ function flat2DArtTexture(setStyle, type, color) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = ink;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(NAMES[type].tr, cxp, EDGE + 14);
+    ctx.fillText(NAMES[type].tr, cxp, translitY);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dclassic') {
     // Round medallion with the classic (western) chess glyph -- the
@@ -12537,8 +12631,23 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const WHATS_NEW = [
+  {
+    version: '1.2.0',
+    date: '2026-07-18',
+    title: { kh: 'ពណ៌ថ្មី យន្តថ្មី និងផ្ទាំងលោតឡើងរលូន', en: 'Fresh colors, new Yantra shapes, smoother popups' },
+    items: [
+      { kh: 'ផ្ដល់ពណ៌សម្គាល់មួយដល់ស្បែកកញ្ចក់ ប្រណីត និងថ្មសិលា (ដូចជម្រើសពណ៌របស់ប្រតិបត្តិការទំនើប) ហើយបន្ថែមពណ៌រស់រវើកបន្តិចដល់ជួរស្បែកក្មេងស្រី។',
+        en: 'Gave Glass, Sofisticate, and Marble each one confident signature accent color (the same "neutral base + one accent" concept Modern Ops uses), and punched up the Girly trio\'s label color a touch.' },
+      { kh: 'កែលម្អពណ៌កូនអុកត្បូងឲ្យស្រដៀងនឹងហ្គេម Jeweled Blitz បន្ថែមទៀត — ត្បូងទទឹមក្រហម មាស អេម៉រ៉ូដ ត្បូងកណ្ដាល និងអាមេទីស្ទឥឡូវមានពណ៌ដូចត្បូងពិតប្រាកដជាងមុន មិនមែនពណ៌ភ្លឺចាំងអេឡិចត្រូនិកទៀតទេ។',
+        en: 'Refined Gem Blitz\'s ruby/amber/emerald/sapphire/amethyst piece colors to match a real Jeweled-Blitz-style match-3 board\'s richer, more grounded gemstone tones instead of the previous neon/electric palette.' },
+      { kh: 'រចនាស្បែកក្ដារសាក់យន្តឡើងវិញ — កូនអុកនីមួយៗឥឡូវមានរូបរាងយន្តពិតប្រាកដខុសៗគ្នា (ស្ដេច=កៅយស ៩ចុង, នាង=ប៉ែតទិស ៨ទិស, គោល=ហាតែវ ៥ជួរ, សេះ=ស្នូលកួច, ទូក=ថ្មព្រំដែនរាងទូក, ត្រី=ត្រាមូលធម្មតា) ជំនួសក្របទូទៅមួយដដែលៗ ហើយអក្សរខ្មែរឥឡូវនៅចំកណ្ដាលរូបរាងនីមួយៗ។',
+        en: 'Redesigned the Sak Yantra piece set -- each rank now has a genuinely different real yantra motif (King=Gao Yord nine spires, Queen=Paed Tidt eight-direction star, Bishop=Hah Taew five script rows, Knight=a swirling tomoe, Rook=a Sema boundary-stone/boat hull, Pawn=a plain seal) instead of one shared frame, with the Khmer glyph centered on each shape\'s own true center.' },
+      { kh: 'ក្នុងកម្មវិធីទូរស័ព្ទ ការចុចប៊ូតុងច្បាប់ ឬអ្វីថ្មី ឥឡូវបិទផ្ទាំងការកំណត់ដោយស្វ័យប្រវត្តិ ហើយផ្ទាំងលោតឡើងទាំងអស់ (ច្បាប់, អ្វីថ្មី, ការចាក់សោ, បញ្ចប់វគ្គ, គណនី) បើកបានតែមួយក្នុងពេលតែមួយ។',
+        en: 'On mobile, tapping Rules or What\'s New now automatically closes the settings panel, and all popup windows (Rules, What\'s New, the lock prompt, End Session, profile) now open one at a time -- opening one closes any other that was open.' }
+    ]
+  },
   {
     version: '1.1.0',
     date: '2026-07-18',
