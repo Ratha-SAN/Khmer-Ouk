@@ -4745,7 +4745,6 @@ let onlineLobbyId = null;         // Firestore lobbies/{id} while searching/host
 let onlineOpponentName = null;
 let onlineUnsubLobby = null;      // unsubscribe fn for the active lobby listener
 let onlineUnsubMatch = null;      // unsubscribe fn for the active match listener
-let onlineApplyingRemote = false; // guard so applying an opponent's move doesn't re-broadcast it
 let onlinePresenceTimer = null;   // interval: broadcast my own presence heartbeat
 let onlinePresenceCheckTimer = null; // interval: locally re-evaluate the opponent's offline status
 let onlineOpponentPresence = null;   // last-known presence timestamp (ms) reported by the opponent
@@ -5139,7 +5138,6 @@ const MAT_AVATAR_WOOD = new THREE.MeshStandardMaterial({ color: 0x5a3a24, roughn
 const MAT_SCIFI_GLOW_CYAN = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x30c8ff, emissiveIntensity: 1.0, roughness: 0.3, metalness: 0.0 });
 const MAT_SCIFI_GLOW_ALIEN = new THREE.MeshStandardMaterial({ color: 0xcaa3ff, emissive: 0x8a3ff0, emissiveIntensity: 0.95, roughness: 0.3, metalness: 0.0 });
 const MAT_SCIFI_METAL = new THREE.MeshStandardMaterial({ color: 0xc7d0da, roughness: 0.35, metalness: 0.45 });
-const MAT_SCIFI_VISOR = new THREE.MeshStandardMaterial({ color: 0xff5533, emissive: 0xaa2200, emissiveIntensity: 0.55, roughness: 0.4, metalness: 0.1 });
 const MAT_SCIFI_ALIEN_SHELL = new THREE.MeshStandardMaterial({ color: 0x6a3fa0, roughness: 0.55, metalness: 0.05 });
 // Fixed accent colors for the ANNO Mutationem-vibe piece set (see
 // buildAnnoPiece): a dual-neon cyberpunk city palette -- self-lit cyan for
@@ -5226,7 +5224,6 @@ const MAT_NATURE_MOSS = new THREE.MeshStandardMaterial({ color: 0x7a9463, roughn
 const MAT_KH_STONE = new THREE.MeshStandardMaterial({ color: 0xd9c9a0, roughness: 0.7, metalness: 0.0 });
 const MAT_KH_GOLD = new THREE.MeshStandardMaterial({ color: 0xe0b84a, roughness: 0.35, metalness: 0.4 });
 const MAT_KH_FLAG_RED = new THREE.MeshStandardMaterial({ color: 0xd8303a, roughness: 0.45, metalness: 0.0 });
-const MAT_KH_FLAG_BLUE = new THREE.MeshStandardMaterial({ color: 0x2a3f8f, roughness: 0.45, metalness: 0.05 });
 const MAT_KH_LOTUS = new THREE.MeshStandardMaterial({ color: 0xf3d8e6, roughness: 0.5, metalness: 0.0 });
 // Fixed gem materials for the Gem Blitz piece set (see buildGemPiece):
 // five classic jewel hues, one per piece rank, each self-lit (emissive)
