@@ -5096,6 +5096,16 @@ function setLabelOrientation(flip) {
 // ---------- pieces ----------
 const MAT_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
 const MAT_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
+// The pieces' true intended color, captured by applyTheme right after it
+// applies the active theme's own pieceW/pieceB plus the pieceBFloor
+// lightness rescue -- kept here as plain numbers rather than ever read
+// back from MAT_W/MAT_B.color, because updatePieceMaterialTexture (see
+// board-theme section) overwrites that .color to white whenever a baked
+// piece texture (marble veins, or the plain-style grain+gradient) is
+// supplying the real color instead, and needs a color to derive from
+// that survives being called again later on its own -- e.g. from the
+// separate piece-style dropdown -- without a full theme re-application.
+let pieceRealColorW = 0xe9dabb, pieceRealColorB = 0x6d2a18;
 const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.3, metalness: 0.6 });
 // A bright contrasting cap/accent color for the Kids Playroom theme's
 // chunky piece set (see buildKidsPiece) -- a cheerful sunshine yellow
@@ -9067,6 +9077,43 @@ function buildMarbleTexture(hex, veinHex, key) {
   marbleTexCache[key] = tex;
   return tex;
 }
+// A subtle grain + soft top-lit gradient for the plain matte piece styles
+// (Classic Wood, Angkor Stone, Modern Night, Magic, Magic II, Sofisticate,
+// iOS Studio, Khmer Traditional) that otherwise render as one perfectly
+// flat color -- same "base fill, texture supplies the color" pattern
+// buildMarbleTexture above uses, just a much gentler treatment (fine
+// scattered flecks instead of veins, a soft light/shadow gradient instead
+// of any hue shift) so the exact same color still reads at a glance, just
+// less flat/plasticky up close. See updatePieceMaterialTexture.
+const plainPieceTexCache = {};
+function buildPlainPieceTexture(hex, key) {
+  if (plainPieceTexCache[key]) return plainPieceTexCache[key];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#' + hex.toString(16).padStart(6, '0');
+  ctx.fillRect(0, 0, 128, 128);
+  // slight top-lit gradient: a touch brighter near the top, a touch
+  // darker near the bottom, like ambient light catching a turned/carved
+  // surface -- alpha stays low enough that the texture's own average
+  // color still matches the theme's flat piece color.
+  const grad = ctx.createLinearGradient(0, 0, 0, 128);
+  grad.addColorStop(0, 'rgba(255,255,255,0.10)');
+  grad.addColorStop(0.5, 'rgba(255,255,255,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+  // fine grain: tiny scattered flecks, roughly half lighter half darker,
+  // each at low opacity -- reads as a subtle painted/turned-wood texture
+  // rather than a perfectly smooth plastic surface.
+  for (let i = 0; i < 260; i++) {
+    ctx.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
+    const x = Math.random() * 128, y = Math.random() * 128, s = 0.6 + Math.random() * 1.2;
+    ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  plainPieceTexCache[key] = tex;
+  return tex;
+}
 let paintingBackdropCache = null;
 function buildPaintingBackdrop() {
   if (paintingBackdropCache) return paintingBackdropCache;
@@ -9367,6 +9414,46 @@ function setPixelation(active) {
   resize();
 }
 
+// Applies the shared piece-color materials' own surface treatment: either
+// Marble's own vein texture (the theme's own marblePieces flag applies
+// unconditionally, regardless of which piece STYLE is active, matching
+// its existing behavior), a subtle grain+gradient for the plain matte
+// piece styles (see buildPlainPieceTexture), or a flat, textureless color
+// for everything else. Reads pieceStyle() -- the piece style actually in
+// effect, which the separate piece-style dropdown can override
+// independently of the theme's own default style -- rather than the
+// theme's own style, and always rebuilds every material's color from the
+// stable pieceRealColorW/B pair (see their own comment) rather than
+// reading a material's current .color back, so this is safe to call again
+// on its own, without a full theme re-application, whenever just the
+// piece style changes (see pieceStyleSel's own onchange below).
+function updatePieceMaterialTexture() {
+  const GOLD_TINT_HEX = 0xd4a548;
+  const realAccentW = lerpSRGBHex(pieceRealColorW, GOLD_TINT_HEX, 0.3);
+  const realAccentB = lerpSRGBHex(pieceRealColorB, GOLD_TINT_HEX, 0.3);
+  if (theme().marblePieces) {
+    MAT_W.map = buildMarbleTexture(pieceRealColorW, 0x000000, 'mpW' + pieceRealColorW);
+    MAT_B.map = buildMarbleTexture(pieceRealColorB, 0xffffff, 'mpB' + pieceRealColorB);
+    MAT_W.color.setHex(0xffffff); MAT_B.color.setHex(0xffffff);
+    MAT_BASE_W.color.setHex(pieceRealColorW); MAT_BASE_B.color.setHex(pieceRealColorB);
+    MAT_ACCENT_W.color.setHex(realAccentW); MAT_ACCENT_B.color.setHex(realAccentB);
+    MAT_BASE_W.map = MAT_BASE_B.map = MAT_ACCENT_W.map = MAT_ACCENT_B.map = null;
+    MAT_W.needsUpdate = MAT_B.needsUpdate = MAT_BASE_W.needsUpdate = MAT_BASE_B.needsUpdate = MAT_ACCENT_W.needsUpdate = MAT_ACCENT_B.needsUpdate = true;
+    return;
+  }
+  const plain = ['traditional', 'carved', 'minimal', 'khmer'].includes(pieceStyle());
+  const entries = [
+    [MAT_W, 'ppW', pieceRealColorW], [MAT_B, 'ppB', pieceRealColorB],
+    [MAT_BASE_W, 'ppBaseW', pieceRealColorW], [MAT_BASE_B, 'ppBaseB', pieceRealColorB],
+    [MAT_ACCENT_W, 'ppAccentW', realAccentW], [MAT_ACCENT_B, 'ppAccentB', realAccentB]
+  ];
+  for (const [mat, key, hex] of entries) {
+    if (plain) { mat.map = buildPlainPieceTexture(hex, key + hex); mat.color.setHex(0xffffff); }
+    else { mat.map = null; mat.color.setHex(hex); }
+    mat.needsUpdate = true;
+  }
+}
+
 // ---------- theme application ----------
 function applyTheme(key) {
   themeKey = key;
@@ -9415,6 +9502,11 @@ function applyTheme(key) {
   // Stone's charcoal) isn't dragged back toward gray.
   raiseMinLightness(MAT_B.color, t.pieceBFloor || 0.1);
   applyPieceLuminescence();
+  // Snapshot the real, final piece colors (see pieceRealColorW/B's own
+  // comment) now, before anything below can overwrite MAT_W/MAT_B.color
+  // to white to let a baked texture supply the real color instead.
+  pieceRealColorW = MAT_W.color.getHex();
+  pieceRealColorB = MAT_B.color.getHex();
   // Gem-cut materials (see buildGemPiece, shared by Gem Blitz and the
   // three Girly themes): recolor from the active theme's own gemPalette,
   // falling back to the classic ruby/amber/emerald/sapphire/amethyst set
@@ -9513,38 +9605,15 @@ function applyTheme(key) {
   MAT_W.opacity = MAT_B.opacity = pieceOpacity;
   MAT_W.transparent = MAT_B.transparent = pieceOpacity < 1;
   MAT_W.needsUpdate = MAT_B.needsUpdate = true;
-  // Magic/Magic II accent materials (see MAT_BASE_*/MAT_ACCENT_* above):
-  // base gets the theme's own piece color at a fixed slight-metal-shine
-  // roughness/metalness; the "rest of the body" gets that same color
-  // blended a little toward gold, at its own fixed slight-shine values.
-  // Only ever visibly used while goldAccents is on, but kept in sync every
-  // call regardless so nothing stale leaks in if a theme ever reuses them.
-  // Uses lerpSRGBHex (plain per-channel sRGB-byte blending), not
-  // THREE.Color's own .lerp -- that mixes in the *linear* working color
-  // space (ColorManagement is on by default), where a very dark base color
-  // has a tiny linear value next to gold's much brighter one, so even a
-  // nominal 20% blend ends up dominated by gold and reads as a muddy brown
-  // instead of the intended dark-color-with-a-gold-hint.
-  MAT_BASE_W.color.copy(MAT_W.color); MAT_BASE_B.color.copy(MAT_B.color);
-  // Blend bumped from 0.2 to 0.3 to make the gold accent read more like an
-  // actual metal frame around the gem (the amulet-icon reference this
-  // theme's colors were re-tuned against) rather than just a faint tint.
-  const GOLD_TINT_HEX = 0xd4a548;
-  MAT_ACCENT_W.color.setHex(lerpSRGBHex(MAT_W.color.getHex(), GOLD_TINT_HEX, 0.3));
-  MAT_ACCENT_B.color.setHex(lerpSRGBHex(MAT_B.color.getHex(), GOLD_TINT_HEX, 0.3));
-  MAT_BASE_W.needsUpdate = MAT_BASE_B.needsUpdate = MAT_ACCENT_W.needsUpdate = MAT_ACCENT_B.needsUpdate = true;
-  // a texture's own baked-in pixels are multiplied by material.color, so
-  // when a marble-vein texture supplies the real color, the material color
-  // itself must be reset to white (the same pattern the board tiles below
-  // already use for brickTiles/paintedTiles) to avoid double-darkening.
-  if (t.marblePieces) {
-    const hW = MAT_W.color.getHex(), hB = MAT_B.color.getHex();
-    MAT_W.map = buildMarbleTexture(hW, 0x000000, 'mpW' + hW);
-    MAT_B.map = buildMarbleTexture(hB, 0xffffff, 'mpB' + hB);
-    MAT_W.color.setHex(0xffffff); MAT_B.color.setHex(0xffffff);
-  } else {
-    MAT_W.map = null; MAT_B.map = null;
-  }
+  // Magic/Magic II accent materials (see MAT_BASE_*/MAT_ACCENT_* above),
+  // Marble's own vein texture, and the plain matte piece styles' own
+  // grain+gradient texture are all handled together by
+  // updatePieceMaterialTexture (see its own comment) -- it derives
+  // MAT_BASE_*/MAT_ACCENT_*'s colors from pieceRealColorW/B (just
+  // snapshotted above) the same way this block used to inline here, then
+  // applies whichever of the three surface treatments the active theme
+  // and piece style call for.
+  updatePieceMaterialTexture();
   const tiled = t.brickTiles || t.paintedTiles || t.marbleTiles || t.gradientTiles;
   for (const m of squareMeshes) {
     const light = (E.fileOf(m.userData.sq) + E.rankOf(m.userData.sq)) % 2 === 1;
@@ -9641,6 +9710,12 @@ document.getElementById('pieceNameLangSel').onchange = (e) => {
 };
 document.getElementById('pieceStyleSel').onchange = (e) => {
   pieceStyleOverride = e.target.value;
+  // The piece STYLE (unlike the board theme) can change on its own here,
+  // and updatePieceMaterialTexture's plain-grain-texture gate depends on
+  // which style is actually active -- re-run it so switching into/out of
+  // a plain style (or Khmer Traditional) via this dropdown alone still
+  // gets/loses the texture, without a full applyTheme() re-run.
+  updatePieceMaterialTexture();
   if (state) { rebuildPieces(); rebuildCaptured(); }
 };
 
@@ -14144,8 +14219,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.5';
+const APP_VERSION = '1.6.6';
 const WHATS_NEW = [
+  {
+    version: '1.6.6',
+    date: '2026-07-18',
+    title: { kh: 'បន្ថែមវាយនភាព និងអាំងតង់ស៊ីតេពណ៌បន្តិចទៅកូនអុកពណ៌សុទ្ធ', en: 'Added surface texture and a slight gradient to the plain-color pieces' },
+    items: [
+      { kh: 'ស្បែក ឈើបុរាណ, ថ្មអង្គរ, យប់ទំនើប, វេទមន្ត, វេទមន្តII, Sofisticate, iOS Studio, និងប្រភេទកូនអុក "ខ្មែរបុរាណ" ពីមុនមានពណ៌រាបស្មើសុទ្ធសាធគ្មានវាយនភាពទាល់តែសោះ។ ឥឡូវមានវាយនភាពម្សៅតូចៗ និងអាំងតង់ស៊ីតេពន្លឺបន្តិចពីលើទៅក្រោម ដើម្បីឲ្យមើលទៅដូចត្រូវបានលាបពណ៌/បង្វិលដោយដៃ ជំនួសឲ្យរាបស្មើដូចប្លាស្ទិក — ពណ៌ដើមនៅដដែលទាំងស្រុង។',
+        en: "Classic Wood, Angkor Stone, Modern Night, Magic, Magic II, Sofisticate, iOS Studio, and the \"Khmer Traditional\" piece style used to render as one perfectly flat color with zero surface variation. They now have a subtle baked-in grain and a soft top-lit gradient, so they read as hand-finished/turned instead of plasticky -- the exact same base color throughout, just less flat up close." }
+    ]
+  },
   {
     version: '1.6.5',
     date: '2026-07-18',
