@@ -6210,23 +6210,21 @@ function flat2DArtTexture(setStyle, type, color) {
     ctx.fillText(NAMES[type].tr, 128, 198);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dyantra') {
-    // Sak Yantra: a real yantra diagram's own signature frame -- an
-    // axis-aligned square seal with nested diamond+circle sacred
-    // geometry, corner flame points, and a border of khom-script marks
-    // along all four edges (the specific combination every real Sak
-    // Yant reference plate shares) -- shared by ALL SIX ranks, with each
-    // rank differentiated by a small accent instead of an unrelated
-    // whole-piece silhouette. An earlier pass tried six different
-    // pictorial shapes (a crown, a compass star, a boat hull...) which,
-    // compared side-by-side against real reference plates, read as
-    // generic fantasy-game icons rather than an actual yantra -- this
-    // restores the original square-seal frame that actually photographs
-    // as "a yantra" at a glance, with the newer script-mark linework in
-    // place of that original frame's plain dots. All ink linework, no
-    // gold trim (a tattoo/cloth yantra is monochrome, the one deliberate
-    // break from the gilded language every other Khmer Heritage set
-    // here shares), with a sacred-red accent mark crowning the seal.
-    const S = 40, EDGE = 216, cxp = 128, cyp = 128;
+    // Sak Yantra: a real yantra diagram's own signature frame -- corner
+    // flame points and a khom-script border ringing an outer seal, with
+    // nested sacred geometry inside -- but now with the OUTER SEAL ITSELF
+    // shaped per rank (an actual rhombus, triangle, kite... not just a
+    // square with a differently-shaped accent glued inside it): Knight is
+    // an elongated rhombus, Queen an upward isosceles triangle, Bishop an
+    // upside-down kite (the classic bishop-mitre silhouette), Pawn a
+    // small concave notched quadrilateral; King and Rook keep the
+    // original square seal. Every rank's flame/script-border frame is
+    // built by the same two helpers (flame/outerSeal below) against
+    // whatever point list that rank passes in, so the "frame style" --
+    // ink linework, no gold trim, flame-tipped corners, a script-mark
+    // border, a sacred-red accent -- stays identical across all six even
+    // though the outline each is drawn on now differs.
+    const cxp = 128, cyp = 128;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     // A small abstract "sacred script" mark standing in for a khom-script
     // syllable: a stem plus a hook, bar, or curl (one of three variants,
@@ -6261,71 +6259,71 @@ function flat2DArtTexture(setStyle, type, color) {
         scriptMark(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 0.55, ang + Math.PI / 2, i % 3);
       }
     };
+    // A ring of script marks around the inner circle, tangential to it.
+    const scriptRing = (r, count, startAngle) => {
+      for (let i = 0; i < count; i++) {
+        const a = (startAngle || 0) + (i / count) * Math.PI * 2;
+        scriptMark(cxp + Math.cos(a) * r, cyp + Math.sin(a) * r, 0.55, a + Math.PI / 2, i % 3);
+      }
+    };
     const redDot = (x, y) => { ctx.fillStyle = '#b3261e'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); };
-
-    // the shared frame: square seal, corner flames, a script-mark border
-    // along all four edges, then nested diamond and circle -- the
-    // classic square/diamond/circle layering every reference plate's
-    // core is built from.
-    ctx.beginPath();
-    ctx.rect(S, S, EDGE - S, EDGE - S);
-    ctx.fillStyle = body; ctx.fill();
-    ctx.strokeStyle = ink; ctx.lineWidth = 7; ctx.stroke();
-    const flame = (fx, fy, dx, dy) => {
+    // A flame spike pointing outward from the seal's own center through
+    // vertex (vx,vy) -- generalized from the old fixed 45-degree-corner
+    // version so it works at ANY vertex angle (a triangle apex, a kite's
+    // narrow tip, not just a square's diagonal corners).
+    const flame = (vx, vy) => {
+      const dx = vx - cxp, dy = vy - cyp;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len, px = -uy, py = ux;
       ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(fx + dx * 16, fy + dy * 4);
-      ctx.lineTo(fx + dx * 22, fy + dy * 22);
-      ctx.lineTo(fx + dx * 4, fy + dy * 16);
+      ctx.moveTo(vx, vy);
+      ctx.lineTo(vx + ux * 5 + px * 9, vy + uy * 5 + py * 9);
+      ctx.lineTo(vx + ux * 24, vy + uy * 24);
+      ctx.lineTo(vx + ux * 5 - px * 9, vy + uy * 5 - py * 9);
       ctx.closePath();
       ctx.fill();
     };
-    ctx.fillStyle = ink;
-    flame(S, S, -1, -1); flame(EDGE, S, 1, -1);
-    flame(S, EDGE, -1, 1); flame(EDGE, EDGE, 1, 1);
-    const inset = 16;
-    scriptRow(S + inset, S + inset, EDGE - inset, S + inset, 5); // top
-    scriptRow(S + inset, EDGE - inset, EDGE - inset, EDGE - inset, 5); // bottom
-    scriptRow(S + inset, S + inset, S + inset, EDGE - inset, 5); // left
-    scriptRow(EDGE - inset, S + inset, EDGE - inset, EDGE - inset, 5); // right
-    ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
-    ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
-    redDot(cxp, S - 8);
-    // the default inner shape (King and Rook both keep it): the classic
-    // axis-aligned diamond, dr from center to each point.
-    const diamond = (dr) => {
+    // The outer seal itself: fills+strokes an arbitrary closed polygon,
+    // plants a flame at each of its vertices (or a caller-supplied subset
+    // -- the pawn's dart skips its one reflex/concave vertex, since a
+    // flame "pointing outward" from a notch would point back INTO the
+    // shape), then runs a script-mark border along every edge.
+    const outerSeal = (pts, flamePts) => {
       ctx.beginPath();
-      ctx.moveTo(cxp, cyp - dr); ctx.lineTo(cxp + dr, cyp); ctx.lineTo(cxp, cyp + dr); ctx.lineTo(cxp - dr, cyp);
+      pts.forEach(([x, y], i) => { if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
       ctx.closePath();
-      ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.fillStyle = body; ctx.fill();
+      ctx.strokeStyle = ink; ctx.lineWidth = 7; ctx.stroke();
+      ctx.fillStyle = ink;
+      (flamePts || pts).forEach(([x, y]) => flame(x, y));
+      for (let i = 0; i < pts.length; i++) {
+        const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length];
+        const edgeLen = Math.hypot(x1 - x0, y1 - y0);
+        scriptRow(x0, y0, x1, y1, Math.max(2, Math.round(edgeLen / 32)));
+      }
     };
     // glyphOy shifts the glyph to each shape's own safe/wide zone (a
-    // triangle or kite's usable width isn't centered on the canvas's
-    // numeric middle the way the old diamond's was); glyphMaxW is a
-    // shrink-to-fit cap sized to that shape's width at glyphOy, since a
-    // few of the new pointed shapes (the pawn's dart especially) are
-    // narrower there than the arch-family cards' cards ever were.
-    let glyphOy = 0, glyphMaxW = 120;
+    // triangle or kite's usable width isn't centered on its numeric
+    // middle the way a square's is); glyphMaxW is a shrink-to-fit cap
+    // sized to that shape's width at glyphOy; topY/botY (the seal's own
+    // topmost/bottommost extent) place the red accent dot and the
+    // transliteration label consistently across all six differently
+    // shaped seals.
+    let glyphOy = 0, glyphMaxW = 120, topY = 24, botY = 232;
 
-    // per-rank inner shape + accent, on top of the shared frame:
-    //   King   - keeps the diamond, plus a lotus-bud crown poking above
-    //            the top edge and a script ring inside the circle --
-    //            closest of the six to a classic wheel-yantra plate.
-    //   Queen  - an isosceles triangle, apex up like a rising tiara.
-    //   Bishop - an upside-down kite (long point up, short point down),
-    //            echoing the classic bishop mitre silhouette.
-    //   Knight - an elongated rhombus (taller than the King/Rook's plain
-    //            diamond), for the horse's lean and speed.
-    //   Rook   - keeps the plain diamond, plus a water-wave band at the
-    //            base (the Tuuk's boat) -- unchanged from before.
-    //   Pawn   - a small concave (notched) quadrilateral, an arrowhead
-    //            dent at its base -- deliberately the simplest of the six.
     switch (type) {
       case E.KING: {
-        diamond(68);
+        const S = 40, EDGE = 216;
+        outerSeal([[S, S], [EDGE, S], [EDGE, EDGE], [S, EDGE]]);
+        ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
+        ctx.closePath();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         // a fuller 5-petal lotus bud crowning the top edge -- rounder
-        // and more overtly floral than the earlier sharp flame-triangle
-        // crown, reading unmistakably as a lotus rather than a flame.
+        // and more overtly floral than a flame spike, reading
+        // unmistakably as a lotus rather than another corner flame.
         const lotusPetal = (rot, len) => {
           ctx.save(); ctx.translate(cxp, S - 2); ctx.rotate(rot);
           ctx.beginPath();
@@ -6336,36 +6334,38 @@ function flat2DArtTexture(setStyle, type, color) {
         ctx.fillStyle = ink;
         lotusPetal(-0.7, 24); lotusPetal(-0.35, 30); lotusPetal(0, 34);
         lotusPetal(0.35, 30); lotusPetal(0.7, 24);
-        redDot(cxp, S - 2); // a stamen dot at the petals' own base, on top of the fan
         for (let i = 0; i < 8; i++) {
           const a = (i / 8) * Math.PI * 2;
           scriptMark(cxp + Math.cos(a) * 36, cyp + Math.sin(a) * 36, 0.55, a + Math.PI / 2, i % 3);
         }
+        topY = S - 34; botY = EDGE; // topY pulled up to clear the lotus tip
         break;
       }
       case E.QUEEN: {
-        const apexY = cyp - 72, baseY = cyp + 56, halfW = 66;
-        ctx.beginPath();
-        ctx.moveTo(cxp, apexY); ctx.lineTo(cxp + halfW, baseY); ctx.lineTo(cxp - halfW, baseY);
-        ctx.closePath();
+        const apexY = cyp - 104, baseY = cyp + 68, halfW = 92;
+        outerSeal([[cxp, apexY], [cxp + halfW, baseY], [cxp - halfW, baseY]]);
+        const r = 50;
+        ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
         for (let i = 0; i < 8; i++) {
           const a = -Math.PI / 2 + i * (Math.PI / 4);
-          const px = cxp + Math.cos(a) * 52, py = cyp + Math.sin(a) * 52;
+          const px = cxp + Math.cos(a) * r, py = cyp + Math.sin(a) * r;
           ctx.save(); ctx.translate(px, py); ctx.rotate(a + Math.PI / 2);
           ctx.beginPath(); ctx.arc(0, 0, 6, Math.PI, Math.PI * 2); ctx.stroke();
           ctx.restore();
         }
+        scriptRing(r - 16, 6, Math.PI * 0.5);
         glyphOy = (apexY + baseY + baseY) / 3 - cyp; // triangle's own centroid
-        glyphMaxW = 74;
+        glyphMaxW = 104;
+        topY = apexY; botY = baseY;
         break;
       }
       case E.BISHOP: {
-        const topY = cyp - 80, midW = 50, midY = cyp + 6, botY = cyp + 54;
-        ctx.beginPath();
-        ctx.moveTo(cxp, topY); ctx.lineTo(cxp + midW, midY); ctx.lineTo(cxp, botY); ctx.lineTo(cxp - midW, midY);
-        ctx.closePath();
+        const topPtY = cyp - 112, midW = 70, midY = cyp + 8, botPtY = cyp + 56;
+        outerSeal([[cxp, topPtY], [cxp + midW, midY], [cxp, botPtY], [cxp - midW, midY]]);
+        const r = 46;
+        ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.fillStyle = ink;
         const tri = (px, py, rot) => {
@@ -6373,27 +6373,37 @@ function flat2DArtTexture(setStyle, type, color) {
           ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 6); ctx.lineTo(-7, 6); ctx.closePath(); ctx.fill();
           ctx.restore();
         };
-        tri(cxp, cyp - 52, 0); tri(cxp + 52, cyp, Math.PI / 2);
-        tri(cxp, cyp + 52, Math.PI); tri(cxp - 52, cyp, -Math.PI / 2);
-        glyphOy = midY - cyp; // the kite's widest cross-section
-        glyphMaxW = 86;
+        tri(cxp, cyp - r, 0); tri(cxp + r, cyp, Math.PI / 2);
+        tri(cxp, cyp + r, Math.PI); tri(cxp - r, cyp, -Math.PI / 2);
+        glyphOy = midY - cyp; // the kite's own widest cross-section
+        glyphMaxW = 118;
+        topY = topPtY; botY = botPtY;
         break;
       }
       case E.KNIGHT: {
-        const rv = 80, rh = 52;
-        ctx.beginPath();
-        ctx.moveTo(cxp, cyp - rv); ctx.lineTo(cxp + rh, cyp); ctx.lineTo(cxp, cyp + rv); ctx.lineTo(cxp - rh, cyp);
-        ctx.closePath();
+        const rv = 92, rh = 68;
+        outerSeal([[cxp, cyp - rv], [cxp + rh, cyp], [cxp, cyp + rv], [cxp - rh, cyp]]);
+        const r = 44;
+        ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        scriptRing(r - 14, 8, Math.PI / 8);
         ctx.strokeStyle = ink; ctx.lineWidth = 3;
-        for (const sx of [S + 22, EDGE - 22]) {
-          ctx.beginPath(); ctx.arc(sx, EDGE - 20, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+        for (const sx of [cxp - 30, cxp + 30]) {
+          ctx.beginPath(); ctx.arc(sx, cyp + rv - 22, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
         }
-        glyphMaxW = 92;
+        glyphMaxW = 118;
+        topY = cyp - rv; botY = cyp + rv;
         break;
       }
       case E.ROOK: {
-        diamond(68);
+        const S = 40, EDGE = 216;
+        outerSeal([[S, S], [EDGE, S], [EDGE, EDGE], [S, EDGE]]);
+        ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
+        ctx.closePath();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(S + 10, EDGE - 12);
@@ -6402,28 +6412,35 @@ function flat2DArtTexture(setStyle, type, color) {
           ctx.quadraticCurveTo(wx, EDGE - (i % 2 ? 18 : 6), wx + (EDGE - S - 20) / 8, EDGE - 12);
         }
         ctx.stroke();
+        topY = S; botY = EDGE;
         break;
       }
       case E.PAWN:
       default: {
-        // a shallow notch (barely past the shoulder line) rather than a
-        // deep one -- keeps the concave dent technically/visually
-        // present without pinching away most of the shape's usable width
-        // the way a deep notch reaching toward the tip would.
-        const tipY = cyp - 46, shY = cyp + 20, shW = 55, notchY = cyp + 16;
-        ctx.beginPath();
-        ctx.moveTo(cxp, tipY); ctx.lineTo(cxp + shW, shY); ctx.lineTo(cxp, notchY); ctx.lineTo(cxp - shW, shY);
-        ctx.closePath();
+        // shorter and wider than the other pointed seals, so the notch
+        // reads as an obvious ~25%-of-height V-cut (clearly concave, not
+        // just a slightly-flattened triangle indistinguishable from the
+        // Queen's) while still leaving a wide, un-notched upper body
+        // for the glyph to sit in.
+        const tipY = cyp - 70, shY = cyp + 50, shW = 90, notchY = cyp + 20;
+        outerSeal(
+          [[cxp, tipY], [cxp + shW, shY], [cxp, notchY], [cxp - shW, shY]],
+          [[cxp, tipY], [cxp + shW, shY], [cxp - shW, shY]] // skip the reflex notch vertex
+        );
+        const r = 38;
+        ctx.beginPath(); ctx.arc(cxp, cyp - 12, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
-        for (const sx of [cxp - 30, cxp + 30]) {
-          ctx.beginPath(); ctx.arc(sx, cyp + 44, 9, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
+        for (const sx of [cxp - 26, cxp + 26]) {
+          ctx.beginPath(); ctx.arc(sx, cyp + 32, 8, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
         }
-        glyphOy = 6; // the widest safe band, clear of both the tip and the notch
-        glyphMaxW = 78;
+        glyphOy = -6; // the wide un-notched upper body, clear of both the tip and the notch
+        glyphMaxW = 92;
+        topY = tipY; botY = shY;
         break;
       }
     }
+    redDot(cxp, topY - 8);
     const khY = NAMES[type].kh;
     glyphCentered(khY, cxp, cyp + glyphOy,
       '700 ' + (khY.length > 3 ? 42 : 50) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink, glyphMaxW);
@@ -6431,7 +6448,7 @@ function flat2DArtTexture(setStyle, type, color) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = ink;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(NAMES[type].tr, cxp, EDGE + 14);
+    ctx.fillText(NAMES[type].tr, cxp, botY + 14);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dclassic') {
     // Round medallion with the classic (western) chess glyph -- the
@@ -13039,8 +13056,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.3.4';
+const APP_VERSION = '1.3.5';
 const WHATS_NEW = [
+  {
+    version: '1.3.5',
+    date: '2026-07-18',
+    title: { kh: 'ស៊ុមកូនអុកសាក់យន្តខ្លួនឯងឥឡូវមានរាងខុសគ្នាផ្ទាល់', en: 'Sak Yantra outer seals now take each piece\'s own shape' },
+    items: [
+      { kh: 'កែសម្រួលការរចនាកូនអុកសាក់យន្តម្ដងទៀត៖ លើកនេះស៊ុមខាងក្រៅផ្ទាល់ (មិនមែនគ្រាន់តែសញ្ញាខាងក្នុងទេ) ឥឡូវយកទម្រង់រាងផ្ទាល់ខ្លួនរបស់កូនអុកនីមួយៗ — សេះជាអង្កាំមូលបណ្ដោយ, នាងជាត្រីកោណសមបាទឡើងលើ, គោលជាខ្សែអេតទ្រឡប់ក្បាលចុះ, ត្រីជាចតុកោណកោង — ខណៈស្ដេច និងទូកនៅរាងការ៉េដដែល។ ចង្កៀងភ្លើងជ្រុង និងព្រំដែនអក្សរខមឥឡូវព័ទ្ធជុំវិញរាងថ្មីនីមួយៗ ជំនួសការ៉េរួមតែមួយ ដើម្បីរក្សាលក្ខណៈស៊ុមដដែល។',
+        en: "Adjusted the Sak Yantra piece redesign once more: this time the outer seal itself (not just an inner accent) takes each rank's own shape -- Knight an elongated rhombus, Queen an upward isosceles triangle, Bishop an upside-down kite, Pawn a concave notched quadrilateral -- while King and Rook keep the original square. The corner flames and khom-script border now wrap each new outline individually instead of one shared square, keeping the same frame style across all six." }
+    ]
+  },
   {
     version: '1.3.4',
     date: '2026-07-18',
