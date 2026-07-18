@@ -326,7 +326,18 @@
   .themeCatBtn .catCur { font-size: 10.5px; color: var(--text-muted); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .themeCatBtn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .themeCatBtn.active .catCur { color: var(--on-accent); opacity: .85; }
-  .themeCatBtn.hasSelection { border-color: var(--accent); }
+  /* the category whose theme is actually in use right now (not just
+     whichever dropdown happens to be open, that's .active above) -- a
+     tinted background wash plus an accent-colored label, clearly
+     "highlighted" at a glance without being confused with .active's own
+     solid fill. */
+  .themeCatBtn.hasSelection {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+  .themeCatBtn.hasSelection .catLabel { color: var(--accent); }
+  .themeCatBtn.active.hasSelection { background: var(--accent); }
+  .themeCatBtn.active.hasSelection .catLabel { color: var(--on-accent); }
   /* position: fixed, and moved to be a direct child of <body> at open
      time (see buildThemeCategoryUI/positionThemeCatDrop) -- for two
      separate reasons, both only visible once the Playful/Kids category
@@ -7990,21 +8001,25 @@ const GALACTIC_TINT_W = 0xfff2e0, GALACTIC_TINT_B = 0x5c5a90;
 // cluster is just the world, its moons, and their orbit rings, floating
 // (lower and smaller than Magic Orb's own cluster -- see orbY/orbGroup's
 // own scale below). King is the Sun itself (bright, four fixed corona
-// flares radiating off its own surface), Queen a violet nebula/galaxy
-// world with three small stars swirling around it, Bishop a verdant
-// world with two orbiting moons, Knight an icy storm world with three
-// small moons orbiting fast (echoing the Knight's own speed), Rook a
-// cracked ember world with two moons of its own, Pawn the smallest -- a
-// plain grey moon with a single tiny orbiting star. Captures channel a
-// "galactic explosion" + "death ray" effect system instead of Magic
-// Orb's supernova (galacticFx, see triggerGalacticEffect).
+// flares radiating off its own surface, plus three small orbiting
+// flares -- the most of any rank, echoing the King's own primacy),
+// Queen a violet nebula/galaxy world with two small stars swirling
+// around it, Bishop a verdant world with two orbiting moons, Knight an
+// icy storm world with two small moons orbiting fast (echoing the
+// Knight's own speed), Rook a cracked ember world with two moons of its
+// own, Pawn the smallest -- a plain grey moon with a single tiny
+// orbiting star (a promoted Pawn keeps that same single moon, plus the
+// usual gold promotion ring every theme's own promoted piece gets).
+// Captures channel a "galactic explosion" + "death ray" effect system
+// instead of Magic Orb's supernova (galacticFx, see
+// triggerGalacticEffect).
 function buildGalacticPiece(g, add, type, promoted, color) {
   let r, orbY, planetMat, moonHex, moonCount, moonSize, moonRadius, moonSpeed;
   switch (type) {
-    case E.KING: r = 0.30; orbY = 0.68; planetMat = MAT_PLANET_SUN; moonHex = 0xffd36a; moonCount = 2; moonSize = 0.045; moonRadius = 0.46; moonSpeed = 1.3; break;
-    case E.QUEEN: r = 0.26; orbY = 0.62; planetMat = MAT_PLANET_NEBULA; moonHex = 0xb98cff; moonCount = 3; moonSize = 0.032; moonRadius = 0.5; moonSpeed = 0.9; break;
+    case E.KING: r = 0.30; orbY = 0.68; planetMat = MAT_PLANET_SUN; moonHex = 0xffd36a; moonCount = 3; moonSize = 0.045; moonRadius = 0.46; moonSpeed = 1.3; break;
+    case E.QUEEN: r = 0.26; orbY = 0.62; planetMat = MAT_PLANET_NEBULA; moonHex = 0xb98cff; moonCount = 2; moonSize = 0.032; moonRadius = 0.5; moonSpeed = 0.9; break;
     case E.BISHOP: r = 0.22; orbY = 0.56; planetMat = MAT_PLANET_NATURE; moonHex = 0x8fe86a; moonCount = 2; moonSize = 0.04; moonRadius = 0.38; moonSpeed = 0.7; break;
-    case E.KNIGHT: r = 0.21; orbY = 0.54; planetMat = MAT_PLANET_STORM; moonHex = 0xbfe8ff; moonCount = 3; moonSize = 0.03; moonRadius = 0.34; moonSpeed = 1.6; break;
+    case E.KNIGHT: r = 0.21; orbY = 0.54; planetMat = MAT_PLANET_STORM; moonHex = 0xbfe8ff; moonCount = 2; moonSize = 0.03; moonRadius = 0.34; moonSpeed = 1.6; break;
     case E.ROOK: r = 0.24; orbY = 0.5; planetMat = MAT_PLANET_EMBER; moonHex = 0xff8a4a; moonCount = 2; moonSize = 0.05; moonRadius = 0.42; moonSpeed = 0.55; break;
     case E.PAWN:
     default: r = 0.14; orbY = 0.4; planetMat = MAT_PLANET_MOON; moonHex = 0xffe9b0; moonCount = 1; moonSize = 0.025; moonRadius = 0.24; moonSpeed = 1.0; break;
@@ -10078,7 +10093,7 @@ function fxCapture(pieceType, fromSq, toSq, side) {
 // vignette flash + board shake + a ring surge from the checked king's
 // square. Always well under 600ms end to end.
 let fxCheckTimer = null;
-function fxCheck(kingSq) {
+function fxCheck(kingSq, skipShake) {
   const sceneEl = document.getElementById('scene');
   if (fxPrefersReducedMotion()) {
     fxCheckVignette.classList.remove('go', 'simple');
@@ -10091,9 +10106,11 @@ function fxCheck(kingSq) {
   fxCheckVignette.classList.remove('go');
   void fxCheckVignette.offsetWidth;
   fxCheckVignette.classList.add('go');
-  sceneEl.classList.remove('fx-shake');
-  void sceneEl.offsetWidth;
-  sceneEl.classList.add('fx-shake');
+  if (!skipShake) {
+    sceneEl.classList.remove('fx-shake');
+    void sceneEl.offsetWidth;
+    sceneEl.classList.add('fx-shake');
+  }
   clearTimeout(fxCheckTimer);
   fxCheckTimer = setTimeout(() => { fxCheckVignette.classList.remove('go'); sceneEl.classList.remove('fx-shake'); }, 520);
   const pt = fxScreenPoint(kingSq);
@@ -11966,14 +11983,14 @@ function fxGalacticCapture(fromSq, toSq, effType) {
   window.__oukFxLog.push({ tier: 2, key: 'galactic_capture_' + (big ? 'big' : 'small') });
 }
 function fxGalacticCheck(kingSq) {
-  fxCheck(kingSq); // shared shockwave (ring surge + vignette + shake)
+  fxCheck(kingSq, true); // shared shockwave (ring surge + vignette), no screen shake
   if (fxPrefersReducedMotion()) return; // fxCheck's own reduced-motion path already covered the beat
   const pt = fxScreenPoint(kingSq);
   fxSpawn(fxElementBolt(pt.x, pt.y, '#dff0ff', '#5a8bff'), 260);
   window.__oukFxLog.push({ tier: 3, key: 'galactic_check_bolt' });
 }
 function fxGalacticCheckmate(kingSq) {
-  fxCheck(kingSq); // stage 1: shared shockwave
+  fxCheck(kingSq, true); // stage 1: shared shockwave, no screen shake
   if (fxPrefersReducedMotion()) {
     fxSimpleFlash(fxScreenPoint(kingSq), '#8fd0ff');
     window.__oukFxLog.push({ tier: 4, key: 'galactic_checkmate_simple' });
@@ -14034,8 +14051,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.9';
+const APP_VERSION = '1.6.0';
 const WHATS_NEW = [
+  {
+    version: '1.6.0',
+    date: '2026-07-18',
+    title: { kh: 'បន្លិចប៊ូតុងប្រភេទស្បែកកំពុងប្រើ — ចក្រវាឡ៖ ដកការញ័រពេលឆែក លៃតម្រូវចំនួនព្រះច័ន្ទ', en: 'Highlighted the active theme-category button — Galactic: no more shake on check, retuned moon counts' },
+    items: [
+      { kh: 'ប៊ូតុងប្រភេទស្បែក (ដូចជា "អនាគត Sci-Fi & Future") ដែលមានស្បែកកំពុងប្រើបច្ចុប្បន្នស្ថិតនៅក្នុងវា ឥឡូវបន្លិចដោយផ្ទៃពណ៌សម្គាល់និងអក្សរពណ៌សម្គាល់ ជំនួសឲ្យគ្រាន់តែផ្លាស់ប្ដូរពណ៌បន្ទាត់ស៊ុមតូចមួយ ដែលពិបាកសម្គាល់។',
+        en: 'The theme-category button (e.g. "Sci-Fi & Future") whose category the currently-active theme belongs to is now clearly highlighted with a tinted background and accent-colored label, instead of just a subtle border-color change that was easy to miss.' },
+      { kh: 'ស្បែកចក្រវាឡ (Galactic) ដកចេញការញ័រអេក្រង់ដែលនៅសល់ពេលឆែក/ស្តេចស្លាប់ (ពីមុនគ្រាន់តែដកចេញការញ័រពេលស៊ីកូនអុកប៉ុណ្ណោះ)។ ចំនួនព្រះច័ន្ទ/រង្វង់ចរាចរក៏ត្រូវបានលៃតម្រូវឡើងវិញ៖ ស្តេច ៣ នាង ២ គោល/សេះ/ទូក ២ ត្រី ១ (ត្រីឡើងឋានៈនៅតែមាន ១ ព្រះច័ន្ទ បូករង្វង់ពាណ៌មាស)។',
+        en: "The Galactic theme's remaining screen shake on check/checkmate (the shared shockwave effect's own shake, left in place by the earlier capture-only fix) is now removed too. Moon/orbit-ring counts were also retuned: King 3, Queen 2, Bishop/Knight/Rook 2, Pawn 1 (a promoted Pawn still gets its one moon plus the usual gold promotion ring)." }
+    ]
+  },
   {
     version: '1.5.9',
     date: '2026-07-18',
