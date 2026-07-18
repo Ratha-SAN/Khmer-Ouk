@@ -6480,13 +6480,13 @@ function flat2DArtTexture(setStyle, type, color) {
         break;
       }
       case E.BISHOP: {
-        // Tip half-angle matched to the Queen's (atan(96/180) ~= 28.1deg,
-        // i.e. width = depth-from-tip * 0.5333) so the top point reads as
-        // the same "pointiness" across ranks, and the overall enclosed
-        // (white) area brought in line with the Knight's/Pawn's own --
-        // narrower than the previous kite, so its inscribed circle/accent
-        // radius had to shrink to match (see r below).
-        const topPtY = cyp - 112, midW = 60, midY = cyp, botPtY = cyp + 48;
+        // Tip angle widened 10% past the Queen's own (her atan(96/180) ~=
+        // 28.1deg half-angle * 1.1 in degrees ~= 31.0deg, i.e. width =
+        // depth-from-tip * 0.601) -- a touch blunter/wider than the
+        // Queen's point rather than an exact match, while keeping the
+        // overall enclosed (white) area in line with the Knight's/Pawn's
+        // own (see r below, re-checked and still safe under the wider kite).
+        const topPtY = cyp - 112, midW = 67, midY = cyp, botPtY = cyp + 48;
         outerSeal([[cxp, topPtY], [cxp + midW, midY], [cxp, botPtY], [cxp - midW, midY]]);
         const r = 36; // re-checked against the narrower kite's own tightest cross-section (just above the shorter bottom point)
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
@@ -6500,17 +6500,18 @@ function flat2DArtTexture(setStyle, type, color) {
         tri(cxp, cyp - r, 0); tri(cxp + r, cyp, Math.PI / 2);
         tri(cxp, cyp + r, Math.PI); tri(cxp - r, cyp, -Math.PI / 2);
         glyphOy = midY - cyp; // the kite's own widest cross-section
-        glyphMaxW = 104;
+        glyphMaxW = 118;
         topY = topPtY; botY = botPtY;
         break;
       }
       case E.KNIGHT: {
-        // Same tip-angle match as Bishop/Pawn: height (rv) kept at its
-        // previous safe value, width (rh) recomputed from that same
-        // 0.5333 ratio instead of its old, blunter angle -- narrower
-        // than before, bringing its enclosed area in line with Bishop's/
-        // Pawn's own rather than the wider rhombus it used to be.
-        const rv = 100, rh = 53;
+        // Same widened tip angle as Bishop (10% past the Queen's own,
+        // ~0.601 width-to-depth ratio): height (rv) kept at its previous
+        // safe value, width (rh) recomputed from that ratio -- a touch
+        // wider than the exact Queen match, still narrower than the
+        // original blunt rhombus, keeping its enclosed area in line with
+        // Bishop's/Pawn's own.
+        const rv = 100, rh = 59;
         outerSeal([[cxp, cyp - rv], [cxp + rh, cyp], [cxp, cyp + rv], [cxp - rh, cyp]]);
         const r = 42;
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
@@ -6520,7 +6521,7 @@ function flat2DArtTexture(setStyle, type, color) {
         for (const sx of [cxp - 26, cxp + 26]) {
           ctx.beginPath(); ctx.arc(sx, cyp + rv - 24, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
         }
-        glyphMaxW = 92;
+        glyphMaxW = 104;
         topY = cyp - rv; botY = cyp + rv;
         break;
       }
@@ -6555,7 +6556,13 @@ function flat2DArtTexture(setStyle, type, color) {
         // area with a genuinely visible notch (the notch has to stay
         // strictly above the shoulder line, capping how much area a
         // shallow dart can ever enclose).
-        const tipY = cyp - 90, shY = cyp + 70, shW = 85, notchY = cyp + 30;
+        // notchY widened 10% past its own base (notch-vertex) angle: the
+        // notch's own V-angle (between its two edges up to the shoulders)
+        // was atan(shW/(shY-notchY))*2 ~= 129.3deg; pulling the notch
+        // down 11px closer to the shoulder line (its depth-from-tip going
+        // from 120 to 131) opens that to ~142.3deg, a shallower, more
+        // open notch than before, without moving the tip or shoulders.
+        const tipY = cyp - 90, shY = cyp + 70, shW = 85, notchY = cyp + 41;
         outerSeal(
           [[cxp, tipY], [cxp + shW, shY], [cxp, notchY], [cxp - shW, shY]],
           [[cxp, tipY], [cxp + shW, shY], [cxp - shW, shY]] // skip the reflex notch vertex
@@ -13438,8 +13445,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.4.2';
+const APP_VERSION = '1.4.3';
 const WHATS_NEW = [
+  {
+    version: '1.4.3',
+    date: '2026-07-18',
+    title: { kh: 'បន្ថែមចំហៀងចំណុចស្រួចនៃសេះនិងគោល និងបើកចំហប្រហោងគោលអុកនៅសាក់យន្ត', en: 'Widened Bishop/Knight tip angle and opened up the Pawn notch in Sak Yantra' },
+    items: [
+      { kh: 'បង្កើនចំណុចស្រួច (ជ្រុងកំពូល) របស់គោលនិងសេះក្នុងស្បែកសាក់យន្តប្រហែល ១០% ធ្វើឲ្យទាំងពីរទូលាយជាងមុនបន្តិច ព្រមទាំងបើកចំហប្រហោងកោង (concave) នៅមូលដ្ឋានត្រីប្រហែល ១០% ធ្វើឲ្យប្រហោងនោះរាក់និងធូរជាងមុន។ រង្វង់ខាងក្នុងនិងចំណុចតុបតែងត្រូវបានផ្ទៀងផ្ទាត់ម្ដងទៀតថានៅតែសមនឹងរាងថ្មី។',
+        en: "Widened the Bishop's and Knight's top tip angle by about 10% in the Sak Yantra theme (a touch blunter than before), and opened the Pawn's concave base notch angle by about 10% (shallower, more open). Each shape's inner circle and accent placement were re-verified to stay clear of the new, wider proportions." }
+    ]
+  },
   {
     version: '1.4.2',
     date: '2026-07-18',
