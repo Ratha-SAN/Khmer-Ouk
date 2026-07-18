@@ -6634,6 +6634,21 @@ const FLAT2D_SIZE = {
   [E.KING]: 0.88, [E.QUEEN]: 0.8, [E.BISHOP]: 0.74,
   [E.KNIGHT]: 0.74, [E.ROOK]: 0.74, [E.PAWN]: 0.62
 };
+// Sak Yantra's redesigned outer-seal shapes (see flat2DArtTexture's
+// '2dyantra' case) each fill a very different amount of their own 256x256
+// canvas now -- a wide dart, a tall rhombus, a squat triangle -- so the
+// shared FLAT2D_SIZE hierarchy above (tuned for the old uniform arch-card
+// sets, where every type's ink filled a similar % of the canvas) no
+// longer maps to a consistent on-board size for these. Sized by hand from
+// each case's own real ink extent (shape outline + corner-flame overshoot
+// + the red accent dot + the transliteration label below it) so every
+// rank's card lands at a comparable physical footprint on the board, with
+// only a light King-tallest/Pawn-shortest nod left rather than the old
+// wide 0.62-0.88 spread that no longer matched these shapes' own fill %.
+const FLAT2D_SIZE_YANTRA = {
+  [E.KING]: 0.78, [E.QUEEN]: 0.74, [E.BISHOP]: 0.74,
+  [E.KNIGHT]: 0.68, [E.ROOK]: 0.78, [E.PAWN]: 0.66
+};
 // Khmer Warrior floats its character plane well clear of the base (a
 // hovering-spirit read, not a card resting on a pedestal) and bobs with
 // an idle "breathing" cycle in retrackFlat2DArt below; every other flat
@@ -6646,7 +6661,7 @@ function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
   // rather than "standing above a marker", the effect we're after
   const base = add(new THREE.CylinderGeometry(floating ? 0.16 : 0.24, floating ? 0.19 : 0.28, 0.08, 20), 0.04);
   base.castShadow = true;
-  const size = FLAT2D_SIZE[type];
+  const size = (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type];
   const tex = flat2DArtTexture(setStyle, type, color);
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(size, size),
@@ -13402,8 +13417,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const WHATS_NEW = [
+  {
+    version: '1.4.1',
+    date: '2026-07-18',
+    title: { kh: 'ជួសជុលទំហំកូនអុកសាក់យន្តឲ្យសមកម្ពស់និងទទឹងគ្នា', en: 'Fixed Sak Yantra piece sizing to match each shape\'s own proportions' },
+    items: [
+      { kh: 'ជួសជុលទំហំកូនអុកសាក់យន្តទាំងប្រាំមួយ — ចាស់មកពីទំហំកំណត់សម្រាប់កាតរាងធ្នូដដែលៗ ប៉ុន្តែឥឡូវរាងខាងក្រៅខុសគ្នាទាំងស្រុង (ការ៉េ ត្រីកោណ អង្កាំមូល ខ្សែអេត ចតុកោណកោង) ដែលបំពេញផ្ទៃក្រដាស់ខុសៗគ្នា ធ្វើឲ្យខ្លះលេចធំពេក ខ្លះតូចពេក។ ឥឡូវរង្វាស់ត្រូវបានគណនាឡើងវិញពីទំហំពិតប្រាកដនៃរូបភាពនីមួយៗ ដើម្បីឲ្យកម្ពស់ និងទទឹងសមស្របគ្នាល្អជាងមុន។',
+        en: "Fixed the six Sak Yantra pieces' on-board size -- they were still using the size hierarchy tuned for the old uniform arch-card sets, but the redesigned outer seals (square, triangle, rhombus, kite, dart) each fill a very different amount of their own canvas now, making some pieces look oversized and others undersized. Sizes are now computed from each shape's own real ink extent instead, so height and width both land at a more consistent, appropriately-proportioned size across all six." }
+    ]
+  },
   {
     version: '1.4.0',
     date: '2026-07-18',
@@ -14996,6 +15020,7 @@ window.__ouk = {
   // having to play out a whole game through UI clicks.
   debugLoadState: (json) => { state = E.fromJSON(json); lastMove = null; selected = -1; legalForSelected = []; gameOver = false; clearMarkers(); refreshAll(); },
   debugCurrentProfile: () => currentProfile,
+  debugFlat2DSize: (setStyle, type) => (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type],
   debugApplyMove: (m) => applyMove(m),
   debugFxLog: () => window.__oukFxLog.slice(),
   debugSfxLog: () => window.__oukSfxLog.slice(),
