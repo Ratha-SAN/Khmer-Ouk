@@ -7019,6 +7019,12 @@ function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
 // phase-offset vertical drift that reads as idle "breathing" rather than
 // a rigid mechanical bounce, skipped entirely under reduced-motion.
 function retrackFlat2DArt() {
+  // Every piece on the board shares the current theme's own style (theme
+  // switches rebuild both pieceGroup and capturedGroup together), so
+  // skipping the whole per-piece scan -- and the fxPrefersReducedMotion()
+  // call that comes with it -- for the ~30 non-flat2D styles avoids
+  // real, otherwise-unconditional work on every single animation frame.
+  if (pieceStyle().slice(0, 2) !== '2d') return;
   let az = null;
   const reduced = fxPrefersReducedMotion();
   const t = clock.getElapsedTime();
@@ -7045,6 +7051,11 @@ function retrackFlat2DArt() {
 // Playful/Kids sibling theme, skips them) in a slow little orbit around
 // each orb, independent of the bob.
 function retrackMagicOrbFloat() {
+  // Every piece on the board shares the current theme's own style, so skip
+  // the whole per-piece scan (and its fxPrefersReducedMotion() call) unless
+  // Magic Orb or Orbs -- the two styles built by buildMagicOrbPiece and the
+  // only ones that ever set orbFloatTarget/orbGlowParticles -- is active.
+  if (pieceStyle() !== 'magicorb' && pieceStyle() !== 'orbs') return;
   const reduced = fxPrefersReducedMotion();
   const t = clock.getElapsedTime();
   for (const grp of [pieceGroup, capturedGroup]) {
@@ -7073,6 +7084,10 @@ function retrackMagicOrbFloat() {
 // prefers-reduced-motion rather than hidden, same convention every other
 // idle-motion retrack function here already follows.
 function retrackGalacticOrbit() {
+  // Same reasoning as retrackMagicOrbFloat's own gate above: only the
+  // Galactic style ever populates galacticFloatTarget/galacticMoons, so
+  // every other theme can skip this scan entirely, every frame.
+  if (pieceStyle() !== 'galactic') return;
   const reduced = fxPrefersReducedMotion();
   const t = clock.getElapsedTime();
   for (const grp of [pieceGroup, capturedGroup]) {
@@ -8610,9 +8625,15 @@ function addPieceLabel(g, type, color) {
 // exactly the piece's own screen-space X, while keeping the Y placement
 // (and hence the tip/base height choice) the projection would have given
 // it anyway.
+// Scratch vectors reused across calls (only ever read right after being
+// written via .copy()/.set() within the same synchronous call, never held
+// onto) -- hoisted out of the function body so this doesn't allocate 3
+// fresh THREE.Vector3 objects on every single animation frame that this
+// runs on (i.e. every frame the player has piece-name labels turned on).
+const _retrackLabelNdcBase = new THREE.Vector3(), _retrackLabelNdcHigh = new THREE.Vector3(), _retrackLabelTmp = new THREE.Vector3();
 function retrackPieceLabels() {
   if (!showPieceNames) return;
-  const ndcBase = new THREE.Vector3(), ndcHigh = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const ndcBase = _retrackLabelNdcBase, ndcHigh = _retrackLabelNdcHigh, tmp = _retrackLabelTmp;
   for (const g of pieceGroup.children) {
     const sprite = g.children.find(c => c.isSprite);
     if (!sprite || sprite.userData.baseY == null) continue;
@@ -10023,9 +10044,16 @@ const fxCheckVignette = document.createElement('div');
 fxCheckVignette.id = 'fxCheckVignette';
 document.getElementById('scene').appendChild(fxCheckVignette);
 window.__oukFxLog = []; // debug/test hook: every effect actually fired
+// window.matchMedia() itself (not just reading .matches) was being called
+// fresh on every single invocation of this function -- cheap once, but
+// this is called from several per-frame retrack functions (up to a few
+// times per animation-loop tick, so hundreds of times a second), and a
+// live MediaQueryList's .matches already updates on its own if the OS
+// setting changes, with no need to ever re-call matchMedia() to see that.
+const reducedMotionMQL = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
 function fxPrefersReducedMotion() {
   if (typeof window.__oukForceReducedMotion === 'boolean') return window.__oukForceReducedMotion;
-  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  return !!(reducedMotionMQL && reducedMotionMQL.matches);
 }
 // projects a board square into current on-screen pixel coordinates, so
 // effects track the piece regardless of camera angle/zoom
@@ -14074,8 +14102,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '1.6.3';
 const WHATS_NEW = [
+  {
+    version: '1.6.3',
+    date: '2026-07-18',
+    title: { kh: 'ការកែលម្អដំណើរការ៖ កាត់បន្ថយការយឺតយ៉ាវលើស្បែកភាគច្រើន', en: 'Performance: reduced lag on most board themes' },
+    items: [
+      { kh: 'ការស្កេនរូបភាព 2D រាបស្មើ, Magic Orb/Orbs, និងចក្រវាឡ (Galactic) ដែលធ្វើឡើងរាល់ស៊ុមរូបភាព ដើម្បីធ្វើឲ្យកូនអុកអណ្តែត/បង្វិល ពីមុនដំណើរការជានិច្ចមិនថាស្បែកកំពុងប្រើជាអ្វី។ ឥឡូវរំលងទាំងស្រុងសម្រាប់ស្បែកជាង៣០ផ្សេងទៀត (ឈើ ថ្ម វេទមន្ត ត្បូង។ល។) ដែលមិនប្រើលក្ខណៈទាំងនេះ ជួយកាត់បន្ថយការយឺតយ៉ាវជាទូទៅ។',
+        en: "The per-frame scans that keep flat-2D standees, Magic Orb/Orbs, and Galactic pieces floating/orbiting used to run on every animation frame no matter which theme was active. They now skip entirely for the ~30 other themes (wood, stone, magic, gems, and more) that don't use those effects, cutting unnecessary work every frame." },
+      { kh: 'ការត្រួតពិនិត្យការកំណត់ភាពមិនចង់ឲ្យមានចលនា (reduced motion) ធ្លាប់ចំណាយពេលបង្កើតថ្មីរាល់ដងហៅ ឥឡូវរក្សាទុកតែម្តង។',
+        en: 'The reduced-motion accessibility check used to redo its underlying browser query on every single call; it now reuses one cached query instead.' }
+    ]
+  },
   {
     version: '1.6.2',
     date: '2026-07-18',
@@ -15885,6 +15924,18 @@ window.__ouk = {
   isButtonLocked: (btnId) => document.getElementById(btnId).classList.contains('locked'),
   floatPlaneY: () => {
     for (const g of pieceGroup.children) if (g.userData.floatBaseY != null) return g.userData.flat2dPlane.position.y;
+    return null;
+  },
+  // Test-only: read back the live bob height of the first Magic Orb/Orbs
+  // or Galactic piece found, so Playwright can confirm retrackMagicOrbFloat
+  // / retrackGalacticOrbit actually still animate when their theme is
+  // active (not just that they no-op when it isn't).
+  orbFloatY: () => {
+    for (const g of pieceGroup.children) if (g.userData.orbFloatTarget) return g.userData.orbFloatTarget.position.y;
+    return null;
+  },
+  galacticFloatY: () => {
+    for (const g of pieceGroup.children) if (g.userData.galacticFloatTarget) return g.userData.galacticFloatTarget.position.y;
     return null;
   },
   lockPopupVisible: () => document.getElementById('lockPopup').style.display === 'flex',
