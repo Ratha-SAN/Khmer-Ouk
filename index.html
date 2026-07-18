@@ -2609,7 +2609,7 @@
       <option value="none">No music</option>
       <optgroup label="Relaxing (6)"></optgroup>
       <optgroup label="Khmer Traditional (6)"></optgroup>
-      <optgroup label="Arcade (5)"></optgroup>
+      <optgroup label="Arcade (6)"></optgroup>
       <optgroup label="Cinematic (2)"></optgroup>
       <optgroup label="Synth (2)"></optgroup>
       <optgroup label="World (1)"></optgroup>
@@ -9337,7 +9337,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5', yantra: 'khmer6' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5', yantra: 'khmer6', orbs: 'arcade6' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -9702,6 +9702,24 @@ const SFX = {
       noiseBurst({ dur: 0.18, filterFreq: 3200, q: 1.6, gain: 0.24, delay: 0.16 }); // crackle
     } else {
       [523.25, 659.26, 783.99, 1046.5].forEach((f, i) => envOsc({ freq: f, type: 'sine', dur: 0.22, gain: 0.22, delay: i * 0.07 }));
+    }
+  },
+  // Orbs (Playful/Kids theme): Kids Playroom's own bouncy triangle-wave
+  // "boing" for a move, with a tiny high sparkle tick folded in (a touch
+  // of Magic Orb's own twinkle, since this theme shares its piece
+  // design); a soft cheerful "pop" plus a rising bell twinkle for a
+  // capture -- deliberately gentler and brighter than Magic Orb's own
+  // crackling supernova boom, nothing booming or startling for younger
+  // players; and a bright ascending four-note bell fanfare for
+  // check/checkmate.
+  orbs(kind) {
+    if (kind === 'move') { envOsc({ freq: 420, type: 'triangle', dur: 0.12, gain: 0.24, freqTo: 640 }); envOsc({ freq: 1400, type: 'sine', dur: 0.08, gain: 0.12, delay: 0.08 }); }
+    else if (kind === 'capture') {
+      envOsc({ freq: 500, type: 'sine', dur: 0.09, gain: 0.26, freqTo: 780 }); // soft pop
+      envOsc({ freq: 1200, type: 'triangle', dur: 0.12, gain: 0.2, delay: 0.07 }); // twinkle
+      envOsc({ freq: 1600, type: 'triangle', dur: 0.14, gain: 0.16, delay: 0.13 }); // twinkle
+    } else {
+      [659.26, 783.99, 987.77, 1318.51].forEach((f, i) => envOsc({ freq: f, type: 'sine', dur: 0.16, gain: 0.24, delay: i * 0.09 }));
     }
   },
   // ANNO Mutationem vibe: a clipped sawtooth "data-ping" rising blip for a
@@ -12012,7 +12030,14 @@ const MUSIC_TRACKS = {
   // score.
   arcade5: { label: 'ចម្បាំងទំនើប Iron Front (drum + guitar mix)', instrument: 'drum', instrument2: 'guitar', noteLen: 260, gain: 0.1,
     filterHz: 1400,
-    notes: [130.81, null, 130.81, null, 155.56, 130.81, null, null, 116.54, null, 116.54, null, 130.81, 116.54, null, null] }
+    notes: [130.81, null, 130.81, null, 155.56, 130.81, null, null, 116.54, null, 116.54, null, 130.81, 116.54, null, null] },
+  // An original bright, bouncy bell-and-chip skip-tune for the Orbs
+  // (Playful/Kids) theme -- cheerful and squarely "kid magic orb" in
+  // feel, a gentler, slower cousin of Gem Blitz's own faster glittering
+  // cascade above, not a transcription of any existing melody.
+  arcade6: { label: 'កូនកែវល្អឹមល្អែម Twinkle Orbit (chiptune + bell mix)', instrument: 'chip', instrument2: 'bell', noteLen: 220, gain: 0.08,
+    filterHz: 2600,
+    notes: [523.25, 659.26, 523.25, 392.00, null, 659.26, 783.99, 659.26, 523.25, null, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
@@ -13852,8 +13877,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 const WHATS_NEW = [
+  {
+    version: '1.5.1',
+    date: '2026-07-18',
+    title: { kh: 'បន្ថែមសម្លេងនិងតន្ត្រីផ្ទាល់ខ្លួនសម្រាប់ស្បែកកូនកែវល្អឹមល្អែម', en: 'Added its own sound effects and music track for the Orbs (Kids) theme' },
+    items: [
+      { kh: 'ស្បែកកូនកែវល្អឹមល្អែម (Orbs) ក្នុងក្រុមកុមារ ឥឡូវមានសម្លេងផ្ទាល់ខ្លួន៖ សំឡេង "ប្រូង" លោតឡើងចុះនៅពេលដើរ បូកនឹងសំឡេងចាប់រំកិលបន្តិច ការស៊ីកូនអុកឮសំឡេង "ប៉ុប" ទន់ៗព្រមទាំងសំឡេងកណ្ដឹងឡើងខ្ពស់ (ស្រាលជាងសំឡេងផ្ទុះកូនកែវវេទមន្ត) ហើយពេលឆែក/ស្លាប់ស្តេចឮចម្រៀងកណ្ដឹងបួនសំឡេងឡើងខ្ពស់រីករាយ។ ព្រមទាំងបន្ថែមបទភ្លេងថ្មីមួយ "កូនកែវល្អឹមល្អែម Twinkle Orbit" ក្នុងក្រុមតន្ត្រី Arcade ដែលនឹងចាក់ដោយស្វ័យប្រវត្តិនៅពេលជ្រើសរើសស្បែកនេះ។',
+        en: 'The Orbs (Playful/Kids category) theme now has its own sound bank -- a bouncy "boing" for a move with a tiny sparkle folded in, a soft cheerful "pop" plus a rising bell twinkle for a capture (gentler than Magic Orb\'s own crackling boom), and a bright four-note bell fanfare for check/checkmate. Also added a new music track, "Twinkle Orbit" (Arcade group), which now auto-plays whenever this theme is selected from the theme picker.' }
+    ]
+  },
   {
     version: '1.5.0',
     date: '2026-07-18',
