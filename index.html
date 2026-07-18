@@ -1471,6 +1471,64 @@
   }
   @keyframes fxOrbMateFlash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
 
+  /* ============ Galactic theme: "death ray" + "galactic explosion" capture effects ============
+     Every capture fires a thin laser beam (a "death ray") from the
+     attacker's own square to the captured square, then a swirling
+     nebula-burst explosion with four-pointed star shards flying outward,
+     recolored per rank via --fxcol (see GALACTIC_ACCENT_COLOR/
+     triggerGalacticEffect) and scaled bigger for the King/Queen. Check
+     layers a cool blue-white bolt onto the shared shockwave every theme's
+     own check effect uses (fxCheck); checkmate instead layers a much
+     bigger supernova burst + radiating star shards + a bright vignette
+     flash on top, staged the same way Magic Orb's own checkmate is. */
+  .fx-galactic-ray {
+    position: absolute; height: 5px; left: 0; top: -2.5px; transform-origin: 0 50%;
+    background: linear-gradient(90deg, transparent, var(--fxcol), #fff, var(--fxcol), transparent);
+    box-shadow: 0 0 16px var(--fxcol);
+    animation: fxGalacticRay 300ms ease-out forwards;
+  }
+  @keyframes fxGalacticRay { 0% { opacity: 0; transform: scaleX(.1) scaleY(.3); } 30% { opacity: 1; transform: scaleX(1) scaleY(1.8); } 100% { opacity: 0; transform: scaleX(1) scaleY(.6); } }
+  .fx-galactic-core {
+    position: absolute; width: 26px; height: 26px; left: -13px; top: -13px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, var(--fxcol, #fff) 55%, transparent 80%);
+    animation: fxGalacticCore 260ms ease-out forwards;
+  }
+  @keyframes fxGalacticCore { 0% { transform: scale(.2); opacity: 1; } 45% { transform: scale(1.5); opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
+  .fx-galactic-burst {
+    position: absolute; width: 90px; height: 90px; left: -45px; top: -45px; border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--fxcol), transparent 20%, var(--fxcol) 40%, transparent 60%, var(--fxcol) 80%, transparent 100%);
+    filter: blur(1px);
+    animation: fxGalacticBurst 520ms ease-out forwards;
+  }
+  @keyframes fxGalacticBurst { 0% { transform: scale(.1) rotate(0deg); opacity: 1; } 60% { opacity: .85; } 100% { transform: scale(2.4) rotate(140deg); opacity: 0; } }
+  .fx-galactic-star {
+    position: absolute; width: 8px; height: 8px; left: -4px; top: -4px;
+    background: var(--fxcol, #fff);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    filter: drop-shadow(0 0 6px var(--fxcol));
+    animation: fxGalacticStar 560ms ease-out forwards;
+  }
+  @keyframes fxGalacticStar { 0% { transform: translate(0,0) scale(1) rotate(0deg); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(.3) rotate(160deg); opacity: 0; } }
+  .fx-galactic-ring {
+    position: absolute; width: 24px; height: 24px; left: -12px; top: -12px; border-radius: 50%;
+    border: 3px solid var(--fxcol, #fff); box-shadow: 0 0 12px var(--fxcol);
+    animation: fxGalacticRing 480ms ease-out forwards;
+  }
+  @keyframes fxGalacticRing { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: scale(4.6); } }
+  .fx-galactic-super {
+    position: absolute; width: 240px; height: 240px; left: -120px; top: -120px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, var(--fxcol, #fff) 36%, transparent 80%);
+    animation: fxGalacticSuper 720ms ease-out forwards;
+  }
+  @keyframes fxGalacticSuper { 0% { transform: scale(.1); opacity: 1; } 35% { opacity: 1; } 100% { transform: scale(2.3); opacity: 0; } }
+
+  /* checkmate: a bright blue-white vignette flash layered after the shared shockwave */
+  #fxCheckVignette.galacticmate {
+    animation: fxGalacticMateFlash 620ms ease-out forwards;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,.9) 0%, rgba(120,180,255,.7) 55%, rgba(5,5,20,.7) 100%);
+  }
+  @keyframes fxGalacticMateFlash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+
   /* ============ Last Airbender theme: footstep-gust move / four-element capture effects ============
      A plain footstep gust for a normal move (no element -- the four
      bending elements are reserved for captures, see triggerAtlaEffect),
@@ -2424,6 +2482,8 @@
       <option value="magic">Magic — វេទមន្ត</option>
       <option value="magic2">Magic II — វេទមន្តខ្លាំង</option>
       <option value="magicorb">Magic Orb — កូនកែវវេទមន្ត</option>
+      <option value="orbs">Orbs — កូនកែវល្អឹមល្អែម</option>
+      <option value="galactic">Galactic — ចក្រវាឡ</option>
       <option value="glass">Glass — កញ្ចក់</option>
       <option value="marble">Marble — ថ្មម៉ាបល</option>
       <option value="mario">Super Ouk World — ពិភពម៉ារីយ៉ូ</option>
@@ -3864,24 +3924,73 @@ const THEMES = {
   // Magic Orb: pieces are floating glowing orbs (see buildMagicOrbPiece) --
   // a fantasy amulet/planet-icon look, each rank a different glow accent
   // hovering above its own small "summoning circle" ring, drifting with a
-  // slow idle bob (retrackMagicOrbFloat). A deep-space void board (near-black
-  // violet-tinted tiles) so the glowing orbs themselves are the entire
-  // visual event, the same "dark stage, bright subject" idea Magic/Magic II
-  // use. Paired with its own "super magic" capture-effect system
-  // (magicOrbFx, see triggerMagicOrbEffect): a collapse-then-supernova burst
-  // colored per rank, escalating further on check and checkmate.
+  // slow idle bob (retrackMagicOrbFloat), now trailed by a few tiny
+  // ambient glow sparks orbiting each orb (addGlow, see buildPiece) and
+  // sized down 10% (except the Pawn) so the six ranks read a touch more
+  // agile. A deep-space void board (near-black tiles) so the glowing orbs
+  // themselves are the entire visual event, the same "dark stage, bright
+  // subject" idea Magic/Magic II use. Re-tuned from the original gold/
+  // violet duo to a cyan/magenta "cosmic" pair (pieceW/pieceB), with the
+  // ambient/hemisphere overrides below shifted to match. Paired with its
+  // own "super magic" capture-effect system (magicOrbFx, see
+  // triggerMagicOrbEffect): a collapse-then-supernova burst colored per
+  // rank, escalating further on check and checkmate.
   magicorb: {
     name: 'Magic Orb', style: 'magicorb',
     bg: 0x050414, fog: null,
     frame: 0x140d28, tileLight: 0x2a2058, tileDark: 0x0e0a22,
-    pieceW: 0xffb84d, pieceB: 0x9b4dff, rough: 0.15, metal: 0.05,
+    pieceW: 0x7ef2ff, pieceB: 0xd6247a, rough: 0.15, metal: 0.05,
     labelInk: '#c9b8ff', tray: 0x0d0820,
     clearcoat: 0.7, clearcoatRoughness: 0.15, envMapIntensity: 0.9,
     boardEnvMapIntensityDark: 0.15, boardClearcoatRoughnessDark: 0.55,
     reflectOpacity: 0.22,
     ambientScale: 0.5, hemiScale: 0.45,
-    ambientColorOverride: 0xe0d4ff, hemiSkyColorOverride: 0xb8a0ff, hemiGroundColorOverride: 0x140a28,
+    ambientColorOverride: 0xd8f4ff, hemiSkyColorOverride: 0x9fe0ff, hemiGroundColorOverride: 0x200a20,
     magicOrbFx: true
+  },
+  // Orbs: a Playful/Kids-category sibling of Magic Orb above -- the exact
+  // same floating glowing-orb pieces (buildMagicOrbPiece, shared with
+  // magicorb) sized down 10% (except the Pawn) for a daintier read, on a
+  // brighter, more colorful "candy night sky" board instead of Magic
+  // Orb's near-black void, and without Magic Orb's own ambient glow
+  // sparks (addGlow is off here) to keep this one a bit calmer for
+  // younger players. Reuses Magic Orb's own capture-effect system
+  // (magicOrbFx) rather than a new one.
+  orbs: {
+    name: 'Orbs', style: 'orbs',
+    bg: 0x1a1450, fog: null,
+    frame: 0x2c2166, tileLight: 0x4d3bb0, tileDark: 0x241a54,
+    pieceW: 0xffe14d, pieceB: 0xff6b9d, rough: 0.2, metal: 0.05,
+    labelInk: '#ffe9ff', tray: 0x201858,
+    clearcoat: 0.6, clearcoatRoughness: 0.18, envMapIntensity: 0.8,
+    boardEnvMapIntensityDark: 0.14, boardClearcoatRoughnessDark: 0.5,
+    reflectOpacity: 0.2,
+    ambientScale: 0.55, hemiScale: 0.5,
+    ambientColorOverride: 0xffe8ff, hemiSkyColorOverride: 0xffc9f0, hemiGroundColorOverride: 0x241250,
+    magicOrbFx: true
+  },
+  // Galactic: pieces are floating stars and planets (see buildGalacticPiece)
+  // each with its own moon(s) genuinely orbiting it (retrackGalacticOrbit)
+  // -- deliberately NO translucent halo "shield" and NO grounded "base"
+  // ring the way Magic Orb has both; just the floating world and its
+  // moons. A deep cosmic-blue void board, same "dark stage, bright
+  // subject" idea as Magic Orb/Magic. Paired with its own "galactic
+  // explosion" + "death ray" capture-effect system (galacticFx, see
+  // triggerGalacticEffect) instead of Magic Orb's supernova, and an
+  // ambient background star-twinkle (reusing the Gem Blitz/Girly sparkle
+  // interval, see galacticFx branch below) for a livelier starfield feel.
+  galactic: {
+    name: 'Galactic', style: 'galactic',
+    bg: 0x03040f, fog: null,
+    frame: 0x0b1230, tileLight: 0x1c2f6b, tileDark: 0x080b1e,
+    pieceW: 0xdff0ff, pieceB: 0x241040, rough: 0.3, metal: 0.05,
+    labelInk: '#bcd8ff', tray: 0x080a1c,
+    clearcoat: 0.5, clearcoatRoughness: 0.2, envMapIntensity: 0.65,
+    boardEnvMapIntensityDark: 0.12, boardClearcoatRoughnessDark: 0.5,
+    reflectOpacity: 0.16,
+    ambientScale: 0.5, hemiScale: 0.4,
+    ambientColorOverride: 0xd8e6ff, hemiSkyColorOverride: 0xa8c4ff, hemiGroundColorOverride: 0x0c1030,
+    galacticFx: true
   },
   // Acrylic/crystal chess set: near-clear "white" pieces and smoky-charcoal
   // "black" pieces, a glass-tiled board. A touch of metalness (a common
@@ -5452,7 +5561,9 @@ function buildPiece(type, color, promoted) {
   if (style === 'nature') return buildNaturePiece(g, add, type, promoted, color);
   if (style === 'cambodia') return buildCambodiaPiece(g, add, type, promoted, color);
   if (style === 'gems') return buildGemPiece(g, add, type, promoted, color);
-  if (style === 'magicorb') return buildMagicOrbPiece(g, add, type, promoted, color);
+  if (style === 'magicorb') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, true);
+  if (style === 'orbs') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, false);
+  if (style === 'galactic') return buildGalacticPiece(g, add, type, promoted, color);
   if (style === 'anno') return buildAnnoPiece(g, add, type, promoted, color);
   if (style === 'transformers') return buildTransformersPiece(g, add, type, promoted, color);
   if (style === 'angkor') return buildAngkorPiece(g, add, type, promoted, color);
@@ -6750,16 +6861,55 @@ function retrackFlat2DArt() {
 // sub-group up and down, leaving the grounded summoning-circle ring
 // beneath it still -- own userData keys (orbFloatBaseY/orbFloatTarget/
 // orbFloatPhase) so this never collides with retrackFlat2DArt's
-// unrelated floatBaseY/floatPhase pair above.
+// unrelated floatBaseY/floatPhase pair above. Also drifts Magic Orb's own
+// ambient glow particles (orbGlowParticles, addGlow-only -- Orbs, the
+// Playful/Kids sibling theme, skips them) in a slow little orbit around
+// each orb, independent of the bob.
 function retrackMagicOrbFloat() {
   const reduced = fxPrefersReducedMotion();
   const t = clock.getElapsedTime();
   for (const grp of [pieceGroup, capturedGroup]) {
     for (const g of grp.children) {
       const target = g.userData && g.userData.orbFloatTarget;
-      if (!target || g.userData.orbFloatBaseY == null) continue;
-      const bob = reduced ? 0 : Math.sin(t * 1.6 + g.userData.orbFloatPhase) * 0.07;
-      target.position.y = g.userData.orbFloatBaseY + bob;
+      if (target && g.userData.orbFloatBaseY != null) {
+        const bob = reduced ? 0 : Math.sin(t * 1.6 + g.userData.orbFloatPhase) * 0.07;
+        target.position.y = g.userData.orbFloatBaseY + bob;
+      }
+      const glows = g.userData && g.userData.orbGlowParticles;
+      if (glows) {
+        for (const gp of glows) {
+          const ang = reduced ? gp.phase : t * gp.speed + gp.phase;
+          gp.mesh.position.set(Math.cos(ang) * gp.radius, Math.sin(ang * 1.6) * gp.yAmp, Math.sin(ang) * gp.radius);
+        }
+      }
+    }
+  }
+}
+// Galactic theme's own idle motion (see buildGalacticPiece): bobs the
+// whole star/planet+moons cluster up and down like Magic Orb's own float
+// (own userData keys so this never collides with retrackMagicOrbFloat's
+// orbFloat* pair), and continuously revolves each piece's own moon(s)
+// around it in the XZ plane with a slight Y wobble -- the "planets/moons
+// flying around" look. Frozen at each moon's own current position under
+// prefers-reduced-motion rather than hidden, same convention every other
+// idle-motion retrack function here already follows.
+function retrackGalacticOrbit() {
+  const reduced = fxPrefersReducedMotion();
+  const t = clock.getElapsedTime();
+  for (const grp of [pieceGroup, capturedGroup]) {
+    for (const g of grp.children) {
+      const target = g.userData && g.userData.galacticFloatTarget;
+      if (target && g.userData.galacticFloatBaseY != null) {
+        const bob = reduced ? 0 : Math.sin(t * 1.4 + g.userData.galacticFloatPhase) * 0.06;
+        target.position.y = g.userData.galacticFloatBaseY + bob;
+      }
+      const moons = g.userData && g.userData.galacticMoons;
+      if (moons) {
+        for (const mo of moons) {
+          const ang = reduced ? mo.phase : t * mo.speed + mo.phase;
+          mo.mesh.position.set(Math.cos(ang) * mo.radius, Math.sin(ang * 1.4) * mo.radius * mo.tilt, Math.sin(ang) * mo.radius);
+        }
+      }
     }
   }
 }
@@ -7505,7 +7655,14 @@ function buildGemPiece(g, add, type, promoted, color) {
 // drift just the orb up and down without moving the grounded ring beneath
 // it -- same reasoning as buildFlat2DPiece's floating standees, just a
 // sub-group instead of a single plane.
-function buildMagicOrbPiece(g, add, type, promoted, color) {
+// Shared by two themes now (see buildPiece): Magic Orb itself and its
+// Playful/Kids-category sibling "Orbs" both call this, passing their own
+// sizeScale (both shrink every rank but the Pawn by 10%, applied as a
+// uniform Group.scale on the bobbing orb sub-group so the grounded ring
+// stays a constant "landing pad" size) and addGlow (Magic Orb only --
+// see retrackMagicOrbFloat's own orbGlowParticles loop -- three tiny
+// additive sparks drifting in a slow orbit around the orb).
+function buildMagicOrbPiece(g, add, type, promoted, color, sizeScale, addGlow) {
   let orbY = 0.6, r, accent;
   switch (type) {
     case E.KING: r = 0.32; accent = MAT_ORB_SUN; orbY = 0.68; break;
@@ -7524,6 +7681,7 @@ function buildMagicOrbPiece(g, add, type, promoted, color) {
   const sideMat = color === E.WHITE ? MAT_W : MAT_B;
   const orbGroup = new THREE.Group();
   orbGroup.position.y = orbY;
+  orbGroup.scale.setScalar((sizeScale && type !== E.PAWN) ? sizeScale : 1);
   g.add(orbGroup);
   const addOrb = (geom, m) => { const mesh = new THREE.Mesh(geom, m); mesh.castShadow = true; orbGroup.add(mesh); return mesh; };
 
@@ -7577,9 +7735,158 @@ function buildMagicOrbPiece(g, add, type, promoted, color) {
     pr.rotation.x = Math.PI / 2;
   }
 
+  if (addGlow) { // Magic Orb only -- a few tiny additive sparks drifting in a slow orbit around the orb (see retrackMagicOrbFloat)
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: accent.color.getHex(), transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const glows = [];
+    for (let i = 0; i < 3; i++) {
+      const gp = addOrb(new THREE.SphereGeometry(0.022, 6, 5), glowMat);
+      glows.push({
+        mesh: gp, radius: r * 1.65 + Math.random() * 0.1, speed: 0.5 + Math.random() * 0.7,
+        phase: (i / 3) * Math.PI * 2 + Math.random() * 0.5, yAmp: 0.05 + Math.random() * 0.05
+      });
+    }
+    g.userData.orbGlowParticles = glows;
+  }
+
   g.userData.orbFloatBaseY = orbY;
   g.userData.orbFloatTarget = orbGroup;
   g.userData.orbFloatPhase = Math.random() * Math.PI * 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Galactic theme: canvas-baked "world surface" textures, one per rank,
+// cached like buildMarbleTexture's veined-stone canvases -- a vertical
+// color-band gradient (reads as gas-giant cloud bands / terrestrial
+// climate zones / a star's own plasma glow once wrapped equirectangularly
+// around a SphereGeometry), a handful of wavy stripe passes, and a
+// speckle dusting (clouds/craters/cracks depending on the rank) so each
+// world reads as a distinct little planet or star rather than a flat-
+// shaded sphere -- the "star and planet texture" look, built the same
+// procedural way every other themed texture in this file is (no external
+// image assets anywhere).
+const galacticTexCache = {};
+const GALACTIC_TEX_CFG = {
+  star: { bands: ['#fff6c8', '#ffcf5e', '#ff9a3c', '#ff6a1a'], stripes: 5, stripeColor: '#fff2b0', speckColor: '#fff8dd', speckCount: 90, speckSize: 2.2 },
+  nebula: { bands: ['#c9a6ff', '#6a4fd8', '#2a1a7a', '#150a4a'], stripes: 6, stripeColor: '#e8d8ff', speckColor: '#ffffff', speckCount: 70, speckSize: 1.4 },
+  nature: { bands: ['#eaf6d8', '#7fe86a', '#2f9c3a', '#164a1f'], stripes: 5, stripeColor: '#d8f0c0', speckColor: '#ffffff', speckCount: 60, speckSize: 2.4 },
+  storm: { bands: ['#eaf8ff', '#9fd8ff', '#4fa8e8', '#1a4a8a'], stripes: 7, stripeColor: '#ffffff', speckColor: '#dff0ff', speckCount: 50, speckSize: 1.8 },
+  ember: { bands: ['#ffb85e', '#ff6a2a', '#a8281a', '#3a0a08'], stripes: 6, stripeColor: '#ffd89a', speckColor: '#1a0604', speckCount: 65, speckSize: 2.0 },
+  moon: { bands: ['#e8e4dc', '#c4beb0', '#948c7c', '#5c564a'], stripes: 3, stripeColor: '#a89e8c', speckColor: '#4a4438', speckCount: 40, speckSize: 2.6 }
+};
+function buildGalacticTexture(kind) {
+  if (galacticTexCache[kind]) return galacticTexCache[kind];
+  const cfg = GALACTIC_TEX_CFG[kind];
+  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64;
+  const ctx = cv.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 64);
+  cfg.bands.forEach((c, i) => grad.addColorStop(i / (cfg.bands.length - 1), c));
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 128, 64);
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < cfg.stripes; i++) {
+    ctx.strokeStyle = cfg.stripeColor;
+    ctx.lineWidth = 1 + Math.random() * 2;
+    ctx.beginPath();
+    const y0 = ((i + 0.5) / cfg.stripes) * 64;
+    ctx.moveTo(0, y0);
+    for (let x = 0; x <= 128; x += 8) ctx.lineTo(x, y0 + Math.sin(x * 0.22 + i * 1.7) * 3);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = cfg.speckColor;
+  for (let i = 0; i < cfg.speckCount; i++) {
+    ctx.globalAlpha = 0.15 + Math.random() * 0.3;
+    const x = Math.random() * 128, y = Math.random() * 64, r = 0.6 + Math.random() * cfg.speckSize;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(cv);
+  tex.wrapS = THREE.RepeatWrapping;
+  galacticTexCache[kind] = tex;
+  return tex;
+}
+// Fixed per-rank "world" materials (own texture map from buildGalacticTexture
+// above) -- like MAT_ORB_*/MAT_GEM_*, these are NOT touched by applyTheme's
+// own material-recolor pass, so they stay the same star/planet look
+// regardless of which side-tinting theme (there's currently only one,
+// Galactic itself) is active. A touch of emissive keeps every world
+// visibly self-lit against the theme's deep-space board; the star gets a
+// much stronger glow than the planets/moon.
+const galacticPlanetMat = (kind, emissiveHex, emissiveIntensity) => new THREE.MeshStandardMaterial({
+  map: buildGalacticTexture(kind), roughness: 0.55, metalness: 0.05,
+  emissive: new THREE.Color(emissiveHex), emissiveIntensity
+});
+const MAT_PLANET_SUN = galacticPlanetMat('star', 0xff8a2a, 0.9);
+const MAT_PLANET_NEBULA = galacticPlanetMat('nebula', 0x6a3fd8, 0.22);
+const MAT_PLANET_NATURE = galacticPlanetMat('nature', 0x2f9c3a, 0.16);
+const MAT_PLANET_STORM = galacticPlanetMat('storm', 0x2a6fc0, 0.18);
+const MAT_PLANET_EMBER = galacticPlanetMat('ember', 0xc2361a, 0.25);
+const MAT_PLANET_MOON = galacticPlanetMat('moon', 0x2a271e, 0.08);
+// Galactic piece set: every rank is a floating star or planet (its own
+// canvas-baked surface texture, see buildGalacticTexture/MAT_PLANET_*)
+// with one or more small moons genuinely orbiting it (see
+// retrackGalacticOrbit) -- unlike Magic Orb, there is deliberately no
+// translucent halo "shield" sphere and no grounded "summoning ring" at
+// the piece's foot; the whole cluster is just the world and its moons,
+// floating. King is the Sun itself (bright, four fixed corona flares
+// radiating off its own surface), Queen a violet nebula/galaxy world with
+// three small stars swirling around it, Bishop a verdant world with two
+// orbiting moons, Knight an icy storm world with three small moons
+// orbiting fast (echoing the Knight's own speed), Rook a cracked ember
+// world with two moons of its own, Pawn the smallest -- a plain grey moon
+// with a single tiny orbiting star. Captures channel a "galactic
+// explosion" + "death ray" effect system instead of Magic Orb's supernova
+// (galacticFx, see triggerGalacticEffect).
+function buildGalacticPiece(g, add, type, promoted, color) {
+  let r, orbY, planetMat, moonHex, moonCount, moonSize, moonRadius, moonSpeed;
+  switch (type) {
+    case E.KING: r = 0.30; orbY = 0.68; planetMat = MAT_PLANET_SUN; moonHex = 0xffd36a; moonCount = 2; moonSize = 0.045; moonRadius = 0.46; moonSpeed = 1.3; break;
+    case E.QUEEN: r = 0.26; orbY = 0.62; planetMat = MAT_PLANET_NEBULA; moonHex = 0xb98cff; moonCount = 3; moonSize = 0.032; moonRadius = 0.5; moonSpeed = 0.9; break;
+    case E.BISHOP: r = 0.22; orbY = 0.56; planetMat = MAT_PLANET_NATURE; moonHex = 0x8fe86a; moonCount = 2; moonSize = 0.04; moonRadius = 0.38; moonSpeed = 0.7; break;
+    case E.KNIGHT: r = 0.21; orbY = 0.54; planetMat = MAT_PLANET_STORM; moonHex = 0xbfe8ff; moonCount = 3; moonSize = 0.03; moonRadius = 0.34; moonSpeed = 1.6; break;
+    case E.ROOK: r = 0.24; orbY = 0.5; planetMat = MAT_PLANET_EMBER; moonHex = 0xff8a4a; moonCount = 2; moonSize = 0.05; moonRadius = 0.42; moonSpeed = 0.55; break;
+    case E.PAWN:
+    default: r = 0.14; orbY = 0.4; planetMat = MAT_PLANET_MOON; moonHex = 0xffe9b0; moonCount = 1; moonSize = 0.025; moonRadius = 0.24; moonSpeed = 1.0; break;
+  }
+  const sideMat = color === E.WHITE ? MAT_W : MAT_B;
+  const orbGroup = new THREE.Group();
+  orbGroup.position.y = orbY;
+  g.add(orbGroup);
+  const addOrb = (geom, m) => { const mesh = new THREE.Mesh(geom, m); mesh.castShadow = true; orbGroup.add(mesh); return mesh; };
+
+  addOrb(new THREE.SphereGeometry(r * 0.5, 14, 10), sideMat); // small side-colored core, mostly nested inside the world itself
+  addOrb(new THREE.SphereGeometry(r, 26, 18), planetMat); // the star/planet, wrapped in its own baked surface texture
+
+  if (type === E.KING) { // fixed corona flares radiating off the star's own surface -- not orbiting, the star itself is the "sun"
+    const spikeMat = new THREE.MeshBasicMaterial({ color: 0xffdf9a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + 0.4;
+      const spike = addOrb(new THREE.ConeGeometry(0.03, 0.16, 6), spikeMat);
+      spike.position.set(Math.cos(a) * r * 1.1, Math.sin(a * 1.3) * 0.05, Math.sin(a) * r * 1.1);
+      spike.rotation.z = Math.PI / 2 - a; spike.rotation.x = 0.3;
+    }
+  }
+
+  const moonMat = new THREE.MeshStandardMaterial({ color: moonHex, emissive: moonHex, emissiveIntensity: 0.6, roughness: 0.4 });
+  const moons = [];
+  for (let i = 0; i < moonCount; i++) {
+    const moon = addOrb(new THREE.SphereGeometry(moonSize, 10, 8), moonMat);
+    moons.push({
+      mesh: moon, radius: moonRadius + i * 0.05, speed: moonSpeed * (i % 2 === 0 ? 1 : -0.85),
+      phase: (i / moonCount) * Math.PI * 2 + Math.random() * 0.6, tilt: 0.15 + Math.random() * 0.2
+    });
+  }
+  if (promoted) {
+    const pr = addOrb(new THREE.TorusGeometry(r * 1.4, 0.03, 8, 24), MAT_GOLD);
+    pr.rotation.x = Math.PI / 2;
+  }
+
+  g.userData.galacticFloatBaseY = orbY;
+  g.userData.galacticFloatTarget = orbGroup;
+  g.userData.galacticFloatPhase = Math.random() * Math.PI * 2;
+  g.userData.galacticMoons = moons;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -11434,6 +11741,102 @@ function triggerMagicOrbEffect(m, moverPiece, capturedPiece, isCheck, isCheckmat
   }
 }
 
+// ============ Galactic theme: "death ray" + "galactic explosion" capture effects ============
+// Every capture fires a laser death-ray beam from the attacker's own
+// square to the captured square, landing in a swirling nebula-burst
+// explosion with four-pointed star shards, recolored per rank via
+// GALACTIC_ACCENT_COLOR to match that piece's own moon glow (see
+// buildGalacticPiece) and scaled bigger for the King/Queen -- one
+// consistent "death ray + explosion" language across all six ranks, the
+// same way Magic Orb's own "super magic" capture is one consistent
+// language recolored per rank. Check layers a cool blue-white bolt onto
+// the shared shockwave every theme's own check effect uses (fxCheck);
+// checkmate layers a much bigger supernova burst + radiating star shards
+// + a bright vignette flash on top, staged once the shockwave's own
+// vignette has finished (~520ms), same staging Magic Orb's own checkmate
+// uses.
+const GALACTIC_ACCENT_COLOR = {
+  [E.KING]: '#ffd36a', [E.QUEEN]: '#b98cff', [E.BISHOP]: '#8fe86a',
+  [E.KNIGHT]: '#bfe8ff', [E.ROOK]: '#ff8a4a', [E.PAWN]: '#ffe9b0'
+};
+function fxGalacticShake() {
+  const sceneEl = document.getElementById('scene');
+  sceneEl.classList.remove('fx-shake');
+  void sceneEl.offsetWidth;
+  sceneEl.classList.add('fx-shake');
+  setTimeout(() => sceneEl.classList.remove('fx-shake'), 380);
+}
+function fxGalacticCapture(fromSq, toSq, effType) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  const col = GALACTIC_ACCENT_COLOR[effType] || '#8fd0ff';
+  const big = effType === E.KING || effType === E.QUEEN;
+  const dx = a.x - b.x, dy = a.y - b.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  // the death ray: a laser beam traveling from the attacker's own square to the captured square
+  fxSpawn(fxAt(a, 'fx-galactic-ray', { '--fxcol': col, width: len + 'px', transform: `rotate(${ang + 180}deg)` }), 300);
+  setTimeout(() => { // the galactic explosion lands once the ray reaches its target
+    try {
+      fxSpawn(fxAt(b, 'fx-galactic-core', { '--fxcol': col }), 260);
+      fxSpawn(fxAt(b, 'fx-galactic-burst', { '--fxcol': col }), 520);
+      fxSpawn(fxAt(b, 'fx-galactic-ring', { '--fxcol': col }), 480);
+      const starCount = big ? 12 : 8;
+      for (let i = 0; i < starCount; i++) {
+        const a2 = (i / starCount) * Math.PI * 2 + Math.random() * 0.3;
+        const dist = (big ? 36 : 26) + Math.random() * (big ? 30 : 22);
+        fxSpawn(fxAt(b, 'fx-galactic-star', { '--fxcol': col, '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 560);
+      }
+      fxGalacticShake();
+    } catch (err) { console.warn('galactic-capture explosion failed (ignored):', err); }
+  }, 220);
+  window.__oukFxLog.push({ tier: 2, key: 'galactic_capture_' + (big ? 'big' : 'small') });
+}
+function fxGalacticCheck(kingSq) {
+  fxCheck(kingSq); // shared shockwave (ring surge + vignette + shake)
+  if (fxPrefersReducedMotion()) return; // fxCheck's own reduced-motion path already covered the beat
+  const pt = fxScreenPoint(kingSq);
+  fxSpawn(fxElementBolt(pt.x, pt.y, '#dff0ff', '#5a8bff'), 260);
+  window.__oukFxLog.push({ tier: 3, key: 'galactic_check_bolt' });
+}
+function fxGalacticCheckmate(kingSq) {
+  fxCheck(kingSq); // stage 1: shared shockwave
+  if (fxPrefersReducedMotion()) {
+    fxSimpleFlash(fxScreenPoint(kingSq), '#8fd0ff');
+    window.__oukFxLog.push({ tier: 4, key: 'galactic_checkmate_simple' });
+    return;
+  }
+  const pt = fxScreenPoint(kingSq);
+  setTimeout(() => { // stage 2: once the shockwave's own vignette has finished (~520ms)
+    try {
+      fxSpawn(fxAt(pt, 'fx-galactic-super', { '--fxcol': '#8fd0ff' }), 720);
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        fxSpawn(fxAt(pt, 'fx-galactic-star', { '--fxcol': '#eaf4ff', '--mx': (Math.cos(a) * 74) + 'px', '--my': (Math.sin(a) * 74) + 'px' }), 580);
+      }
+      fxCheckVignette.classList.remove('go', 'go2', 'simple', 'mategoflash', 'modgo', 'modmate', 'yantramate', 'orbmate');
+      void fxCheckVignette.offsetWidth;
+      fxCheckVignette.classList.add('galacticmate');
+      setTimeout(() => fxCheckVignette.classList.remove('galacticmate'), 620);
+      fxGalacticShake();
+    } catch (err) { console.warn('galactic checkmate supernova failed (ignored):', err); }
+  }, 520);
+  window.__oukFxLog.push({ tier: 4, key: 'galactic_checkmate_super' });
+}
+function triggerGalacticEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.galacticFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      const effType = E.isProm(moverPiece) ? E.QUEEN : E.typeOf(moverPiece);
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), GALACTIC_ACCENT_COLOR[effType] || '#8fd0ff');
+      else fxGalacticCapture(m.from, m.to, effType);
+    }
+    if (isCheckmate) fxGalacticCheckmate(E.kingSq(state, state.turn));
+    else if (isCheck) fxGalacticCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('galactic-effect render failed (ignored):', err);
+  }
+}
+
 // Ambient "sprinkle" twinkles: while Gem Blitz OR a Girly theme is active,
 // stray star glints pop at random board squares every second or so,
 // keeping the whole board alive with sparkle between moves -- skipped
@@ -11444,12 +11847,15 @@ function triggerMagicOrbEffect(m, moverPiece, capturedPiece, isCheck, isCheckmat
 // instead of Gem Blitz's fixed classic set, and force one of the two
 // twinkles per tick to a genuine white spark rather than leaving it to
 // chance, so real white glints reliably show up in the ambient sparkle,
-// not just theme-tinted ones.
+// not just theme-tinted ones. Galactic reuses the same interval for its
+// own background starfield twinkle (galacticFx), pulling a cool
+// star-toned color set instead.
+const GALACTIC_TWINKLE_COLORS = ['#ffffff', '#bcd4ff', '#ffe9a8', '#c9a8ff', '#8fe8ff'];
 setInterval(() => {
   try {
     const t = theme();
-    if (!(t.gemFx || t.girlyFx) || overlayOpen || document.hidden || fxPrefersReducedMotion()) return;
-    const cols = t.girlyFx ? girlyFxColors() : GEM_FX_COLORS;
+    if (!(t.gemFx || t.girlyFx || t.galacticFx) || overlayOpen || document.hidden || fxPrefersReducedMotion()) return;
+    const cols = t.girlyFx ? girlyFxColors() : (t.galacticFx ? GALACTIC_TWINKLE_COLORS : GEM_FX_COLORS);
     for (let i = 0; i < 2; i++) {
       const pt = fxScreenPoint((Math.random() * 64) | 0);
       const col = (t.girlyFx && i === 0) ? '#ffffff' : cols[(Math.random() * cols.length) | 0];
@@ -12182,6 +12588,7 @@ function applyMove(m) {
   triggerModernEffect(m, mover, captured, isCheck, isCheckmate, modernCaptureCue);
   triggerYantraEffect(m, mover, captured, isCheck, isCheckmate);
   triggerMagicOrbEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerGalacticEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
@@ -13445,8 +13852,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.4.3';
+const APP_VERSION = '1.5.0';
 const WHATS_NEW = [
+  {
+    version: '1.5.0',
+    date: '2026-07-18',
+    title: { kh: 'ស្បែកក្ដារថ្មី "ចក្រវាឡ" ព្រមទាំងធ្វើឲ្យកូនកែវវេទមន្តរស់រវើកជាងមុន', en: 'New "Galactic" theme, plus a livelier Magic Orb + a new kid-friendly "Orbs" theme' },
+    items: [
+      { kh: 'ស្បែកក្ដារថ្មីទាំងស្រុង "ចក្រវាឡ" — កូនអុកនីមួយៗគឺជាផ្កាយ ឬភពមួយអណ្ដែតនៅលើក្រឡា មានព្រះច័ន្ទ/ភពតូចៗហោះជុំវិញពិតប្រាកដ ដោយគ្មានស្រោមថ្លាការពារ ឬរង្វង់មូលដីនៅក្រោមជើងកូនអុកទេ (មិនដូចកូនកែវវេទមន្តទេ) ។ ស្តេចជាព្រះអាទិត្យមានចំណាំងភ្លើងព័ទ្ធជុំវិញ រីឯកូនអុកផ្សេងទៀតជាភពផ្សេងៗគ្នា គ្រប់ភព/ផ្កាយសុទ្ធតែលាបពណ៌ជាមួយវាយនភាពផ្ទាល់ខ្លួន។ ការស៊ីកូនអុកបាញ់កាំរស្មីសម្លាប់ពីអុកវាយទៅកាន់អុកគោលដៅ រួចផ្ទុះជា "ការផ្ទុះចក្រវាឡ" ធំតូចតាមឋានៈ។',
+        en: 'A brand new "Galactic" theme -- every piece is a floating star or planet hovering above its square, with genuinely orbiting moons/stars flying around it -- deliberately no translucent shield or grounded base ring like Magic Orb has. The King is the Sun itself (with corona flares), every other rank its own distinct planet, each with its own baked surface texture. Captures fire a "death ray" beam from attacker to target, landing in a "galactic explosion" burst scaled per rank.' },
+      { kh: 'កូនកែវវេទមន្ត (Magic Orb) ឥឡូវមានផ្កាភ្លើងតូចៗអណ្ដែតជុំវិញកូនអុកនីមួយៗជានិច្ច ប្ដូរពណ៌កូនអុកទៅជាពណ៌ខៀវស្រងាត់/ផ្កាឈូកភ្លឺ ហើយបានបង្រួមទំហំកូនអុកទាំងអស់ (លើកលែងតែត្រី) ចុះ ១០%។ ព្រមទាំងបន្ថែមស្បែកក្ដារថ្មីមួយទៀត "កូនកែវល្អឹមល្អែម" (Orbs) ក្នុងក្រុមកុមារ — ប្រើរូបរាងកូនកែវដូចគ្នា ប៉ុន្តែក្ដារភ្លឺមានពណ៌រីករាយជាងមុន និងបង្រួមទំហំកូនអុក ១០% ដូចគ្នា (លើកលែងតែត្រី)។',
+        en: "Magic Orb now trails a few tiny ambient glow sparks around every orb, its piece colors shifted from gold/violet to a fresh cyan/magenta \"cosmic\" pair, and every rank but the Pawn is sized down 10% for a more agile look. Also added a new Playful/Kids-category sibling theme, \"Orbs\" -- the same floating glowing-orb pieces on a brighter, more colorful board, sized down the same 10% (except the Pawn)." }
+    ]
+  },
   {
     version: '1.4.3',
     date: '2026-07-18',
@@ -14897,10 +15315,10 @@ function applyAccessTier() {
 const THEME_CATEGORIES = [
   { key: 'khmer', label: 'ខ្មែរបុរាណ Khmer Heritage', themes: ['wood', 'stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d', 'yantra'] },
   { key: 'fantasy', label: 'វេទមន្ត Fantasy', themes: ['magic', 'magic2', 'magicorb', 'avatar', 'atla', 'gems'] },
-  { key: 'scifi', label: 'អនាគត Sci-Fi & Future', themes: ['scifi', 'starwars', 'anno', 'transformers', 'modern'] },
+  { key: 'scifi', label: 'អនាគត Sci-Fi & Future', themes: ['scifi', 'starwars', 'anno', 'transformers', 'modern', 'galactic'] },
   { key: 'arcade', label: 'អាកាដ Arcade & Retro', themes: ['mario', 'contra', 'pvz', 'pixel'] },
   { key: 'elegant', label: 'ប្រណីត Elegant & Minimal', themes: ['glass', 'marble', 'sofisticate', 'ios', 'night'] },
-  { key: 'playful', label: 'កុមារ Playful & Kids', themes: ['girlyPink', 'girlyPurple', 'girlyYellow', 'kids'] },
+  { key: 'playful', label: 'កុមារ Playful & Kids', themes: ['girlyPink', 'girlyPurple', 'girlyYellow', 'kids', 'orbs'] },
   { key: 'nature', label: 'ធម្មជាតិ Nature & Scenic', themes: ['painting', 'nature'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
@@ -15485,7 +15903,8 @@ function loop() {
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   retrackOnlineThinkingTip();
   retrackFlat2DArt(); // keep 2D standee artwork facing the camera
-  retrackMagicOrbFloat(); // bob Magic Orb pieces up and down
+  retrackMagicOrbFloat(); // bob Magic Orb/Orbs pieces up and down
+  retrackGalacticOrbit(); // bob Galactic pieces and orbit their moons
   updateModernCinematics(); // advance any in-flight Modern Ops shoot/explode cinematics
   renderer.render(scene, camera);
 }
