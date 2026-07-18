@@ -6480,9 +6480,15 @@ function flat2DArtTexture(setStyle, type, color) {
         break;
       }
       case E.BISHOP: {
-        const topPtY = cyp - 120, midW = 76, midY = cyp + 8, botPtY = cyp + 60;
+        // Tip half-angle matched to the Queen's (atan(96/180) ~= 28.1deg,
+        // i.e. width = depth-from-tip * 0.5333) so the top point reads as
+        // the same "pointiness" across ranks, and the overall enclosed
+        // (white) area brought in line with the Knight's/Pawn's own --
+        // narrower than the previous kite, so its inscribed circle/accent
+        // radius had to shrink to match (see r below).
+        const topPtY = cyp - 112, midW = 60, midY = cyp, botPtY = cyp + 48;
         outerSeal([[cxp, topPtY], [cxp + midW, midY], [cxp, botPtY], [cxp - midW, midY]]);
-        const r = 42; // clears the kite's own narrower bottom point with margin (checked at the tightest cross-section, just above that point)
+        const r = 36; // re-checked against the narrower kite's own tightest cross-section (just above the shorter bottom point)
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.fillStyle = ink;
@@ -6494,22 +6500,27 @@ function flat2DArtTexture(setStyle, type, color) {
         tri(cxp, cyp - r, 0); tri(cxp + r, cyp, Math.PI / 2);
         tri(cxp, cyp + r, Math.PI); tri(cxp - r, cyp, -Math.PI / 2);
         glyphOy = midY - cyp; // the kite's own widest cross-section
-        glyphMaxW = 128;
+        glyphMaxW = 104;
         topY = topPtY; botY = botPtY;
         break;
       }
       case E.KNIGHT: {
-        const rv = 100, rh = 74;
+        // Same tip-angle match as Bishop/Pawn: height (rv) kept at its
+        // previous safe value, width (rh) recomputed from that same
+        // 0.5333 ratio instead of its old, blunter angle -- narrower
+        // than before, bringing its enclosed area in line with Bishop's/
+        // Pawn's own rather than the wider rhombus it used to be.
+        const rv = 100, rh = 53;
         outerSeal([[cxp, cyp - rv], [cxp + rh, cyp], [cxp, cyp + rv], [cxp - rh, cyp]]);
         const r = 42;
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         scriptRing(r - 14, 8, Math.PI / 8);
         ctx.strokeStyle = ink; ctx.lineWidth = 3;
-        for (const sx of [cxp - 30, cxp + 30]) {
+        for (const sx of [cxp - 26, cxp + 26]) {
           ctx.beginPath(); ctx.arc(sx, cyp + rv - 24, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
         }
-        glyphMaxW = 126;
+        glyphMaxW = 92;
         topY = cyp - rv; botY = cyp + rv;
         break;
       }
@@ -6535,26 +6546,33 @@ function flat2DArtTexture(setStyle, type, color) {
       }
       case E.PAWN:
       default: {
-        // bigger than before, and -- crucially -- the inner circle is now
-        // both smaller and pulled up well clear of the notch's own
-        // y-range entirely, so its lower arc never crosses the gap the
-        // notch cuts through the shape's bottom (the actual overflow
-        // bug in the previous sizing: the circle's bottom arc used to
-        // poke straight out through that gap).
-        const tipY = cyp - 78, shY = cyp + 56, shW = 98, notchY = cyp + 22;
+        // Same tip-angle match as Bishop/Knight (width = depth-from-tip *
+        // 0.5333, the Queen's own ratio) at the shoulder points, and
+        // deepened overall (tip-to-shoulder depth 160, up from 134) so
+        // its enclosed area lands in line with Bishop's/Knight's own
+        // despite the concave notch cutting a chunk out of it -- a
+        // shallower dart at the old size couldn't reach a comparable
+        // area with a genuinely visible notch (the notch has to stay
+        // strictly above the shoulder line, capping how much area a
+        // shallow dart can ever enclose).
+        const tipY = cyp - 90, shY = cyp + 70, shW = 85, notchY = cyp + 30;
         outerSeal(
           [[cxp, tipY], [cxp + shW, shY], [cxp, notchY], [cxp - shW, shY]],
           [[cxp, tipY], [cxp + shW, shY], [cxp - shW, shY]] // skip the reflex notch vertex
         );
-        const r = 34, cy2 = cyp - 22; // pulled up so the circle's bottom (cy2+r) stays above notchY
+        // pulled down from the tip and re-checked against the narrower
+        // dart's own taper (its tightest point is now just below the
+        // circle's own top, not the notch gap below it) -- both smaller
+        // and repositioned from before to clear the new proportions
+        const r = 30, cy2 = cyp - 18;
         ctx.beginPath(); ctx.arc(cxp, cy2, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
         for (const sx of [cxp - 26, cxp + 26]) {
-          ctx.beginPath(); ctx.arc(sx, cyp + 38, 8, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
+          ctx.beginPath(); ctx.arc(sx, cyp + 45, 8, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
         }
-        glyphOy = -10; // the wide un-notched upper body, clear of both the tip and the notch
-        glyphMaxW = 88;
+        glyphOy = 5; // the widest safe band, clear of both the tip and the notch
+        glyphMaxW = 86;
         topY = tipY; botY = shY;
         break;
       }
@@ -6645,9 +6663,12 @@ const FLAT2D_SIZE = {
 // rank's card lands at a comparable physical footprint on the board, with
 // only a light King-tallest/Pawn-shortest nod left rather than the old
 // wide 0.62-0.88 spread that no longer matched these shapes' own fill %.
+// Bishop/Knight/Pawn re-measured again after matching their tip angle to
+// the Queen's own (narrower Bishop/Knight, deeper Pawn -- see their cases
+// below), since that changed how much of the canvas each one's ink fills.
 const FLAT2D_SIZE_YANTRA = {
-  [E.KING]: 0.78, [E.QUEEN]: 0.74, [E.BISHOP]: 0.74,
-  [E.KNIGHT]: 0.68, [E.ROOK]: 0.78, [E.PAWN]: 0.66
+  [E.KING]: 0.78, [E.QUEEN]: 0.74, [E.BISHOP]: 0.81,
+  [E.KNIGHT]: 0.68, [E.ROOK]: 0.78, [E.PAWN]: 0.75
 };
 // Khmer Warrior floats its character plane well clear of the base (a
 // hovering-spirit read, not a card resting on a pedestal) and bobs with
@@ -13417,8 +13438,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.4.2';
 const WHATS_NEW = [
+  {
+    version: '1.4.2',
+    date: '2026-07-18',
+    title: { kh: 'តម្រឹមចំណុចស្រួចនិងផ្ទៃស នៃត្រី គោល និងសេះក្នុងសាក់យន្ត', en: 'Matched Pawn/Bishop/Knight tip angle and area in Sak Yantra' },
+    items: [
+      { kh: 'ធ្វើឲ្យចំណុចស្រួច (ជ្រុងកំពូល) របស់ត្រី គោល និងសេះក្នុងស្បែកសាក់យន្តដូចនាងគ្នា ហើយកែតម្រូវផ្ទៃពណ៌ស (ផ្ទៃខាងក្នុងទាំងបី) ឲ្យមានទំហំប្រហាក់ប្រហែលគ្នា — គោលនិងសេះឥឡូវស្រួចជាងមុន ហើយត្រីធំជាងមុនបន្តិចដើម្បីឲ្យផ្ទៃសមនឹងគ្នា។ រង្វង់ខាងក្នុងនិងចំណុចតុបតែងត្រូវបានតម្រូវឡើងវិញឲ្យសមនឹងរាងថ្មីនីមួយៗ។',
+        en: "Matched the Pawn's, Bishop's, and Knight's top tip angle to the Queen's own (a shared ~28-degree half-angle), and adjusted their enclosed white area to be roughly equal across all three -- Bishop and Knight are now narrower/sharper, and the Pawn slightly bigger so its area matches despite its concave notch. Each shape's inner circle, glyph position, and accent placement were re-verified to fit safely inside the new proportions." }
+    ]
+  },
   {
     version: '1.4.1',
     date: '2026-07-18',
