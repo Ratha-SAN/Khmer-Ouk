@@ -5589,9 +5589,29 @@ function applyPieceLuminescence() {
 }
 applyPieceLuminescence();
 
+// Deterministic seeded PRNG (mulberry32) -- used only where a piece's own
+// idle-animation phase/speed/tilt needs to look "random" per-piece but
+// stay STABLE across a rebuild (see rebuildPieces: every move tears down
+// and rebuilds every piece on the board, not just the one that moved; a
+// plain Math.random() seed there would re-roll every piece's animation
+// phase on every move, making stationary Magic Orb/Orbs/Galactic pieces
+// visibly jump -- a flicker -- even though they never moved). Seeding by
+// the piece's own board square instead means a piece that's still sitting
+// on the same square after a rebuild gets the exact same phase back.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 // Three piece-set styles. 'traditional' = smooth turned wood; 'carved' =
 // faceted, angular like carved stone; 'minimal' = slender high-polish forms.
-function buildPiece(type, color, promoted) {
+function buildPiece(type, color, promoted, seed) {
+  const rand = mulberry32(seed == null ? ((Math.random() * 2 ** 31) | 0) : seed);
   const style = pieceStyle();
   const seg = style === 'carved' ? 6 : (style === 'minimal' ? 32 : 20);
   const wide = style === 'carved' ? 1.12 : (style === 'minimal' ? 0.88 : 1);
@@ -5624,9 +5644,9 @@ function buildPiece(type, color, promoted) {
   if (style === 'nature') return buildNaturePiece(g, add, type, promoted, color);
   if (style === 'cambodia') return buildCambodiaPiece(g, add, type, promoted, color);
   if (style === 'gems') return buildGemPiece(g, add, type, promoted, color);
-  if (style === 'magicorb') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, true);
-  if (style === 'orbs') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, false);
-  if (style === 'galactic') return buildGalacticPiece(g, add, type, promoted, color);
+  if (style === 'magicorb') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, true, rand);
+  if (style === 'orbs') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, false, rand);
+  if (style === 'galactic') return buildGalacticPiece(g, add, type, promoted, color, rand);
   if (style === 'anno') return buildAnnoPiece(g, add, type, promoted, color);
   if (style === 'transformers') return buildTransformersPiece(g, add, type, promoted, color);
   if (style === 'angkor') return buildAngkorPiece(g, add, type, promoted, color);
@@ -5636,26 +5656,35 @@ function buildPiece(type, color, promoted) {
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
-    case E.KING:
-      add(new THREE.CylinderGeometry(0.2 * wide, 0.28 * wide, 0.5, seg), 0.39);
+    case E.KING: {
+      // Non-carved King used to be noticeably taller than every other
+      // piece (body 0.5 + torus + a 0.34-tall cone + sphere, ~1.1 total)
+      // -- shortened the body and cone here (carved's own stepped-tower
+      // branch below is untouched, it wasn't part of the complaint) so it
+      // reads less stretched, without changing its part count/shape.
+      const bodyH = style === 'carved' ? 0.5 : 0.38;
+      add(new THREE.CylinderGeometry(0.2 * wide, 0.28 * wide, bodyH, seg), 0.14 + bodyH / 2);
       if (style === 'carved') { // stepped prang tower
         add(new THREE.CylinderGeometry(0.17, 0.22, 0.14, seg), 0.68);
         add(new THREE.CylinderGeometry(0.12, 0.17, 0.14, seg), 0.8);
         add(new THREE.ConeGeometry(0.12, 0.3, seg), 1.0);
       } else {
-        add(new THREE.TorusGeometry(0.17, 0.045, 10, seg), 0.68).rotation.x = Math.PI / 2;
-        add(new THREE.ConeGeometry(0.17 * wide, 0.34, seg), 0.85);
-        add(new THREE.SphereGeometry(0.05, 12, 10), 1.05);
+        add(new THREE.TorusGeometry(0.17, 0.045, 10, seg), 0.14 + bodyH).rotation.x = Math.PI / 2;
+        add(new THREE.ConeGeometry(0.17 * wide, 0.22, seg), 0.14 + bodyH + 0.11);
+        add(new THREE.SphereGeometry(0.05, 12, 10), 0.14 + bodyH + 0.27);
       }
       break;
+    }
     case E.QUEEN:
-      add(new THREE.ConeGeometry(0.24 * wide, 0.5, seg), 0.39);
-      add(new THREE.SphereGeometry(0.09, seg, 12), 0.68);
+      // Shortened from a 0.5-tall cone to 0.34 -- same single cone + ball,
+      // just less stretched.
+      add(new THREE.ConeGeometry(0.24 * wide, 0.34, seg), 0.31);
+      add(new THREE.SphereGeometry(0.09, seg, 12), 0.57);
       break;
     case E.BISHOP:
       add(new THREE.CylinderGeometry(0.14 * wide, 0.24 * wide, 0.4, seg), 0.34);
-      add(new THREE.ConeGeometry(0.15 * wide, 0.35, seg), 0.68);
-      add(new THREE.SphereGeometry(0.05, 12, 10), 0.88);
+      add(new THREE.ConeGeometry(0.15 * wide, 0.24, seg), 0.66);
+      add(new THREE.SphereGeometry(0.05, 12, 10), 0.83);
       break;
     case E.KNIGHT: {
       add(new THREE.CylinderGeometry(0.16 * wide, 0.26 * wide, 0.4, seg), 0.34);
@@ -7695,10 +7724,12 @@ function buildCambodiaPiece(g, add, type, promoted, color) {
   switch (type) {
     case E.KING:
       if (angkor) {
-        add(new THREE.CylinderGeometry(0.2, 0.26, 0.16, 16), 0.35, MAT_KH_STONE);
-        add(new THREE.CylinderGeometry(0.15, 0.2, 0.16, 16), 0.5, MAT_KH_STONE);
-        add(new THREE.CylinderGeometry(0.1, 0.15, 0.16, 16), 0.64, MAT_KH_STONE);
-        add(new THREE.ConeGeometry(0.08, 0.24, 16), 0.84, MAT_KH_GOLD);
+        // Same four tiers, each shortened ~25% (radii untouched) so the
+        // tower is less stretched relative to the now-shortened Queen.
+        add(new THREE.CylinderGeometry(0.2, 0.26, 0.12, 16), 0.3, MAT_KH_STONE);
+        add(new THREE.CylinderGeometry(0.15, 0.2, 0.12, 16), 0.41, MAT_KH_STONE);
+        add(new THREE.CylinderGeometry(0.1, 0.15, 0.12, 16), 0.515, MAT_KH_STONE);
+        add(new THREE.ConeGeometry(0.08, 0.18, 16), 0.665, MAT_KH_GOLD);
       } else {
         add(new THREE.CylinderGeometry(0.22, 0.26, 0.14, 16), 0.34);
         add(new THREE.CylinderGeometry(0.17, 0.21, 0.14, 16), 0.46);
@@ -7708,9 +7739,11 @@ function buildCambodiaPiece(g, add, type, promoted, color) {
       break;
     case E.QUEEN:
       if (angkor) {
-        add(new THREE.ConeGeometry(0.19, 0.4, 14), 0.34, MAT_KH_STONE);
-        add(new THREE.ConeGeometry(0.15, 0.26, 14), 0.62, MAT_KH_GOLD);
-        add(new THREE.SphereGeometry(0.04, 10, 8), 0.82, MAT_KH_GOLD);
+        // Shortened both cones -- same two-cone-plus-ball shape, less
+        // vertical stretch.
+        add(new THREE.ConeGeometry(0.19, 0.28, 14), 0.28, MAT_KH_STONE);
+        add(new THREE.ConeGeometry(0.15, 0.18, 14), 0.51, MAT_KH_GOLD);
+        add(new THREE.SphereGeometry(0.04, 10, 8), 0.64, MAT_KH_GOLD);
       } else {
         add(new THREE.TorusGeometry(0.14, 0.06, 10, 18), 0.36).rotation.x = Math.PI / 2.2;
         add(new THREE.SphereGeometry(0.1, 14, 10), 0.52);
@@ -7853,7 +7886,7 @@ function buildGemPiece(g, add, type, promoted, color) {
 // stays a constant "landing pad" size) and addGlow (Magic Orb only --
 // see retrackMagicOrbFloat's own orbGlowParticles loop -- three tiny
 // additive sparks drifting in a slow orbit around the orb).
-function buildMagicOrbPiece(g, add, type, promoted, color, sizeScale, addGlow) {
+function buildMagicOrbPiece(g, add, type, promoted, color, sizeScale, addGlow, rand) {
   let orbY = 0.6, r, accent;
   switch (type) {
     case E.KING: r = 0.32; accent = MAT_ORB_SUN; orbY = 0.68; break;
@@ -7934,8 +7967,8 @@ function buildMagicOrbPiece(g, add, type, promoted, color, sizeScale, addGlow) {
     for (let i = 0; i < 3; i++) {
       const gp = addOrb(new THREE.SphereGeometry(0.022, 6, 5), glowMat);
       glows.push({
-        mesh: gp, radius: r * 1.65 + Math.random() * 0.1, speed: 0.5 + Math.random() * 0.7,
-        phase: (i / 3) * Math.PI * 2 + Math.random() * 0.5, yAmp: 0.05 + Math.random() * 0.05
+        mesh: gp, radius: r * 1.65 + rand() * 0.1, speed: 0.5 + rand() * 0.7,
+        phase: (i / 3) * Math.PI * 2 + rand() * 0.5, yAmp: 0.05 + rand() * 0.05
       });
     }
     g.userData.orbGlowParticles = glows;
@@ -7943,7 +7976,7 @@ function buildMagicOrbPiece(g, add, type, promoted, color, sizeScale, addGlow) {
 
   g.userData.orbFloatBaseY = orbY;
   g.userData.orbFloatTarget = orbGroup;
-  g.userData.orbFloatPhase = Math.random() * Math.PI * 2;
+  g.userData.orbFloatPhase = rand() * Math.PI * 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -8048,7 +8081,7 @@ const GALACTIC_TINT_W = 0xfff2e0, GALACTIC_TINT_B = 0x5c5a90;
 // Captures channel a "galactic explosion" + "death ray" effect system
 // instead of Magic Orb's supernova (galacticFx, see
 // triggerGalacticEffect).
-function buildGalacticPiece(g, add, type, promoted, color) {
+function buildGalacticPiece(g, add, type, promoted, color, rand) {
   let r, orbY, planetMat, moonHex, moonCount, moonSize, moonRadius, moonSpeed;
   switch (type) {
     case E.KING: r = 0.30; orbY = 0.68; planetMat = MAT_PLANET_SUN; moonHex = 0xffd36a; moonCount = 2; moonSize = 0.045; moonRadius = 0.46; moonSpeed = 1.3; break;
@@ -8095,7 +8128,7 @@ function buildGalacticPiece(g, add, type, promoted, color) {
     const moon = addOrb(new THREE.SphereGeometry(moonSize, 10, 8), moonMat);
     moons.push({
       mesh: moon, radius: orbitR, speed: moonSpeed * (i % 2 === 0 ? 1 : -0.85),
-      phase: (i / moonCount) * Math.PI * 2 + Math.random() * 0.6, tilt: 0.15 + Math.random() * 0.2
+      phase: (i / moonCount) * Math.PI * 2 + rand() * 0.6, tilt: 0.15 + rand() * 0.2
     });
     // a thin traced ring at this moon's own orbit radius -- a faint guide
     // path, not the grounded "base ring" Magic Orb has (this one floats
@@ -8112,7 +8145,7 @@ function buildGalacticPiece(g, add, type, promoted, color) {
 
   g.userData.galacticFloatBaseY = orbY;
   g.userData.galacticFloatTarget = orbGroup;
-  g.userData.galacticFloatPhase = Math.random() * Math.PI * 2;
+  g.userData.galacticFloatPhase = rand() * Math.PI * 2;
   g.userData.galacticMoons = moons;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
@@ -8360,17 +8393,20 @@ function buildCrystalPiece(g, add, type, promoted, color) {
   add(new THREE.CylinderGeometry(0.3, 0.32, 0.1, seg), 0.05); // plinth base
   switch (type) {
     case E.KING: // tallest: a tower, a pyramid cap, and a small cube finial
-      add(new THREE.BoxGeometry(0.34, 0.7, 0.34), 0.45);
-      add(new THREE.ConeGeometry(0.26, 0.3, 4), 0.95).rotation.y = Math.PI / 4;
-      add(new THREE.BoxGeometry(0.12, 0.12, 0.12), 1.16);
+      // Shortened the tower and cap heights (same box/cone/cube parts,
+      // same widths) so the tower reads less like a stretched obelisk.
+      add(new THREE.BoxGeometry(0.34, 0.5, 0.34), 0.35);
+      add(new THREE.ConeGeometry(0.26, 0.22, 4), 0.71).rotation.y = Math.PI / 4;
+      add(new THREE.BoxGeometry(0.12, 0.12, 0.12), 0.88);
       break;
     case E.QUEEN: // a tower with a pyramid cap, no finial
-      add(new THREE.BoxGeometry(0.3, 0.62, 0.3), 0.41);
-      add(new THREE.ConeGeometry(0.24, 0.3, 4), 0.86).rotation.y = Math.PI / 4;
+      add(new THREE.BoxGeometry(0.3, 0.42, 0.3), 0.31);
+      add(new THREE.ConeGeometry(0.24, 0.2, 4), 0.62).rotation.y = Math.PI / 4;
       break;
     case E.BISHOP: // a tall sharp cone
+      // Shortened the cone from 0.62 to 0.4 -- same shapes, less stretch.
       add(new THREE.CylinderGeometry(0.05, 0.22, 0.15, seg), 0.18);
-      add(new THREE.ConeGeometry(0.16, 0.62, seg), 0.56);
+      add(new THREE.ConeGeometry(0.16, 0.4, seg), 0.455);
       break;
     case E.KNIGHT: { // a stepped hexagonal column
       add(new THREE.CylinderGeometry(0.2, 0.24, 0.5, 6), 0.35);
@@ -8678,7 +8714,7 @@ function rebuildPieces() {
     if (p === E.EMPTY) continue;
     const type = E.typeOf(p);
     const color = E.colorOf(p);
-    const g = buildPiece(type, color, E.isProm(p));
+    const g = buildPiece(type, color, E.isProm(p), sq);
     const pos = sqPos(sq);
     g.position.set(pos.x, 0, pos.z);
     if (showPieceNames) addPieceLabel(g, type, color);
@@ -8732,8 +8768,17 @@ function rebuildCaptured() {
   // bottom tray (White's side): black pieces White has captured; top tray: white pieces
   const rows = [{ list: lists[E.BLACK], color: E.BLACK, z: 5.25 }, { list: lists[E.WHITE], color: E.WHITE, z: -5.25 }];
   for (const row of rows) {
+    // Seed by (color, type, occurrence-within-type) rather than the flat
+    // list index i: capturedLists() groups by CAP_ORDER, so capturing a
+    // new piece of an earlier type in that order inserts before existing
+    // later-type entries and shifts their flat index -- this key stays
+    // stable for an already-captured piece regardless of what gets
+    // captured after it, avoiding the same rebuild-triggered animation
+    // flicker rebuildPieces()'s own per-square seed exists to prevent.
+    const typeCounts = {};
     row.list.forEach((t, i) => {
-      const g = buildPiece(t, row.color, false);
+      const occ = typeCounts[t] = (typeCounts[t] || 0) + 1;
+      const g = buildPiece(t, row.color, false, 1000 + row.color * 100 + t * 10 + occ);
       g.scale.setScalar(0.55);
       g.position.set(-3.75 + i * 0.5, -0.02, row.z);
       capturedGroup.add(g);
@@ -14099,8 +14144,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.3';
+const APP_VERSION = '1.6.5';
 const WHATS_NEW = [
+  {
+    version: '1.6.5',
+    date: '2026-07-18',
+    title: { kh: 'បន្ថយកម្ពស់កូនអុកខ្ពស់ពេក — កម្ចាត់ការញ័រព្រះច័ន្ទ/បាល់វេទមន្តពេលកូនអុកមួយផ្សេងទៀតដើរ', en: 'Shortened overly-tall pieces — fixed orb/moon flicker when another piece moves' },
+    items: [
+      { kh: 'ស្តេច និងនាងក្នុងស្បែក ឈើបុរាណ, យប់ទំនើប, វេទមន្ត, វេទមន្តII, Sofisticate, iOS Studio, កញ្ចក់, ម្រម័រ, និងនគរឈើ ឥឡូវខ្ពស់តិចជាងមុន (រាងដដែល គ្រាន់តែខ្លីជាង) ដើម្បីកុំឲ្យមើលទៅវែងហួសប្រមាណ។',
+        en: "The King and Queen in Classic Wood, Modern Night, Magic, Magic II, Sofisticate, iOS Studio, Glass, Marble, and Kingdom of Wonder are now shorter (same shapes, just less stretched vertically), instead of reading as overly elongated." },
+      { kh: 'ស្បែកបាល់វេទមន្ត និងចក្រវាឡ៖ ពីមុនរាល់ការធ្វើដំណើររបស់កូនអុកមួយបណ្តាលឲ្យកូនអុកទាំងអស់ដទៃទៀត (រួមទាំងកូនអុកមិនបានផ្លាស់ទី) ភ្លាមៗផ្លាស់ដំណាក់អណ្តែត/ចរាចរព្រះច័ន្ទរបស់វា ដែលមើលទៅដូចជាការញ័រ។ ឥឡូវកូនអុកនីមួយៗរក្សាដំណាក់ចលនារបស់ខ្លួនស្ថិរភាពនៅតែក្នុងក្រឡាដដែល ហើយផ្លាស់ប្តូរតែពេលកូនអុកនោះខ្លួនឯងផ្លាស់ទីប៉ុណ្ណោះ។',
+        en: "Magic Orb/Orbs and Galactic: every move used to instantly re-roll the floating/orbiting animation phase of every piece on the board, including ones that didn't move -- reading as a flicker. Each piece's animation phase is now tied to its own square and stays stable across a move unless that specific piece is the one that moved." }
+    ]
+  },
   {
     version: '1.6.3',
     date: '2026-07-18',
@@ -15935,6 +15991,13 @@ window.__ouk = {
     for (const g of pieceGroup.children) if (g.userData.galacticFloatTarget) return g.userData.galacticFloatTarget.position.y;
     return null;
   },
+  // Test-only: per-square animation phase snapshot for every Magic
+  // Orb/Orbs/Galactic piece currently on the board, so Playwright can
+  // confirm a rebuild triggered by some OTHER move leaves a stationary
+  // piece's own idle-animation phase unchanged (see rebuildPieces' seed).
+  piecePhases: () => Object.entries(pieceAt).map(([sq, g]) => ({
+    sq: +sq, orbPhase: g.userData.orbFloatPhase, galPhase: g.userData.galacticFloatPhase
+  })),
   lockPopupVisible: () => document.getElementById('lockPopup').style.display === 'flex',
   gameOver: () => gameOver,
   gameEndTracked: () => gameEndTracked,
