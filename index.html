@@ -14233,8 +14233,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.7';
+const APP_VERSION = '1.6.8';
 const WHATS_NEW = [
+  {
+    version: '1.6.8',
+    date: '2026-07-18',
+    title: { kh: 'កែប៊ូតុងជ្រើសរើសភាសាដែលបង្ហាញអក្សរស្ទួន', en: 'Fixed the language toggle buttons showing duplicate labels' },
+    items: [
+      { kh: 'ប៊ូតុង "ខ្មែរ + English" ពីមុនផ្លាស់ប្តូរអត្ថបទផ្ទាល់ខ្លួនរបស់វា (លាក់ផ្នែកខ្មែរចោល) នៅពេលជ្រើសរើសភាសា English សម្រាប់កម្មវិធីទាំងមូល ធ្វើឲ្យវាបង្ហាញ "English" ដដែលនឹងប៊ូតុង English ដោយឡែក — ដូចជាមានប៊ូតុងស្ទួនគ្នា។ ឥឡូវឈ្មោះទាំងបីប៊ូតុង (ខ្មែរ + English, ខ្មែរ, English) នៅតែដដែលជានិច្ច ទោះបីជាភាសាបច្ចុប្បន្នជាអ្វីក៏ដោយ — មានតែការបន្លិចប៊ូតុងកំពុងប្រើប៉ុណ្ណោះដែលផ្លាស់ប្តូរ។',
+        en: 'The "ខ្មែរ + English" button used to have its own label filtered by the very language toggle it belongs to (its Khmer half got hidden once English was selected app-wide), leaving it showing plain "English" -- identical to the separate English button right next to it. All three button labels (ខ្មែរ + English / ខ្មែរ / English) now always stay exactly as written regardless of the active language; only the highlighted/active button changes.' }
+    ]
+  },
   {
     version: '1.6.7',
     date: '2026-07-18',
@@ -16520,14 +16529,18 @@ function loop() {
 // element contains BOTH scripts are touched (a monolingual label never
 // risks being hidden into an empty button), and dynamic regions
 // (#status, #movelist, #lessonText, the Rules modal with its own toggle,
-// selects/options where spans aren't allowed) are skipped entirely.
+// #langBtns -- this very toggle's own buttons, which must always name
+// which language each one switches TO regardless of which is currently
+// active, the same reasoning rulesLangBtn/whatsNewLangBtn's own labels
+// already get by living outside #panel entirely -- selects/options where
+// spans aren't allowed) are skipped entirely.
 function wrapLangRuns(root) {
   if (!root) return;
   const KH = /[ក-៿᧠-᧿]/, EN = /[A-Za-z0-9]/;
   const skipEl = (el) => {
     const tag = el.tagName;
     if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'SELECT' || tag === 'OPTION' || tag === 'TEXTAREA') return true;
-    if (['modal', 'movelist', 'status', 'lessonText', 'boardTitle'].includes(el.id)) return true;
+    if (['modal', 'movelist', 'status', 'lessonText', 'boardTitle', 'langBtns'].includes(el.id)) return true;
     if (el.classList.contains('t-kh') || el.classList.contains('t-en') || el.classList.contains('t-sep')) return true;
     return false;
   };
