@@ -2676,8 +2676,10 @@
   <details class="acc" id="variantPanel">
     <summary>Special first-move jumps — rule variant</summary>
     <div class="acc-body">
-    <label><input type="radio" name="variant" value="capture" checked>
-      Lost once any piece has been captured <span style="color:#8a785c">(default)</span></label>
+    <label><input type="radio" name="variant" value="always" checked>
+      Allowed any time up to that piece's own first move <span style="color:#8a785c">(default)</span></label>
+    <label><input type="radio" name="variant" value="capture">
+      Lost once any piece has been captured</label>
     <label><input type="radio" name="variant" value="rook">
       King's jump lost once an enemy Tuuk aligns with the King</label>
     </div>
@@ -2931,9 +2933,14 @@
   var BOARD_HONOR = { maxPieces: 3, start: 1, limit: 64 };
 
   // ---- state ------------------------------------------------------------
-  // variant: 'capture' (default; special jumps lost once any capture occurs)
+  // variant: 'always'  (default; each jump is available any time up to
+  //                     that piece's own first move, full stop -- no
+  //                     other condition can take it away early)
+  //          'capture' (special jumps lost once any capture occurs, by
+  //                     either side, anywhere on the board)
   //          'rook'    (king's jump permanently lost once an enemy Tuuk
-  //                     aligns on the king's rank or file)
+  //                     aligns on the king's rank or file; queen's leap
+  //                     has no extra condition beyond her own first move)
   function initialState(variant) {
     var b = new Array(64).fill(EMPTY);
     var back = [ROOK, KNIGHT, BISHOP, KING, QUEEN, BISHOP, KNIGHT, ROOK];
@@ -2950,7 +2957,7 @@
       kingMoved: [false, false], queenMoved: [false, false],
       kingJumpLostRook: [false, false],
       captureOccurred: false,
-      variant: variant || 'capture',
+      variant: variant || 'always',
       counting: null,   // {side, mode:'board'|'piece', count, limit}
       result: null      // {type:'checkmate'|'stalemate'|'count-limit', winner?}
     };
@@ -3022,7 +3029,9 @@
 
   function kingJumpAvailable(S, c) {
     if (S.kingMoved[c]) return false;
-    return S.variant === 'capture' ? !S.captureOccurred : !S.kingJumpLostRook[c];
+    if (S.variant === 'capture') return !S.captureOccurred;
+    if (S.variant === 'rook') return !S.kingJumpLostRook[c];
+    return true; // 'always': no condition beyond the king's own first move
   }
   function queenJumpAvailable(S, c) {
     if (S.queenMoved[c]) return false;
@@ -3564,7 +3573,7 @@
       doMove(S, 'e1', 'd2'); doMove(S, 'a6', 'a5'); doMove(S, 'd2', 'e1'); doMove(S, 'a5', 'a4');
       assert(!hasMove(movesFrom(S, 'e1'), 'e1', 'e3'), 'gone after queen returned to e1');
     });
-    T('capture variant (default): both jumps lost once ANY capture occurs', function () {
+    T('capture variant: both jumps lost once ANY capture occurs', function () {
       var S = E.emptyState('capture');
       put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
       put(S, 'd1', E.QUEEN, E.WHITE);
@@ -3577,6 +3586,31 @@
       S.turn = E.WHITE;
       var kms = movesFrom(S, 'e1').filter(function (m) { return m.special === 1; });
       eq(kms.length, 0, 'no king jump generated');
+    });
+    T("'always' variant (default): neither jump is lost to a capture or a Tuuk alignment -- only that piece's own move forfeits it", function () {
+      var S = E.emptyState('always');
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'd1', E.QUEEN, E.WHITE);
+      put(S, 'e5', E.ROOK, E.BLACK); // aligned with the king's own file -- irrelevant outside the 'rook' variant
+      put(S, 'e3', E.PAWN, E.WHITE); // blocks any actual check from the aligned Tuuk
+      put(S, 'b4', E.ROOK, E.WHITE); put(S, 'b7', E.PAWN, E.BLACK); // unrelated file, clear path to capture on
+      assert(E.kingJumpAvailable(S, E.WHITE) && E.queenJumpAvailable(S, E.WHITE), 'both available initially, despite the aligned Tuuk');
+      doMove(S, 'b4', 'b7'); // white rook captures black pawn
+      assert(E.kingJumpAvailable(S, E.WHITE), 'king jump survives capture in always variant');
+      assert(E.queenJumpAvailable(S, E.WHITE), 'queen jump survives capture in always variant');
+      S.turn = E.WHITE;
+      var kms = movesFrom(S, 'e1').filter(function (m) { return m.special === 1; });
+      assert(kms.length > 0, 'king jump still generated after a capture');
+      // shuffle the aligned Tuuk back and forth as Black's replies (not
+      // the black king -- the white Tuuk now sitting on b7 after its
+      // capture rakes the whole 7th rank, so h8-h7 would walk the black
+      // king into check and isn't actually legal here)
+      doMove(S, 'e1', 'e2'); doMove(S, 'e5', 'e4'); doMove(S, 'e2', 'e1'); doMove(S, 'e4', 'e5');
+      assert(!E.kingJumpAvailable(S, E.WHITE), 'king jump gone once the king itself has moved, even in always variant');
+    });
+    T("initialState() defaults to the 'always' variant", function () {
+      var S = E.initialState();
+      eq(S.variant, 'always', 'default variant');
     });
     T('rook variant: king jump permanently lost once enemy Tuuk aligns, even after it leaves', function () {
       var S = E.emptyState('rook');
@@ -14329,8 +14363,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.9';
+const APP_VERSION = '1.6.10';
 const WHATS_NEW = [
+  {
+    version: '1.6.10',
+    date: '2026-07-19',
+    title: { kh: 'លំនាំដើមថ្មី៖ ការលោតដំបូងរបស់ស្តេច/នាង ត្រូវបានអនុញ្ញាតរហូតដល់កូនអុកនោះខ្លួនឯងបានដើរ', en: "New default: the King/Queen's own first-move jump is now allowed until that piece itself has moved" },
+    items: [
+      { kh: 'ការលោតដំបូងរបស់ស្តេច (ការលោត Sdach) និងការលោតដំបូងរបស់នាង (ការលោត Neang) ពីមុនប្រើច្បាប់លំនាំដើម "បាត់បង់នៅពេលមានការចាប់យកកូនអុកណាមួយកើតឡើង" — ដែលមានន័យថាការចាប់យកកូនអុកដំបូងណាមួយក្នុងល្បែង (ញឹកញាប់ណាស់ក្នុងការលេងជាក់ស្តែង) នឹងបិទសិទ្ធិនេះជាអចិន្ត្រៃយ៍សម្រាប់ភាគីទាំងពីរ មុនពេលអ្នកលេងទាន់មានឱកាសប្រើវាផង។ ឥឡូវលំនាំដើមថ្មី "អនុញ្ញាតគ្រប់ពេលរហូតដល់កូនអុកនោះខ្លួនឯងបានដើរ" ធ្វើឲ្យលក្ខណៈពិសេសនេះនៅតែមាននៅឡើយ ទោះបីជាមានការចាប់យកកូនអុកកើតឡើងហើយក៏ដោយ — មានតែការផ្លាស់ទីរបស់ស្តេច/នាងខ្លួនឯងទេដែលបាត់បង់សិទ្ធិនេះ។ ច្បាប់ចាស់ទាំងពីរ ("បាត់បង់នៅពេលចាប់យកកូនអុក" និង "ស្តេចបាត់បង់នៅពេលទូកសត្រូវតម្រង់ជួរ") នៅតែអាចជ្រើសរើសបានក្នុងផ្ទាំងកំណត់។',
+        en: "The King's first-move jump (Sdach jump) and the Queen's first-move leap (Neang leap) used to default to the \"lost once any capture occurs\" rule -- meaning the very first capture anywhere in the game (extremely common in practice) would permanently disable this for both sides, often before either player got a real chance to use it. The new default, \"allowed any time up to that piece's own first move,\" keeps this available through captures elsewhere on the board -- only that piece's own move gives it up. The previous two rule options (lost on any capture / King's jump lost once an enemy Tuuk aligns with it) are still selectable in the settings panel." }
+    ]
+  },
   {
     version: '1.6.9',
     date: '2026-07-19',
