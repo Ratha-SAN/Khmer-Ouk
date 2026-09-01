@@ -5740,15 +5740,28 @@ function buildPiece(type, color, promoted, seed) {
       break;
     }
     case E.QUEEN:
-      // Shortened from a 0.5-tall cone to 0.34 -- same single cone + ball,
-      // just less stretched.
-      add(new THREE.ConeGeometry(0.24 * wide, 0.34, seg), 0.31);
-      add(new THREE.SphereGeometry(0.09, seg, 12), 0.57);
+      // Neang and Koul used to be near-impossible to tell apart: both were
+      // a taper ending in a cone with a small ball finial, and the Koul
+      // was actually the TALLER of the two (0.88 vs 0.66), so height read
+      // backwards from the rank order. They now differ on three
+      // independent cues at once -- height, tip shape, and collar -- using
+      // the same turned-wood vocabulary (cylinder/cone/sphere/torus) the
+      // rest of the set is built from, and matching the convention the
+      // Khmer Traditional set already uses (Neang pointed, Koul rounded).
+      // Neang: the taller of the pair, with a flared crown collar under a
+      // bare point -- no ball finial (that stays the King's own marker).
+      add(new THREE.CylinderGeometry(0.18 * wide, 0.26 * wide, 0.36, seg), 0.32);
+      add(new THREE.CylinderGeometry(0.14 * wide, 0.2 * wide, 0.06, seg), 0.53);
+      add(new THREE.ConeGeometry(0.15 * wide, 0.26, seg), 0.69);
       break;
     case E.BISHOP:
-      add(new THREE.CylinderGeometry(0.14 * wide, 0.24 * wide, 0.4, seg), 0.34);
-      add(new THREE.ConeGeometry(0.15 * wide, 0.24, seg), 0.66);
-      add(new THREE.SphereGeometry(0.05, 12, 10), 0.83);
+      // Koul: clearly shorter than the Neang, and round-topped rather than
+      // pointed -- a banded ball head, never a cone. The band and head
+      // scale with `wide` like every other radius here; left unscaled they
+      // ended up buried inside the body in the wider 'carved' set.
+      add(new THREE.CylinderGeometry(0.12 * wide, 0.24 * wide, 0.28, seg), 0.28);
+      add(new THREE.TorusGeometry(0.13 * wide, 0.032, 10, seg), 0.42).rotation.x = Math.PI / 2;
+      add(new THREE.SphereGeometry(0.14 * wide, seg, 12), 0.55);
       break;
     case E.KNIGHT: {
       add(new THREE.CylinderGeometry(0.16 * wide, 0.26 * wide, 0.4, seg), 0.34);
@@ -5772,7 +5785,12 @@ function buildPiece(type, color, promoted, seed) {
       add(new THREE.ConeGeometry(0.1 * wide, 0.22, seg), 0.5);
       break;
   }
-  if (promoted) add(new THREE.TorusGeometry(0.22, 0.035, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
+  // Only a Neang is ever `promoted` (a Trey promotes into one), and her
+  // body is a good deal wider at this height than the old cone-from-the-
+  // base shape was -- at the previous 0.22 radius this gold band stood
+  // proud of it by all of 0.008 and read as buried. 0.26 clears the body
+  // properly while still tucking just inside the base's own 0.30 rim.
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.035, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -14363,8 +14381,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.10';
+const APP_VERSION = '1.6.11';
 const WHATS_NEW = [
+  {
+    version: '1.6.11',
+    date: '2026-07-19',
+    title: { kh: 'ធ្វើឲ្យនាង និងគោល ងាយបែងចែកពីគ្នា', en: 'Made the Neang and the Koul easy to tell apart' },
+    items: [
+      { kh: 'នៅក្នុងឈុតធម្មតា (ឈើបុរាណ, ថ្មអង្គរ, យប់ទំនើប, វេទមន្ត, វេទមន្តII, Sofisticate, iOS Studio) នាង និងគោល សុទ្ធតែជាកោនចុងស្រួចដែលមានគ្រាប់បាល់តូចនៅលើ ហើយគោលថែមទាំងខ្ពស់ជាងនាងទៅទៀត (0.88 ធៀបនឹង 0.66) — មានន័យថាកម្ពស់ធ្វើឲ្យយល់ច្រឡំផ្ទុយពីលំដាប់ថ្នាក់។ ឥឡូវពួកវាខុសគ្នាតាមចំណុចបីយ៉ាងក្នុងពេលតែមួយ៖ នាងខ្ពស់ជាង (ខ្ពស់ជាងគោល 16–22%) ហើយមានចុងស្រួចទទេនៅលើកអាវធំ ចំណែកគោលទាបជាង ហើយមានក្បាលមូលជាគ្រាប់បាល់ដែលមានក្រវិលស្តើងនៅក្រោម។ នេះក៏ត្រូវគ្នានឹងវិធីដែលឈុត "ខ្មែរបុរាណ" ប្រើស្រាប់ដែរ (នាងចុងស្រួច គោលក្បាលមូល)។',
+        en: 'In the classic sets (Classic Wood, Angkor Stone, Modern Night, Magic, Magic II, Sofisticate, iOS Studio) the Neang and the Koul were both a taper ending in a cone with a small ball finial — and the Koul was actually the TALLER of the two (0.88 vs 0.66), so height read backwards from the rank order. They now differ on three cues at once: the Neang is the taller of the pair (16–22% above the Koul) with a bare point above a flared crown collar, while the Koul is shorter with a rounded ball head over a thin band. This also matches the convention the Khmer Traditional set already used (Neang pointed, Koul rounded).' },
+      { kh: 'ចំណាំ៖ ក្នុងឈុតមួយ កូនអុកគ្រប់តួសុទ្ធតែប្រើពណ៌ដូចគ្នាក្នុងម្ខាងៗ (នោះជាគោលការណ៍របស់ឈុតអុក) ដូច្នេះការបែងចែកត្រូវតែពឹងលើរាង មិនមែនពណ៌ទេ។ បើចង់បានស្លាកឈ្មោះ សូមបើក "ឈ្មោះកូនអុក" ក្នុងផ្ទាំងកំណត់។ ព្រមទាំងពង្រីកក្រវិលមាសសម្គាល់ត្រីដែលបានតម្លើងឋានៈ ព្រោះតួនាងថ្មីធំជាងមុន ធ្វើឲ្យក្រវិលចាស់លិចបាត់ស្ទើរតែមើលមិនឃើញ។',
+        en: 'Note: within a set every piece on a side shares one colour (that is the point of a chess set), so the distinction has to be carried by shape, not colour — if you want labels, turn on "Show piece names" in the settings. Also widened the gold promotion band: the new Neang body is wider where that band sits, and at its old size it stood proud by just 0.008 and read as buried.' }
+    ]
+  },
   {
     version: '1.6.10',
     date: '2026-07-19',
