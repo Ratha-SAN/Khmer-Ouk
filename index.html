@@ -5740,19 +5740,12 @@ function buildPiece(type, color, promoted, seed) {
       break;
     }
     case E.QUEEN:
-      // Neang and Koul used to be near-impossible to tell apart: both were
-      // a taper ending in a cone with a small ball finial, and the Koul
-      // was actually the TALLER of the two (0.88 vs 0.66), so height read
-      // backwards from the rank order. They now differ on three
-      // independent cues at once -- height, tip shape, and collar -- using
-      // the same turned-wood vocabulary (cylinder/cone/sphere/torus) the
-      // rest of the set is built from, and matching the convention the
-      // Khmer Traditional set already uses (Neang pointed, Koul rounded).
-      // Neang: the taller of the pair, with a flared crown collar under a
-      // bare point -- no ball finial (that stays the King's own marker).
-      add(new THREE.CylinderGeometry(0.18 * wide, 0.26 * wide, 0.36, seg), 0.32);
-      add(new THREE.CylinderGeometry(0.14 * wide, 0.2 * wide, 0.06, seg), 0.53);
-      add(new THREE.ConeGeometry(0.15 * wide, 0.26, seg), 0.69);
+      // Shortened from a 0.5-tall cone to 0.34 -- same single cone + ball,
+      // just less stretched. (A taller crown-collar Neang was tried to
+      // separate her from the Koul, and reverted by request; the Koul's
+      // own rounded head below still carries that distinction.)
+      add(new THREE.ConeGeometry(0.24 * wide, 0.34, seg), 0.31);
+      add(new THREE.SphereGeometry(0.09, seg, 12), 0.57);
       break;
     case E.BISHOP:
       // Koul: clearly shorter than the Neang, and round-topped rather than
@@ -5785,12 +5778,10 @@ function buildPiece(type, color, promoted, seed) {
       add(new THREE.ConeGeometry(0.1 * wide, 0.22, seg), 0.5);
       break;
   }
-  // Only a Neang is ever `promoted` (a Trey promotes into one), and her
-  // body is a good deal wider at this height than the old cone-from-the-
-  // base shape was -- at the previous 0.22 radius this gold band stood
-  // proud of it by all of 0.008 and read as buried. 0.26 clears the body
-  // properly while still tucking just inside the base's own 0.30 rim.
-  if (promoted) add(new THREE.TorusGeometry(0.26, 0.035, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
+  // Only a Neang is ever `promoted` (a Trey promotes into one), so this
+  // band is sized against her body: at y=0.2 her cone is ~0.198 wide, and
+  // 0.22 stands proud of that by 0.057.
+  if (promoted) add(new THREE.TorusGeometry(0.22, 0.035, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -14381,8 +14372,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.11';
+const APP_VERSION = '1.6.12';
 const WHATS_NEW = [
+  {
+    version: '1.6.12',
+    date: '2026-07-19',
+    title: { kh: 'នាងត្រឡប់ទៅរាងដើមវិញ', en: 'Neang reverted to her earlier shape' },
+    items: [
+      { kh: 'នាងត្រឡប់ទៅរាងកោនចុងស្រួច និងគ្រាប់បាល់តូចដូចមុនវិញ តាមការស្នើសុំ។ គោលនៅតែរក្សាក្បាលមូល និងក្រវិលស្តើងពីកំណែមុន ដូច្នេះការបែងចែករវាងនាង និងគោល នៅតែពឹងលើរាងក្បាល៖ នាងចុងស្រួច គោលក្បាលមូល។ ចំណាំ៖ គោលឥឡូវខ្ពស់ជាងនាងបន្តិច (2–7% អាស្រ័យលើឈុត)។ ក្រវិលមាសសម្គាល់ការតម្លើងឋានៈក៏ត្រឡប់ទៅទំហំដើម 0.22 វិញដែរ ព្រោះវាត្រូវបានកំណត់ទំហំតាមតួនាងដើម។',
+        en: "The Neang is back to her earlier pointed cone with a small ball finial, as requested. The Koul keeps the rounded ball head and thin band from the previous version, so Neang and Koul are still told apart by head shape: Neang pointed, Koul rounded. Note that the Koul is once again slightly the taller of the two (by 2-7% depending on the set). The gold promotion band also returns to its original 0.22 size, since it is sized against the Neang's original body." }
+    ]
+  },
   {
     version: '1.6.11',
     date: '2026-07-19',
