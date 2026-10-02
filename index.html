@@ -2605,10 +2605,10 @@
       <button id="lightStudio">💡 Cool Studio</button>
     </div>
     <label style="margin-top:6px">Direction (azimuth) ទិសដៅ
-      <input type="range" id="lightAzimuth" min="0" max="360" step="1" value="35" style="width:100%">
+      <input type="range" id="lightAzimuth" min="0" max="360" step="1" value="40" style="width:100%">
     </label>
     <label>Height (elevation) កម្ពស់
-      <input type="range" id="lightElevation" min="10" max="85" step="1" value="55" style="width:100%">
+      <input type="range" id="lightElevation" min="10" max="85" step="1" value="50" style="width:100%">
     </label>
     <label style="margin-top:6px">Brightness ពន្លឺភ្លឺ
       <input type="range" id="lightBrightness" min="40" max="200" step="5" value="100" style="width:100%">
@@ -4868,7 +4868,7 @@ camera.position.set(0, 10, 9.3);
 let controls = new OrbitControls(camera, renderer.domElement);
 configureControls(controls);
 
-const ambientLight = new THREE.AmbientLight(0xfff2dd, 0.75);
+const ambientLight = new THREE.AmbientLight(0xfff2dd, 0.6);
 scene.add(ambientLight);
 // A constant soft sky/ground hemisphere light on top of the ambient light
 // above -- the classic cheap trick for a "beautiful natural" look, since a
@@ -4877,16 +4877,16 @@ scene.add(ambientLight);
 // ambientLight/sun/fill) so it doesn't fight a deliberately moody preset
 // like Spotlight, while still giving every theme's dark ("black side")
 // pieces a soft base fill so they're never rendered into pure shadow.
-const hemiLight = new THREE.HemisphereLight(0xdbe9ff, 0x3a2f22, 0.55);
+const hemiLight = new THREE.HemisphereLight(0xdbe9ff, 0x3a2f22, 0.5);
 scene.add(hemiLight);
-const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+const sun = new THREE.DirectionalLight(0xfff6ea, 1.9);
 sun.position.set(6, 12, 5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -7; sun.shadow.camera.right = 7;
 sun.shadow.camera.top = 7; sun.shadow.camera.bottom = -7;
 scene.add(sun);
-const fill = new THREE.DirectionalLight(0xbfd4ff, 0.35);
+const fill = new THREE.DirectionalLight(0xbfd4ff, 0.45);
 fill.position.set(-5, 6, -6);
 scene.add(fill);
 
@@ -4932,7 +4932,7 @@ try {
 }
 
 // ---------- lighting direction / mood controls ----------
-let lightAzimuth = 35, lightElevation = 55;
+let lightAzimuth = 40, lightElevation = 50;
 function updateSunPosition() {
   const az = lightAzimuth * Math.PI / 180, el = lightElevation * Math.PI / 180, r = 13;
   sun.position.set(r * Math.cos(el) * Math.sin(az), r * Math.sin(el), r * Math.cos(el) * Math.cos(az));
@@ -4949,8 +4949,8 @@ updateSunPosition();
 // as muddy brown instead of purple). refreshLightScale recombines mood and
 // theme so a mood change and a theme change each independently take effect
 // without one silently overwriting the other's intent.
-let moodAmbientColor = 0xfff2dd, moodAmbientIntensity = 0.75;
-const HEMI_BASE_INTENSITY = 0.55, HEMI_SKY_COLOR = 0xdbe9ff, HEMI_GROUND_COLOR = 0x3a2f22;
+let moodAmbientColor = 0xfff2dd, moodAmbientIntensity = 0.6;
+const HEMI_BASE_INTENSITY = 0.5, HEMI_SKY_COLOR = 0xdbe9ff, HEMI_GROUND_COLOR = 0x3a2f22;
 let themeAmbientScale = 1, themeHemiScale = 1;
 let themeAmbientColorOverride = null, themeHemiSkyColorOverride = null, themeHemiGroundColorOverride = null;
 function refreshLightScale() {
@@ -4971,8 +4971,8 @@ function setLightMood(m) {
   refreshLightScale();
 }
 document.getElementById('lightDaytime').onclick = () => setLightMood({
-  azimuth: 35, elevation: 65, sunColor: 0xffffff, sunIntensity: 1.6,
-  ambientColor: 0xfff2dd, ambientIntensity: 0.75, fillColor: 0xbfd4ff, fillIntensity: 0.35
+  azimuth: 40, elevation: 50, sunColor: 0xfff6ea, sunIntensity: 1.9,
+  ambientColor: 0xfff2dd, ambientIntensity: 0.6, fillColor: 0xbfd4ff, fillIntensity: 0.45
 });
 document.getElementById('lightSpotlight').onclick = () => setLightMood({
   azimuth: 0, elevation: 82, sunColor: 0xffffff, sunIntensity: 2.4,
@@ -5739,23 +5739,42 @@ function buildPiece(type, color, promoted, seed) {
       }
       break;
     }
-    case E.QUEEN:
-      // Shortened from a 0.5-tall cone to 0.34 -- same single cone + ball,
-      // just less stretched. (A taller crown-collar Neang was tried to
-      // separate her from the Koul, and reverted by request; the Koul's
-      // own rounded head below still carries that distinction.)
-      add(new THREE.ConeGeometry(0.24 * wide, 0.34, seg), 0.31);
-      add(new THREE.SphereGeometry(0.09, seg, 12), 0.57);
+    case E.QUEEN: {
+      // Neang: a bell-shaped (truncated-cone) body under a ring of crown
+      // beads around a centre ball -- a crown, which is what separates her
+      // at a glance from the Koul's rounded mitre, the Trey's onion and the
+      // King's ringed point. Same cylinder/sphere/cone vocabulary as the
+      // rest of the set, and a total height (~0.75) still well under the
+      // King's, so nothing here re-stretches the set.
+      const bodyH = 0.46;
+      add(new THREE.CylinderGeometry(0.1 * wide, 0.25 * wide, bodyH, seg), 0.14 + bodyH / 2);
+      const rimY = 0.14 + bodyH;
+      add(new THREE.TorusGeometry(0.115 * wide, 0.026, 8, seg), rimY).rotation.x = Math.PI / 2; // crown band
+      const beadSeg = Math.max(6, Math.min(seg, 12));
+      for (let i = 0; i < 6; i++) { // six short crown points, each tipped with a bead
+        const a = (i / 6) * Math.PI * 2;
+        const pt = add(new THREE.ConeGeometry(0.045, 0.11, 6), rimY + 0.055);
+        pt.position.x = Math.cos(a) * 0.115 * wide;
+        pt.position.z = Math.sin(a) * 0.115 * wide;
+        const bead = add(new THREE.SphereGeometry(0.027, beadSeg, 6), rimY + 0.125);
+        bead.position.x = pt.position.x; bead.position.z = pt.position.z;
+      }
+      add(new THREE.SphereGeometry(0.06, seg, 12), rimY + 0.045); // low centre ball so the points stay readable
       break;
-    case E.BISHOP:
-      // Koul: clearly shorter than the Neang, and round-topped rather than
-      // pointed -- a banded ball head, never a cone. The band and head
-      // scale with `wide` like every other radius here; left unscaled they
-      // ended up buried inside the body in the wider 'carved' set.
-      add(new THREE.CylinderGeometry(0.12 * wide, 0.24 * wide, 0.28, seg), 0.28);
-      add(new THREE.TorusGeometry(0.13 * wide, 0.032, 10, seg), 0.42).rotation.x = Math.PI / 2;
-      add(new THREE.SphereGeometry(0.14 * wide, seg, 12), 0.55);
+    }
+    case E.BISHOP: {
+      // Koul: a slim banded column under a tall rounded (ovoid) mitre with
+      // a tiny finial -- never a cone, and visibly narrower and lighter
+      // than the Neang's crowned bell, so the two read as different pieces
+      // even in silhouette.
+      const bodyH = 0.26;
+      add(new THREE.CylinderGeometry(0.1 * wide, 0.22 * wide, bodyH, seg), 0.14 + bodyH / 2);
+      add(new THREE.TorusGeometry(0.108 * wide, 0.03, 10, seg), 0.14 + bodyH).rotation.x = Math.PI / 2;
+      const mitre = add(new THREE.SphereGeometry(0.115 * wide, seg, 12), 0.14 + bodyH + 0.12);
+      mitre.scale.set(1, 1.3, 1);
+      add(new THREE.SphereGeometry(0.032, 10, 8), 0.14 + bodyH + 0.265);
       break;
+    }
     case E.KNIGHT: {
       add(new THREE.CylinderGeometry(0.16 * wide, 0.26 * wide, 0.4, seg), 0.34);
       const head = add(new THREE.BoxGeometry(0.16, 0.42, 0.3), 0.66);
@@ -5779,9 +5798,11 @@ function buildPiece(type, color, promoted, seed) {
       break;
   }
   // Only a Neang is ever `promoted` (a Trey promotes into one), so this
-  // band is sized against her body: at y=0.2 her cone is ~0.198 wide, and
-  // 0.22 stands proud of that by 0.057.
-  if (promoted) add(new THREE.TorusGeometry(0.22, 0.035, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
+  // band is sized against her bell-shaped body, scaled by `wide` like the
+  // body itself: at y=0.2 that body is ~0.23*wide in radius, and 0.25*wide
+  // clears it by ~0.05 in every style (unscaled it was buried in the wider
+  // 'carved' set) while staying inside the base's own 0.3*wide rim.
+  if (promoted) add(new THREE.TorusGeometry(0.25 * wide, 0.035, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -5799,13 +5820,27 @@ function buildVoxelPiece(g, add, type, promoted, color) {
       add(box(0.2, 0.06, 0.06), 0.99);
       add(box(0.06, 0.06, 0.2), 0.99);
       break;
-    case E.QUEEN:
-      add(box(0.3, 0.44, 0.3), 0.38);
-      add(box(0.16, 0.16, 0.16), 0.66);
+    case E.QUEEN: {
+      // Neang: a wider slab with a crown of four corner teeth around a
+      // centre block -- reads as a crown, where the Koul below is a
+      // stepped, narrowing mitre. (They used to be a block plus one
+      // small cube each, near-identical at a glance.)
+      add(box(0.3, 0.42, 0.3), 0.37);
+      add(box(0.4, 0.07, 0.4), 0.615);
+      for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const tooth = add(box(0.09, 0.13, 0.09), 0.71);
+        tooth.position.x = dx * 0.155; tooth.position.z = dz * 0.155;
+      }
+      add(box(0.12, 0.1, 0.12), 0.7);
       break;
+    }
     case E.BISHOP:
-      add(box(0.28, 0.4, 0.28), 0.36);
-      add(box(0.22, 0.22, 0.22), 0.62).rotation.y = Math.PI / 4;
+      // Koul: a slimmer column that steps in twice to a pointed cap, so
+      // it narrows to a tip instead of widening to a crown.
+      add(box(0.26, 0.24, 0.26), 0.28);
+      add(box(0.22, 0.14, 0.22), 0.47);
+      add(box(0.14, 0.12, 0.14), 0.6);
+      add(box(0.06, 0.08, 0.06), 0.7);
       break;
     case E.KNIGHT:
       add(box(0.3, 0.36, 0.3), 0.34);
@@ -7905,14 +7940,30 @@ function buildGemPiece(g, add, type, promoted, color) {
       spin(add(new THREE.OctahedronGeometry(0.24, 0), 0.82, MAT_GEM_RUBY));
       add(new THREE.OctahedronGeometry(0.06, 0), 1.06, MAT_GEM_RUBY);
       break;
-    case E.QUEEN:
+    case E.QUEEN: {
+      // Neang: a round stone in a crown setting -- a ring of five silver
+      // points rising around its top -- so she reads as the crowned piece
+      // next to the Koul's tall teardrop cut (they used to differ only in
+      // gem hue, with near-identical round stones on near-identical stems).
       add(new THREE.CylinderGeometry(0.14, 0.22, 0.36, 8), 0.3);
-      spin(add(new THREE.IcosahedronGeometry(0.2, 0), 0.68, MAT_GEM_AMETHYST));
+      add(new THREE.CylinderGeometry(0.2, 0.14, 0.06, 8), 0.5, MAT_GEM_SILVER); // cup under the stone
+      spin(add(new THREE.IcosahedronGeometry(0.2, 0), 0.7, MAT_GEM_AMETHYST));
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        const prong = add(new THREE.ConeGeometry(0.035, 0.14, 4), 0.92, MAT_GEM_SILVER);
+        prong.position.x = Math.cos(a) * 0.11;
+        prong.position.z = Math.sin(a) * 0.11;
+      }
       break;
-    case E.BISHOP:
-      add(new THREE.CylinderGeometry(0.13, 0.21, 0.34, 8), 0.29);
-      spin(add(new THREE.DodecahedronGeometry(0.18, 0), 0.62, MAT_GEM_EMERALD));
+    }
+    case E.BISHOP: {
+      // Koul: the same stone stretched into a tall pointed teardrop (a
+      // mitre) on a slimmer stem.
+      add(new THREE.CylinderGeometry(0.11, 0.2, 0.3, 8), 0.27);
+      const mitre = spin(add(new THREE.DodecahedronGeometry(0.16, 0), 0.63, MAT_GEM_EMERALD));
+      mitre.scale.set(1, 1.4, 1);
       break;
+    }
     case E.KNIGHT:
       add(new THREE.CylinderGeometry(0.14, 0.22, 0.3, 8), 0.27);
       // twin sapphire spikes -- reads as the Ses's ears/leap
@@ -14372,8 +14423,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.12';
+const APP_VERSION = '1.6.13';
 const WHATS_NEW = [
+  {
+    version: '1.6.13',
+    date: '2026-10-02',
+    title: { kh: 'នាង និងគោល ងាយស្គាល់ជាងមុន, ពន្លឺទន់ភ្លន់ជាងមុន', en: 'Neang and Koul easier to recognise, softer more defined lighting' },
+    items: [
+      { kh: 'នាងឥឡូវមានមកុដ (ចុងស្រួចតូចៗ ៦ មានគ្រាប់បាល់នៅចុង) នៅលើតួរាងកណ្ដឹង ចំណែកគោលមានក្បាលពង (mitre) ខ្ពស់ស្រួច លើក្រវិលស្តើង។ នេះអនុវត្តលើឈុតធម្មតា (ឈើបុរាណ, ថ្មអង្គរ, យប់ទំនើប, វេទមន្ត, វេទមន្តII, Sofisticate, iOS Studio), ឈុតប្លុក (Pixel, Mario, Contra) និងឈុតត្បូង (Gem Blitz និង Girly ទាំងបី)។',
+        en: 'The Neang now wears a crown (six short points tipped with beads) on a bell-shaped body, while the Koul has a tall rounded mitre over a thin band. Applied to the classic sets (Classic Wood, Angkor Stone, Modern Night, Magic, Magic II, Sofisticate, iOS Studio), the block sets (Pixel, Mario, Contra: crowned slab vs stepped pointed cap) and the gem sets (Gem Blitz and the three Girly themes: crowned stone vs tall teardrop).' },
+      { kh: 'ពន្លឺ៖ ពន្លឺព្រះអាទិត្យខ្លាំងជាងមុន និងធ្លាក់ពីមុំទាបជាង ចំណែកពន្លឺផ្ទៃទូទៅ (ambient/hemisphere) ទន់ជាងមុន ធ្វើឲ្យកូនអុកមានរូបរាង និងស្រមោលច្បាស់ជាងមុន។ ក្រវិលមាសនៃនាងដែលតម្លើងឋានៈត្រូវបានកែតម្រូវតាមរាងថ្មីរបស់នាង។',
+        en: 'Lighting: stronger, lower-angled key light with softer ambient/hemisphere fill, so pieces show clearer form and shadow. The gold promotion band is re-fitted to the new Neang body in every style.' }
+    ]
+  },
   {
     version: '1.6.12',
     date: '2026-07-19',
