@@ -8860,6 +8860,15 @@ function buildReal2Piece(g, add, type, promoted, color) {
     }
   }
   if (promoted) add(new THREE.TorusGeometry(0.255, 0.03, 10, 28), 0.12, MAT_GOLD).rotation.x = Math.PI / 2;
+  // Every rank but the Trey is 10% wider than first modelled, at the same
+  // height. The meshes go into an inner group so the 1.1 stays out of reach
+  // of anything that sets the piece group's own scale (the captured trays).
+  if (type !== E.PAWN) {
+    const inner = new THREE.Group();
+    while (g.children.length) inner.add(g.children[0]);
+    inner.scale.set(1.1, 1, 1.1);
+    g.add(inner);
+  }
   // The horse head is lofted toward +z, which is each side's own back rank
   // (White sits at +z); turn it half a circle so it looks at the opponent.
   if ((color === E.BLACK) !== (type === E.KNIGHT)) g.rotation.y = Math.PI;
@@ -14686,8 +14695,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.17';
+const APP_VERSION = '1.6.18';
 const WHATS_NEW = [
+  {
+    version: '1.6.18',
+    date: '2026-10-09',
+    title: { kh: '«Real 2» កូនអុកធំជាងមុន', en: 'Real 2 pieces 10% wider' },
+    items: [
+      { kh: 'កូនអុក «Real 2» (លើកលែងត្រី) ឥឡូវធំទូលាយជាងមុន ១០% ប៉ុន្តែកម្ពស់នៅដដែល។',
+        en: 'In the "Real 2" piece style every piece except the Trey is now 10% wider, with the same height as before.' }
+    ]
+  },
   {
     version: '1.6.17',
     date: '2026-10-09',
