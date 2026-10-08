@@ -582,6 +582,25 @@
     background: var(--surface-2); border: 1px solid var(--accent-dim); border-radius: 8px;
     padding: 10px; margin: 8px 0 14px; text-align: center;
   }
+  /* Invite a friend: share/copy actions under the host's code, the
+     quick-share links, and the "you were invited" banner on the join side */
+  .inviteActions { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+  .inviteActions button { width: 100%; }
+  #inviteQuickLinks { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 10px; }
+  #inviteQuickLinks a {
+    font-size: 12px; padding: 5px 10px; border-radius: 14px; text-decoration: none;
+    border: 1px solid var(--accent-dim); color: var(--panel-fg); background: var(--surface-2);
+  }
+  #inviteQuickLinks a:hover { border-color: var(--accent); }
+  #inviteCopyNote { min-height: 16px; margin: 0 0 8px; font-size: 12px; color: var(--accent); }
+  #onlineInviteBanner {
+    margin: 10px 0 4px; padding: 10px 12px; border-radius: 8px; text-align: center; font-size: 13px;
+    border: 1px solid var(--accent); background: var(--surface-2); color: var(--panel-fg);
+  }
+  #onlineInviteBanner.warn { border-color: var(--danger); color: var(--danger); }
+  #onlineJoinCodeBtn.inviteGlow { box-shadow: 0 0 0 2px var(--accent), 0 0 18px 2px var(--accent-dim); }
+  #startInviteNote { margin: 0 0 14px; font-size: 14px; color: var(--accent); }
+  #pickInvite { margin-top: 10px; width: 100%; padding: 12px 10px; font-size: 16px; }
   #onlineCodeInput {
     font-family: inherit; font-size: 18px; text-align: center; border-radius: 6px; border: 1px solid var(--accent-dim);
     background: var(--surface-2); color: var(--panel-fg); padding: 8px 10px; box-sizing: border-box;
@@ -1910,6 +1929,7 @@
       findQuickMatch: unavailable,
       hostCodeMatch: unavailable,
       joinByCode: unavailable,
+      peekCode: unavailable,
       watchLobby: function () { return function () {}; },
       cancelLobby: function () { return Promise.resolve(); },
       watchMatch: function () { return function () {}; },
@@ -2102,6 +2122,15 @@
               return claimLobby(doc.id, uid, name, initialState).then(function (r) {
                 return { lobbyId: doc.id, matchId: r.matchId, color: r.color };
               });
+            });
+        };
+        // Read-only look at an open code lobby (who is hosting it?) so an
+        // invited friend sees "X invited you" before tapping Join. Same
+        // query joinByCode uses, so it needs no extra Firestore access.
+        window.__oukOnline.peekCode = function (code) {
+          return db.collection('lobbies').where('kind', '==', 'code').where('code', '==', code)
+            .where('status', '==', 'open').limit(1).get().then(function (snap) {
+              return snap.empty ? null : { hostName: snap.docs[0].data().hostName || null };
             });
         };
         window.__oukOnline.watchLobby = function (lobbyId, cb) {
@@ -2349,6 +2378,7 @@
   <div class="box">
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
     <p>ល្បែងអុកខ្មែរបែបប្រពៃណី — Traditional Cambodian chess</p>
+    <p id="startInviteNote" style="display:none">🎉 មិត្តភក្ដិបានអញ្ជើញអ្នកលេង! ចុចចាប់ផ្ដើម ហើយចូលគណនី ដើម្បីចូលរួម។<br>A friend invited you to play! Tap START and sign in to join.</p>
     <button id="startBtn">ចាប់ផ្ដើម ▸ START</button>
   </div>
 </div>
@@ -2379,6 +2409,7 @@
         <button id="pickAi">ជាមួយកុំព្យូទ័រ<br>vs Computer</button>
         <button id="pickOnline">លេងអនឡាញ<br>Play Online</button>
       </div>
+      <button id="pickInvite" type="button">👥 អញ្ជើញមិត្តភក្ដិ Invite a Friend</button>
       <div id="playConfig" style="display:none">
         <div id="clockPick" style="margin-top:14px">
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
@@ -2714,6 +2745,7 @@
   <div class="box" style="max-width:380px">
     <h1 style="font-size:20px">លេងអនឡាញ<br>Play Online</h1>
     <div id="onlineIdle">
+      <div id="onlineInviteBanner" style="display:none"></div>
       <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:10px">
         <button id="onlineQuickBtn">🔍 ស្វែងរកគូប្រកួត Search for Opponent</button>
       </div>
@@ -2726,15 +2758,28 @@
       </div>
       <div class="loginDivider"><span>ឬ — or</span></div>
       <div class="btnrow" style="flex-direction:column;gap:10px">
-        <button id="onlineHostCodeBtn" type="button">🔗 បង្កើតកូដសម្រាប់មិត្ត Create a code for a friend</button>
+        <button id="onlineHostCodeBtn" type="button">👥 អញ្ជើញមិត្តភក្ដិ Invite a friend</button>
       </div>
     </div>
     <div id="onlineSearching" style="display:none;text-align:center">
       <div class="onlineSpinner"></div>
       <p id="onlineSearchingText">កំពុងស្វែងរកគូប្រកួត...<br>Searching for an opponent…</p>
       <div id="onlineCodeDisplay" style="display:none">
-        <p class="loginHint">ចែករំលែកកូដនេះទៅមិត្ត — Share this code with your friend</p>
+        <p class="loginHint">ផ្ញើតំណ ឬកូដនេះទៅមិត្ត — Send this link or code to your friend</p>
         <div id="onlineCodeValue"></div>
+        <div class="inviteActions">
+          <button id="inviteShareBtn" type="button" style="display:none">📤 ចែករំលែក Share invite</button>
+          <button id="inviteCopyLinkBtn" type="button">🔗 ចម្លងតំណ Copy invite link</button>
+          <button id="inviteCopyCodeBtn" type="button">📋 ចម្លងកូដ Copy code</button>
+        </div>
+        <p id="inviteCopyNote" role="status" aria-live="polite"></p>
+        <div id="inviteQuickLinks">
+          <a id="inviteTelegram" target="_blank" rel="noopener">Telegram</a>
+          <a id="inviteWhatsapp" target="_blank" rel="noopener">WhatsApp</a>
+          <a id="inviteFacebook" target="_blank" rel="noopener">Facebook</a>
+          <a id="inviteSms">SMS</a>
+          <a id="inviteEmail">Email</a>
+        </div>
       </div>
       <button id="onlineCancelBtn" type="button">បោះបង់ Cancel</button>
     </div>
@@ -14423,8 +14468,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.13';
+const APP_VERSION = '1.6.14';
 const WHATS_NEW = [
+  {
+    version: '1.6.14',
+    date: '2026-10-08',
+    title: { kh: 'អញ្ជើញមិត្តភក្ដិលេងអនឡាញ', en: 'Invite a friend to play online' },
+    items: [
+      { kh: 'ប៊ូតុងថ្មី «អញ្ជើញមិត្តភក្ដិ» នៅលើទំព័រជ្រើសរើសរបៀប និងទំព័រលេងអនឡាញ។ វាបង្កើតកូដបន្ទប់ ហើយអ្នកអាចចែករំលែកតាមម៉ឺនុយចែករំលែករបស់ទូរស័ព្ទ ចម្លងតំណ ឬចម្លងកូដ ឬផ្ញើតាម Telegram, WhatsApp, Facebook, SMS និងអ៊ីមែល។',
+        en: 'New "Invite a Friend" button on the mode screen and the online screen. It creates a room code you can share with your phone\'s share sheet, copy as a link or as a code, or send through Telegram, WhatsApp, Facebook, SMS or email.' },
+      { kh: 'នៅពេលមិត្តភក្ដិបើកតំណអញ្ជើញ (…?join=កូដ) បន្ទាប់ពីចូលគណនី ហ្គេមនឹងបើកទំព័រចូលរួមដោយស្វ័យប្រវត្តិ ដាក់កូដរួចជាស្រេច និងប្រាប់ឈ្មោះអ្នកអញ្ជើញ។ ប្រសិនបើការអញ្ជើញបិទហើយ នឹងមានសារជូនដំណឹង។',
+        en: 'When a friend opens an invite link (…?join=CODE) and signs in, the game jumps straight to the Join screen with the code pre-filled and the host\'s name shown. If the invite is no longer open, a clear notice appears.' }
+    ]
+  },
   {
     version: '1.6.13',
     date: '2026-10-02',
@@ -14993,6 +15049,22 @@ buildLevelButtons();
 // been chosen; opened mid-game via "Change Mode" ('game'), Cancel should
 // still just close back to that ongoing game, unchanged from before.
 let modeScreenOrigin = 'start';
+// Invite-a-friend deep link: opening the game via ?join=CODE (or #join=CODE)
+// remembers the code here until the player has signed in and reached the
+// mode screen, which then lands them on the Join screen with it filled in
+// (see consumePendingInvite). Declared up here, ahead of openModeScreen,
+// so that function can safely check it.
+const INVITE_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/; // genCode()'s alphabet: no 0/O/1/I
+function parseInviteCode(search, hash) {
+  let raw = null;
+  try {
+    raw = new URLSearchParams(search || '').get('join');
+    if (!raw && hash) raw = new URLSearchParams(String(hash).replace(/^#/, '')).get('join');
+  } catch (e) { raw = null; }
+  const code = (raw || '').trim().toUpperCase();
+  return INVITE_CODE_RE.test(code) ? code : null;
+}
+let pendingInviteCode = parseInviteCode(location.search, location.hash);
 // Set when the login screen is opened from the lock popup mid-session
 // (a guest hit a locked feature and chose to sign in) rather than from
 // the Start button -- finishLogin() uses this to resume right back into
@@ -15045,6 +15117,7 @@ function openModeScreen() {
   overlayOpen = true;
   updateModeProfileChip();
   tickHud();
+  consumePendingInvite();
 }
 function hideOverlays() {
   document.getElementById('startScreen').style.display = 'none';
@@ -15086,6 +15159,8 @@ function showOnlineIdleUI() {
   document.getElementById('onlineCodeDisplay').style.display = 'none';
   document.getElementById('onlineCodeInput').value = '';
   document.getElementById('onlineError').style.display = 'none';
+  document.getElementById('onlineInviteBanner').style.display = 'none';
+  document.getElementById('onlineJoinCodeBtn').classList.remove('inviteGlow');
 }
 function showOnlineSearchingUI(text) {
   document.getElementById('onlineIdle').style.display = 'none';
@@ -15120,10 +15195,7 @@ function onlineCleanupSearch() {
 }
 document.getElementById('pickOnline').onclick = () => {
   if (!currentProfile) return;
-  resetPlayModeStep();
-  showOnlineIdleUI();
-  document.getElementById('modeScreen').style.display = 'none';
-  document.getElementById('onlineMatchScreen').style.display = 'flex';
+  openOnlineScreen();
 };
 document.getElementById('onlineBackBtn').onclick = () => {
   onlineCleanupSearch();
@@ -15156,6 +15228,7 @@ document.getElementById('onlineHostCodeBtn').onclick = () => {
     onlineLobbyId = r.lobbyId;
     document.getElementById('onlineCodeDisplay').style.display = 'block';
     document.getElementById('onlineCodeValue').textContent = r.code;
+    renderInviteShare(r.code);
     onlineUnsubLobby = window.__oukOnline.watchLobby(r.lobbyId, (lobby) => {
       if (lobby && lobby.matchId) {
         if (onlineUnsubLobby) { onlineUnsubLobby(); onlineUnsubLobby = null; }
@@ -15181,6 +15254,120 @@ document.getElementById('onlineJoinCodeBtn').onclick = () => {
     showOnlineError(msg);
   });
 };
+// ---------- invite a friend ----------
+// Host side: after "Invite a friend" creates a code lobby, the code is also
+// offered as a shareable link (?join=CODE), a native share sheet where the
+// browser has one, a copy button, and a few quick-share links. Join side:
+// opening such a link lands the player on the Join screen with the code
+// already entered (see consumePendingInvite), one tap from joining.
+let currentInviteCode = null;
+function buildInviteUrl(code) {
+  const u = new URL(location.href);
+  u.search = ''; u.hash = '';
+  u.searchParams.set('join', code);
+  return u.toString();
+}
+function inviteMessage(code, url) {
+  return 'មកលេងអុកចត្រង្គជាមួយខ្ញុំ! Join my Ouk Chatrang game: ' + url + ' (code ' + code + ')';
+}
+let inviteNoteTimer = null;
+function showInviteNote(msg) {
+  const el = document.getElementById('inviteCopyNote');
+  el.textContent = msg;
+  if (inviteNoteTimer) clearTimeout(inviteNoteTimer);
+  inviteNoteTimer = setTimeout(() => { el.textContent = ''; }, 2500);
+}
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  }
+  return legacyCopy(text);
+}
+function legacyCopy(text) {
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    ok ? resolve() : reject(new Error('copy failed'));
+  });
+}
+function renderInviteShare(code) {
+  currentInviteCode = code;
+  const url = buildInviteUrl(code);
+  const msg = inviteMessage(code, url);
+  document.getElementById('inviteShareBtn').style.display = (typeof navigator.share === 'function') ? 'block' : 'none';
+  document.getElementById('inviteTelegram').href = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(msg);
+  document.getElementById('inviteWhatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  document.getElementById('inviteFacebook').href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+  document.getElementById('inviteSms').href = 'sms:?&body=' + encodeURIComponent(msg);
+  document.getElementById('inviteEmail').href = 'mailto:?subject=' + encodeURIComponent('Ouk Chatrang invite') + '&body=' + encodeURIComponent(msg);
+  document.getElementById('inviteCopyNote').textContent = '';
+}
+document.getElementById('inviteCopyLinkBtn').onclick = () => {
+  if (!currentInviteCode) return;
+  copyText(buildInviteUrl(currentInviteCode))
+    .then(() => showInviteNote('✓ បានចម្លងតំណ — Invite link copied'))
+    .catch(() => showInviteNote('មិនអាចចម្លងបានទេ — Could not copy; select the code above instead.'));
+};
+document.getElementById('inviteCopyCodeBtn').onclick = () => {
+  if (!currentInviteCode) return;
+  copyText(currentInviteCode)
+    .then(() => showInviteNote('✓ បានចម្លងកូដ — Code copied'))
+    .catch(() => showInviteNote('មិនអាចចម្លងបានទេ — Could not copy; select the code above instead.'));
+};
+document.getElementById('inviteShareBtn').onclick = () => {
+  if (!currentInviteCode || typeof navigator.share !== 'function') return;
+  const url = buildInviteUrl(currentInviteCode);
+  Promise.resolve(navigator.share({ title: 'អុកចត្រង្គ Ouk Chatrang', text: inviteMessage(currentInviteCode, url), url }))
+    .catch((err) => { if (!err || err.name !== 'AbortError') showInviteNote('មិនអាចចែករំលែកបានទេ — Could not open the share sheet.'); });
+};
+function openOnlineScreen() {
+  resetPlayModeStep();
+  showOnlineIdleUI();
+  document.getElementById('modeScreen').style.display = 'none';
+  document.getElementById('onlineMatchScreen').style.display = 'flex';
+}
+document.getElementById('pickInvite').onclick = () => {
+  if (!currentProfile) return;
+  openOnlineScreen();
+  document.getElementById('onlineHostCodeBtn').click();
+};
+// Join side: a ?join=CODE link, once signed in, goes straight to the Join
+// screen with the code filled in and a banner naming the host (when the
+// lobby can be looked up); the player still taps Join themselves.
+function consumePendingInvite() {
+  if (!pendingInviteCode || !currentProfile) return false;
+  const code = pendingInviteCode;
+  pendingInviteCode = null;
+  try {
+    const u = new URL(location.href);
+    u.searchParams.delete('join');
+    if (/(^|[#&])join=/.test(u.hash)) u.hash = '';
+    // window.history, not `history`: the game's own move-history array shadows it here
+    window.history.replaceState(null, '', u.pathname + u.search + u.hash);
+  } catch (e) { /* cosmetic only */ }
+  openOnlineScreen();
+  document.getElementById('onlineCodeInput').value = code;
+  const banner = document.getElementById('onlineInviteBanner');
+  const setBanner = (html, warn) => { banner.innerHTML = html; banner.classList.toggle('warn', !!warn); banner.style.display = 'block'; };
+  setBanner('🎉 មិត្តភក្ដិបានអញ្ជើញអ្នក! ចុច "ចូលរួម" ដើម្បីចាប់ផ្ដើម។<br>You\'ve been invited! Tap Join to start.', false);
+  document.getElementById('onlineJoinCodeBtn').classList.add('inviteGlow');
+  Promise.resolve().then(() => window.__oukOnline.peekCode(code)).then((info) => {
+    if (document.getElementById('onlineCodeInput').value !== code) return; // player moved on
+    if (!info) {
+      setBanner('⚠ ការអញ្ជើញនេះលែងបើកហើយ។ សូមសុំតំណថ្មីពីមិត្ត។<br>This invite is no longer open. Ask your friend for a new link.', true);
+    } else if (info.hostName) {
+      const n = String(info.hostName).replace(/[<>&"]/g, '');
+      setBanner('🎉 <b>' + n + '</b> បានអញ្ជើញអ្នក! ចុច "ចូលរួម"។<br><b>' + n + '</b> invited you to play! Tap Join to start.', false);
+    }
+  }).catch(() => { /* lookup is best-effort; the banner above already works */ });
+  return true;
+}
+document.getElementById('startInviteNote').style.display = pendingInviteCode ? 'block' : 'none';
 // Starts a live online game once matched -- mirrors loadGame()'s "enter
 // Play mode with an already-built state" sequence, except the state comes
 // from the match doc rather than localStorage, and every local move from
@@ -16301,6 +16488,9 @@ if (LOGIN_ENABLED) tryAutoResume();
 // console/debug hook (also used by the scripted browser test)
 window.__ouk = {
   state: () => state,
+  // Test-only: the invite-a-friend link helpers (see the invite section).
+  parseInviteCode: (search, hash) => parseInviteCode(search, hash),
+  buildInviteUrl: (code) => buildInviteUrl(code),
   refreshStatus: () => refreshStatus(),
   // Test-only entry point into online mode without a real Firestore match
   // (used by the local Playwright harness, where Firebase is stubbed out).
