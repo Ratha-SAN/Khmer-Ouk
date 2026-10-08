@@ -8860,7 +8860,9 @@ function buildReal2Piece(g, add, type, promoted, color) {
     }
   }
   if (promoted) add(new THREE.TorusGeometry(0.255, 0.03, 10, 28), 0.12, MAT_GOLD).rotation.x = Math.PI / 2;
-  if (color === E.BLACK) g.rotation.y = Math.PI;
+  // The horse head is lofted toward +z, which is each side's own back rank
+  // (White sits at +z); turn it half a circle so it looks at the opponent.
+  if ((color === E.BLACK) !== (type === E.KNIGHT)) g.rotation.y = Math.PI;
   return g;
 }
 
@@ -14684,8 +14686,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.16';
+const APP_VERSION = '1.6.17';
 const WHATS_NEW = [
+  {
+    version: '1.6.17',
+    date: '2026-10-09',
+    title: { kh: 'កែសេះក្នុង «Real 2»', en: 'Real 2 horses now face forward' },
+    items: [
+      { kh: 'សេះក្នុងរចនាបថ «Real 2» ធ្លាប់បែរក្រោយ (បែរមកខាងខ្លួនឯង)។ ឥឡូវវាបែរមុខទៅរកគូប្រកួតត្រឹមត្រូវហើយ ទាំងសងខាង។',
+        en: 'The horses in the "Real 2" piece style used to face backward (toward their own side). They now face the opponent, for both colours.' }
+    ]
+  },
   {
     version: '1.6.16',
     date: '2026-10-09',
