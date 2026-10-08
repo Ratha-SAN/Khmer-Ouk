@@ -2591,6 +2591,7 @@
       <option value="minimal">Piece style: Modern Minimal</option>
       <option value="khmer">Piece style: Khmer Traditional — ខ្មែរបុរាណ</option>
       <option value="real1">Piece style: Real 1 — ពិតប្រាកដ ១</option>
+      <option value="real2">Piece style: Real 2 — ពិតប្រាកដ ២</option>
       <option value="pixel">Piece style: Pixel Voxel</option>
       <option value="angkor">Piece style: Angkor Towers — ប្រាសាទអង្គរ</option>
       <option value="naga">Piece style: Naga — នាគ</option>
@@ -5740,6 +5741,7 @@ function buildPiece(type, color, promoted, seed) {
   if (style === 'pixel' || style === 'mario' || style === 'contra') return buildVoxelPiece(g, add, type, promoted, color);
   if (style === 'khmer') return buildKhmerPiece(g, add, type, promoted, color);
   if (style === 'real1') return buildReal1Piece(g, add, type, promoted, color);
+  if (style === 'real2') return buildReal2Piece(g, add, type, promoted, color);
   if (style === 'crystal') return buildCrystalPiece(g, add, type, promoted, color);
   if (style === 'girly') return buildGemPiece(g, add, type, promoted, color);
   if (style === 'kids') return buildKidsPiece(g, add, type, promoted, color);
@@ -8740,6 +8742,128 @@ function buildReal1Piece(g, add, type, promoted, color) {
   return g;
 }
 
+// "Real 2" piece set, modelled on the turned-wood sets played every day in
+// Cambodia: each piece is a stacked base, a short vase stem and a collar
+// under a round ball, and the pieces differ by what sits on the ball -- a
+// tall tiered spire (Ouk), a shorter tiered spire (Koul), an onion bud
+// (Neang) or a small knob (Tuuk). The Seh is a carved horse head with an
+// arched neck and mane, and the Trey is a flat turned disc with ring
+// grooves, like a draughts piece.
+function buildReal2Piece(g, add, type, promoted, color) {
+  const V2 = (r, y) => new THREE.Vector2(Math.max(0, r), y);
+  const lathe = (pts, seg) => add(new THREE.LatheGeometry(pts.map((p) => V2(p[0], p[1])), seg || 40), 0);
+  const disc = (rTop, rBot, y0, h) => add(new THREE.CylinderGeometry(rTop, rBot, h, 40), y0 + h / 2);
+  const ball = (r, yc, sy) => { const m = add(new THREE.SphereGeometry(r, 40, 24), yc); if (sy) m.scale.y = sy; return m; };
+  const tier = (r, yc) => ball(r, yc, 0.55);
+  // wide turned foot with a rounded lip and a step, shared by all but the Trey
+  const foot = () => lathe([[0, 0], [0.285, 0], [0.3, 0.012], [0.302, 0.06], [0.29, 0.085], [0.255, 0.1], [0.25, 0.105], [0.25, 0.12], [0.23, 0.14], [0, 0.14]]);
+  // vase-shaped stem between y0 and y1
+  const stem = (y0, y1, rBot, rMid, rTop) => lathe([[0, y0], [rBot, y0], [rMid, (y0 + y1) / 2], [rTop, y1], [0, y1]].concat([]), 32);
+  // smooth swept body: side-profile control points [z, y] with half-width
+  // (x) and half-depth radii, swept as elliptical rings along the curve
+  const loft = (ctrl, rx, rd, y0, nU, nV) => {
+    nU = nU || 48; nV = nV || 28;
+    const curve = new THREE.CatmullRomCurve3(ctrl.map((p) => new THREE.Vector3(0, p[1] + y0, p[0])));
+    const lerpArr = (arr, t) => { const f = t * (arr.length - 1); const k = Math.min(arr.length - 2, Math.floor(f)); const u = f - k; const s = u * u * (3 - 2 * u); return arr[k] + (arr[k + 1] - arr[k]) * s; };
+    const pos = [], idx = [];
+    for (let i = 0; i <= nU; i++) {
+      const t = i / nU;
+      const P = curve.getPoint(t), T = curve.getTangent(t);
+      const nY = -T.z, nZ = T.y; // in-plane normal
+      const a = lerpArr(rx, t), b = lerpArr(rd, t);
+      for (let j = 0; j < nV; j++) {
+        const th = (j / nV) * Math.PI * 2;
+        pos.push(Math.cos(th) * a, P.y + Math.sin(th) * b * nY, P.z + Math.sin(th) * b * nZ);
+      }
+    }
+    for (let i = 0; i < nU; i++) for (let j = 0; j < nV; j++) {
+      const a = i * nV + j, b2 = i * nV + (j + 1) % nV, c = (i + 1) * nV + j, d = (i + 1) * nV + (j + 1) % nV;
+      idx.push(a, c, b2, b2, c, d);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const mesh = add(geo, 0);
+    // rounded end caps
+    const capAt = (t, a, b) => { const P = curve.getPoint(t); const s = add(new THREE.SphereGeometry(1, 24, 16), P.y); s.position.z = P.z; s.scale.set(a, b, b); return s; };
+    capAt(1, rx[rx.length - 1], rd[rd.length - 1]);
+    return { mesh, curve };
+  };
+  if (type !== E.PAWN) foot();
+  switch (type) {
+    case E.KING: { // Ouk: tallest, ball under a four-tier spire
+      const o = 0.1;
+      disc(0.21, 0.23, 0.14, 0.05);
+      stem(0.19, 0.34 + o, 0.14, 0.095, 0.12);
+      disc(0.17, 0.165, 0.34 + o, 0.04); disc(0.11, 0.12, 0.38 + o, 0.02);
+      ball(0.17, 0.56 + o);
+      disc(0.08, 0.09, 0.72 + o, 0.035);
+      tier(0.1, 0.8 + o); tier(0.085, 0.875 + o); tier(0.07, 0.95 + o); tier(0.055, 1.02 + o);
+      add(new THREE.ConeGeometry(0.04, 0.13, 24), 1.1 + o);
+      ball(0.02, 1.17 + o);
+      break;
+    }
+    case E.BISHOP: { // Koul: smaller ball under a three-tier spire
+      const o = 0.08;
+      disc(0.2, 0.22, 0.14, 0.04);
+      stem(0.18, 0.3 + o, 0.12, 0.085, 0.11);
+      disc(0.16, 0.155, 0.3 + o, 0.035);
+      ball(0.145, 0.475 + o);
+      disc(0.07, 0.08, 0.61 + o, 0.03);
+      tier(0.085, 0.68 + o); tier(0.07, 0.745 + o); tier(0.055, 0.805 + o);
+      add(new THREE.ConeGeometry(0.035, 0.1, 24), 0.88 + o);
+      ball(0.018, 0.935 + o);
+      break;
+    }
+    case E.QUEEN: { // Neang: ball under a rounded onion bud
+      const o = 0.06;
+      disc(0.2, 0.22, 0.14, 0.04);
+      stem(0.18, 0.27 + o, 0.12, 0.085, 0.11);
+      disc(0.15, 0.145, 0.27 + o, 0.035);
+      ball(0.13, 0.43 + o);
+      disc(0.06, 0.07, 0.55 + o, 0.025);
+      ball(0.085, 0.64 + o, 1.25);
+      add(new THREE.ConeGeometry(0.03, 0.08, 20), 0.775 + o);
+      break;
+    }
+    case E.ROOK: { // Tuuk: shortest, a squat ball with a small knob
+      const o = 0.03;
+      disc(0.2, 0.22, 0.14, 0.04);
+      stem(0.18, 0.22 + o, 0.13, 0.11, 0.13);
+      disc(0.165, 0.16, 0.22 + o, 0.03);
+      ball(0.165, 0.39 + o, 0.92);
+      disc(0.05, 0.06, 0.53 + o, 0.025);
+      ball(0.042, 0.585 + o);
+      break;
+    }
+    case E.KNIGHT: { // Seh: carved horse head with an arched neck, facing forward
+      lathe([[0, 0.14], [0.22, 0.14], [0.215, 0.18], [0.19, 0.22], [0, 0.22]]);
+      const y0 = 0.25;
+      loft([[0.0, -0.035], [0.0, 0.165], [-0.02, 0.33], [0.0, 0.472], [0.05, 0.566], [0.13, 0.555], [0.21, 0.472], [0.27, 0.389], [0.29, 0.354]],
+        [0.14, 0.13, 0.113, 0.103, 0.097, 0.086, 0.076, 0.067, 0.054],
+        [0.195, 0.184, 0.151, 0.13, 0.119, 0.108, 0.092, 0.078, 0.06], y0);
+      // mane ridge down the back of the neck
+      loft([[-0.185, 0.047], [-0.178, 0.236], [-0.135, 0.413], [-0.07, 0.555], [0.01, 0.661]],
+        [0.04, 0.04, 0.037, 0.034, 0.03], [0.05, 0.05, 0.045, 0.04, 0.035], y0, 32, 16);
+      for (const sx of [-1, 1]) {
+        const ear = add(new THREE.ConeGeometry(0.032, 0.12, 12), y0 + 0.73);
+        ear.position.set(sx * 0.048, y0 + 0.73, 0.04); ear.rotation.x = -0.15; ear.rotation.z = -sx * 0.12;
+        add(new THREE.SphereGeometry(0.018, 10, 8), 0, MAT_REAL_DARK).position.set(sx * 0.084, y0 + 0.59, 0.13);
+        add(new THREE.SphereGeometry(0.012, 8, 6), 0, MAT_REAL_DARK).position.set(sx * 0.03, y0 + 0.365, 0.335);
+      }
+      break;
+    }
+    case E.PAWN: { // Trey: a flat turned disc with ring grooves on top
+      lathe([[0, 0.18], [0.07, 0.18], [0.08, 0.1704], [0.09, 0.18], [0.16, 0.18], [0.17, 0.1704], [0.18, 0.18], [0.245, 0.1776], [0.275, 0.1656], [0.292, 0.138], [0.298, 0.09], [0.292, 0.042], [0.275, 0.012], [0.255, 0.0], [0, 0.0]].reverse(), 48);
+      break;
+    }
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.255, 0.03, 10, 28), 0.12, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
 const pieceGroup = new THREE.Group();
 scene.add(pieceGroup);
 let pieceAt = {};
@@ -8795,7 +8919,8 @@ const PIECE_TOP_Y = {
 // Per-style overrides for sets whose silhouettes differ a lot from the
 // traditional heights above.
 const PIECE_TOP_Y_BY_STYLE = {
-  real1: { [E.KING]: 1.37, [E.QUEEN]: 0.97, [E.BISHOP]: 0.87, [E.KNIGHT]: 1.15, [E.ROOK]: 0.64, [E.PAWN]: 0.33 }
+  real1: { [E.KING]: 1.37, [E.QUEEN]: 0.97, [E.BISHOP]: 0.87, [E.KNIGHT]: 1.15, [E.ROOK]: 0.64, [E.PAWN]: 0.33 },
+  real2: { [E.KING]: 1.3, [E.QUEEN]: 0.9, [E.BISHOP]: 1.04, [E.KNIGHT]: 1.1, [E.ROOK]: 0.67, [E.PAWN]: 0.19 }
 };
 function labelY(type) {
   // "tip" raised 10% higher above the piece's own top; "base" lowered a
@@ -9751,7 +9876,7 @@ function updatePieceMaterialTexture() {
     return;
   }
   const style = pieceStyle();
-  const plain = ['traditional', 'carved', 'minimal', 'khmer', 'real1'].includes(style);
+  const plain = ['traditional', 'carved', 'minimal', 'khmer', 'real1', 'real2'].includes(style);
   const entries = [
     [MAT_W, 'ppW', pieceRealColorW], [MAT_B, 'ppB', pieceRealColorB],
     [MAT_BASE_W, 'ppBaseW', pieceRealColorW], [MAT_BASE_B, 'ppBaseB', pieceRealColorB],
@@ -14559,8 +14684,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.15';
+const APP_VERSION = '1.6.16';
 const WHATS_NEW = [
+  {
+    version: '1.6.16',
+    date: '2026-10-09',
+    title: { kh: 'រចនាបថកូនអុកថ្មី «Real 2»', en: 'New piece style: Real 2' },
+    items: [
+      { kh: 'ជ្រើសរើស «Real 2» ក្នុងម៉ឺនុយរចនាបថកូនអុក៖ កូនអុកឈើក្រឡឹងដូចក្តាអុកខ្មែរដែលគេលេងរាល់ថ្ងៃ — មូលជាបាល់លើកំណល់ ហើយអុក គោល នាង ទូក ខុសគ្នាដោយកំពូលជាន់ៗ ឬពន្លក។ សេះជាក្បាលសេះឆ្លាក់ ហើយត្រីជាថាសក្រឡឹងមានស្នាមរង្វង់។',
+        en: 'Pick "Real 2" in the Piece style menu: turned-wood pieces like the sets played every day in Cambodia -- a round ball on a vase stem, with Ouk, Koul, Neang and Tuuk told apart by a tiered spire, a bud or a knob. The Seh is a carved horse head and the Trey a flat turned disc with ring grooves.' }
+    ]
+  },
   {
     version: '1.6.15',
     date: '2026-10-08',
