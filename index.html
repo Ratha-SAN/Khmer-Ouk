@@ -2585,14 +2585,14 @@
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
-      <option value="auto" selected>Piece style: matches theme</option>
+      <option value="auto">Piece style: matches theme</option>
       <option value="traditional">Piece style: Classic Turned</option>
       <option value="carved">Piece style: Carved Angular</option>
       <option value="minimal">Piece style: Modern Minimal</option>
       <option value="khmer">Piece style: Khmer Traditional — ខ្មែរបុរាណ</option>
       <option value="real1">Piece style: Real 1 — ពិតប្រាកដ ១</option>
       <option value="real2">Piece style: Real 2 — ពិតប្រាកដ ២</option>
-      <option value="khmerorig">Piece style: Original Khmer — ខ្មែរដើម</option>
+      <option value="khmerorig" selected>Piece style: Original Khmer — ខ្មែរដើម</option>
       <option value="pixel">Piece style: Pixel Voxel</option>
       <option value="angkor">Piece style: Angkor Towers — ប្រាសាទអង្គរ</option>
       <option value="naga">Piece style: Naga — នាគ</option>
@@ -4798,8 +4798,9 @@ const THEMES = {
 };
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
-// piece style is independent of the board theme; 'auto' follows the theme's own style
-let pieceStyleOverride = 'auto';
+// piece style is independent of the board theme; 'auto' follows the theme's own style.
+// Original Khmer is the default (the first-run choice in the Piece style menu).
+let pieceStyleOverride = 'khmerorig';
 const pieceStyle = () => pieceStyleOverride === 'auto' ? theme().style : pieceStyleOverride;
 
 // ---------- analytics ----------
@@ -5743,7 +5744,7 @@ function buildPiece(type, color, promoted, seed) {
   if (style === 'khmer') return buildKhmerPiece(g, add, type, promoted, color);
   if (style === 'real1') return buildReal1Piece(g, add, type, promoted, color);
   if (style === 'real2') return buildReal2Piece(g, add, type, promoted, color);
-  if (style === 'khmerorig') return buildOriginalKhmerPiece(g, add, type, promoted, color);
+  if (style === 'khmerorig') return buildOriginalKhmerPiece(g, add, type, promoted, color, seed);
   if (style === 'crystal') return buildCrystalPiece(g, add, type, promoted, color);
   if (style === 'girly') return buildGemPiece(g, add, type, promoted, color);
   if (style === 'kids') return buildKidsPiece(g, add, type, promoted, color);
@@ -8928,12 +8929,74 @@ function okGeometry(name) {
   if (!okGeoCache[name]) okGeoCache[name] = okMesh(name, 50);
   return okGeoCache[name];
 }
-function buildOriginalKhmerPiece(g, add, type, promoted, color) {
+// Original Khmer has its own wood finishes, independent of the board theme:
+// White is golden boxwood with a faint rosy tint, Black is ebony. Grain runs along the piece (the
+// UVs are planar, so a vertical streak is a lengthwise grain line).
+let okMatCache = null;
+function okWoodTexture(base, streakA, streakB, seedBase, bend, accent) {
+  bend = bend || 0;
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const ctx = cv.getContext('2d');
+  let seed = seedBase; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; // fixed seed: same grain every load
+  ctx.fillStyle = base; ctx.fillRect(0, 0, S, S);
+  // one shared slow wave so neighbouring streaks bend together like real grain
+  const f1 = 0.6 + rnd() * 1.4, p1 = rnd() * 6.28, f2 = 1.5 + rnd() * 2, p2 = rnd() * 6.28;
+  const wander = (y) => bend * (Math.sin(y / S * 6.28 * f1 + p1) * 26 + Math.sin(y / S * 6.28 * f2 + p2) * 9);
+  // broad soft bands (curved by the same wave), then fine streaks
+  for (let i = 0; i < 9; i++) {
+    const x0 = rnd() * S, w = 10 + rnd() * 34, col = (accent && i % 3 === 0) ? accent : (rnd() < 0.5 ? streakA : streakB);
+    for (let y = -4; y < S; y += 8) {
+      const x = x0 + wander(y);
+      const g = ctx.createLinearGradient(x - w, 0, x + w, 0);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(x - w, y, w * 2, 9);
+    }
+  }
+  ctx.filter = 'blur(0.6px)';
+  for (let i = 0; i < 70; i++) {
+    ctx.strokeStyle = (accent && i % 4 === 0) ? accent : (rnd() < 0.5 ? streakA : streakB); ctx.lineWidth = 0.5 + rnd() * 1.6;
+    const x0 = rnd() * S, drift = (rnd() - 0.5) * bend * 30;
+    ctx.beginPath(); ctx.moveTo(x0 + wander(-5), -5);
+    for (let y = 8; y < S + 10; y += 10) ctx.lineTo(x0 + wander(y) + drift * (y / S) + (rnd() - 0.5) * 2, y);
+    ctx.stroke();
+  }
+  ctx.filter = 'none';
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  return tex;
+}
+const OK_WHITE_VARIANTS = 10;
+function okMaterial(color, seed) {
+  if (!okMatCache) {
+    okMatCache = { white: [], [E.BLACK]: new THREE.MeshPhysicalMaterial({ map: okWoodTexture('#020202', 'rgba(70,50,32,0.156)', 'rgba(0,0,0,0.21)', 7654321), roughness: 0.4, metalness: 0, clearcoat: 0.18, clearcoatRoughness: 0.35, envMapIntensity: 0.45 }) };
+  }
+  if (color === E.BLACK) return okMatCache[E.BLACK];
+  // White boxwood: a few differently-cut boards. Each variant has its own
+  // streak layout, a grain direction tilted up to ~25 degrees either way, its
+  // own offset and a slightly lighter or darker tone, so neighbouring pieces
+  // never share the same pattern. The piece's square picks the variant.
+  const v = ((seed == null ? 0 : seed) * 7 + 3) % OK_WHITE_VARIANTS;
+  if (!okMatCache.white[v]) {
+    let h = (v + 1) * 2654435761 >>> 0; const r = () => { h = (h * 1664525 + 1013904223) >>> 0; return h / 4294967296; };
+    const tone = (r() - 0.5) * 0.09; // +-4.5% lightness
+    const rose = 0.065 + r() * 0.05; // 6.5-11.5% toward a soft rosewood pink, varying board to board
+    const base = [200, 153, 63].map((c, i) => Math.max(0, Math.min(255, Math.round((c + ([214, 128, 108][i] - c) * rose) * (1 + tone))))).join(',');
+    const tex = okWoodTexture('rgb(' + base + ')', 'rgba(120,76,16,0.096)', 'rgba(250,215,130,0.084)', 1234567 + v * 7919, 0.6 + r() * 0.9, 'rgba(212,104,100,0.15)');
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.center.set(0.5, 0.5);
+    tex.rotation = (r() - 0.5) * 2.4; // about +-70 degrees
+    tex.repeat.set((r() < 0.5 ? -1 : 1) * (0.7 + r() * 0.9), 0.8 + r() * 0.8); // mirrored / stretched
+    tex.offset.set(r(), r());
+    okMatCache.white[v] = new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.36, metalness: 0, clearcoat: 0.3, clearcoatRoughness: 0.3 });
+  }
+  return okMatCache.white[v];
+}
+
+function buildOriginalKhmerPiece(g, add, type, promoted, color, seed) {
   // A Trey that reaches the far end is turned over (a flipped bia, the
   // hollow-topped disc in the model) and moves as a Neang from then on.
   const name = (promoted && type === E.QUEEN) ? 'PROMOTED'
     : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
-  const mesh = add(okGeometry(name), 0);
+  const mesh = add(okGeometry(name), 0, okMaterial(color, seed));
   mesh.scale.setScalar(4.6);
   if (name === 'PROMOTED') g.userData.labelTopY = 0.25;
   if (type === E.KNIGHT) mesh.rotation.y = -Math.PI / 2; // the model's horse looks toward -x; turn it toward the opponent (-z for White)
@@ -14763,8 +14826,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.20';
+const APP_VERSION = '1.6.21';
 const WHATS_NEW = [
+  {
+    version: '1.6.21',
+    date: '2026-10-10',
+    title: { kh: '«Original Khmer» ជាកូនអុកលំនាំដើម និងឈើថ្មី', en: 'Original Khmer is now the default pieces, with new wood' },
+    items: [
+      { kh: 'កូនអុក «Original Khmer» ឥឡូវជាលំនាំដើមសម្រាប់អ្នកលេងគ្រប់គ្នា។ អ្នកនៅតែអាចប្តូរទៅរចនាបថផ្សេង ឬ «តាមស្បែក» (matches theme) បាននៅក្នុងម៉ឺនុយរចនាបថកូនអុក។',
+        en: 'The "Original Khmer" pieces are now the default for everyone. You can still switch to any other style, or "matches theme", in the Piece style menu.' },
+      { kh: 'ឈើថ្មី៖ ខាងខ្មៅជាឈើអេបូនីខ្មៅស្រិល ហើយខាងសជាឈើពណ៌មាសមានស្នាមឈើរលក និងលាយពណ៌ផ្កាឈូកស្រាលៗ។ កូនអុកសនីមួយៗមានទិសដៅ និងស្នាមឈើខុសគ្នា។',
+        en: 'New woods: Black is deep ebony, and White is golden boxwood with wavy grain and a faint rosy tint. Every white piece has its own grain direction and pattern.' }
+    ]
+  },
   {
     version: '1.6.20',
     date: '2026-10-10',
