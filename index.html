@@ -8895,6 +8895,16 @@ function okMesh(name, creaseDeg) {
   const n = q.length / 3, P = new Float32Array(q.length);
   const hx = d.half[0], H = d.half[1], hz = d.half[2];
   for (let i = 0; i < n; i++) { P[i * 3] = q[i * 3] / 32767 * hx; P[i * 3 + 1] = (q[i * 3 + 1] + 32767) / 65534 * H; P[i * 3 + 2] = q[i * 3 + 2] / 32767 * hz; }
+  if (name === 'KNIGHT') {
+    // Widen the upper neck and the head sideways by 40% (the model's z axis). The chest
+    // and the lower neck, where it joins the body, keep their size: the effect fades in
+    // from y 0.115 and is complete by y 0.155, above the point where the neck narrows.
+    const y0 = 0.115, y1 = 0.155;
+    for (let i = 0; i < n; i++) {
+      const t = Math.min(1, Math.max(0, (P[i * 3 + 1] - y0) / (y1 - y0))), k = t * t * (3 - 2 * t);
+      P[i * 3 + 2] *= 1 + 0.4 * k;
+    }
+  }
   const nf = ix.length / 3, fn = new Float32Array(nf * 3), inc = Array.from({ length: n }, () => []);
   for (let f = 0; f < nf; f++) {
     const a = ix[f * 3], b = ix[f * 3 + 1], c = ix[f * 3 + 2];
@@ -8967,7 +8977,7 @@ function okWoodTexture(base, streakA, streakB, seedBase, bend, accent) {
 const OK_WHITE_VARIANTS = 10;
 function okMaterial(color, seed) {
   if (!okMatCache) {
-    okMatCache = { white: [], [E.BLACK]: new THREE.MeshPhysicalMaterial({ map: okWoodTexture('#020202', 'rgba(70,50,32,0.156)', 'rgba(0,0,0,0.21)', 7654321), roughness: 0.4, metalness: 0, clearcoat: 0.18, clearcoatRoughness: 0.35, envMapIntensity: 0.45 }) };
+    okMatCache = { white: [], [E.BLACK]: new THREE.MeshPhysicalMaterial({ map: okWoodTexture('#1b1714', 'rgba(70,50,32,0.156)', 'rgba(0,0,0,0.21)', 7654321), roughness: 0.4, metalness: 0, clearcoat: 0.18, clearcoatRoughness: 0.35, envMapIntensity: 0.45 }) };
   }
   if (color === E.BLACK) return okMatCache[E.BLACK];
   // White boxwood: a few differently-cut boards. Each variant has its own
@@ -8980,7 +8990,7 @@ function okMaterial(color, seed) {
     const tone = (r() - 0.5) * 0.09; // +-4.5% lightness
     const rose = 0.065 + r() * 0.05; // 6.5-11.5% toward a soft rosewood pink, varying board to board
     const base = [200, 153, 63].map((c, i) => Math.max(0, Math.min(255, Math.round((c + ([214, 128, 108][i] - c) * rose) * (1 + tone))))).join(',');
-    const tex = okWoodTexture('rgb(' + base + ')', 'rgba(120,76,16,0.096)', 'rgba(250,215,130,0.084)', 1234567 + v * 7919, 0.6 + r() * 0.9, 'rgba(212,104,100,0.15)');
+    const tex = okWoodTexture('rgb(' + base + ')', 'rgba(120,76,16,0.0672)', 'rgba(250,215,130,0.0588)', 1234567 + v * 7919, 0.6 + r() * 0.9, 'rgba(212,104,100,0.105)');
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.center.set(0.5, 0.5);
     tex.rotation = (r() - 0.5) * 2.4; // about +-70 degrees
@@ -14826,8 +14836,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.21';
+const APP_VERSION = '1.6.22';
 const WHATS_NEW = [
+  {
+    version: '1.6.22',
+    date: '2026-10-10',
+    title: { kh: 'សេះទូលាយជាងមុន និងឈើទន់ភ្លន់ជាងមុន', en: 'Broader horse head and softer woods' },
+    items: [
+      { kh: 'សេះក្នុង «Original Khmer»៖ កផ្នែកខាងលើ និងក្បាល ទូលាយជាងមុន ៤០% ទៅសងខាង ចំណែកតួ និងផ្នែកក្រោមកដែលភ្ជាប់នឹងតួមិនប្រែប្រួលទេ។',
+        en: 'In "Original Khmer" the horse\'s upper neck and head are 40% wider sideways; the body and the lower neck where it joins it are unchanged.' },
+      { kh: 'ស្នាមឈើលើកូនអុកសស្រាលជាងមុន ៣០% ហើយឈើខាងខ្មៅខ្មៅតិចជាងមុន ១០%។',
+        en: 'The white wood pattern is 30% fainter, and the black wood is 10% less black.' }
+    ]
+  },
   {
     version: '1.6.21',
     date: '2026-10-10',
