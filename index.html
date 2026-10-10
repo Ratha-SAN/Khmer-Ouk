@@ -2585,14 +2585,14 @@
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
-      <option value="auto">Piece style: matches theme</option>
+      <option value="auto" selected>Piece style: matches theme</option>
       <option value="traditional">Piece style: Classic Turned</option>
       <option value="carved">Piece style: Carved Angular</option>
       <option value="minimal">Piece style: Modern Minimal</option>
       <option value="khmer">Piece style: Khmer Traditional — ខ្មែរបុរាណ</option>
       <option value="real1">Piece style: Real 1 — ពិតប្រាកដ ១</option>
       <option value="real2">Piece style: Real 2 — ពិតប្រាកដ ២</option>
-      <option value="khmerorig" selected>Piece style: Original Khmer — ខ្មែរដើម</option>
+      <option value="khmerorig">Piece style: Original Khmer — ខ្មែរដើម</option>
       <option value="pixel">Piece style: Pixel Voxel</option>
       <option value="angkor">Piece style: Angkor Towers — ប្រាសាទអង្គរ</option>
       <option value="naga">Piece style: Naga — នាគ</option>
@@ -3918,6 +3918,8 @@ const NAMES = {
 const THEMES = {
   wood: {
     name: 'Classic Wood', style: 'traditional',
+    // the Original theme's own pieces: the Original Khmer set (style stays 'traditional' for sound effects)
+    pieceStyle: 'khmerorig',
     bg: 0x15100a, fog: null,
     frame: 0x3d2410, tileLight: 0xdec48f, tileDark: 0x9a6633,
     pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.45, metal: 0.05,
@@ -4798,10 +4800,12 @@ const THEMES = {
 };
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
-// piece style is independent of the board theme; 'auto' follows the theme's own style.
-// Original Khmer is the default (the first-run choice in the Piece style menu).
-let pieceStyleOverride = 'khmerorig';
-const pieceStyle = () => pieceStyleOverride === 'auto' ? theme().style : pieceStyleOverride;
+// piece style is independent of the board theme; 'auto' follows the theme's own pieces
+// (theme.pieceStyle if it has one -- the Original theme uses the Original Khmer set -- else
+// theme.style). Picking a theme resets this to 'auto', so every theme loads with its own
+// pieces; the Piece style menu can still override them afterwards.
+let pieceStyleOverride = 'auto';
+const pieceStyle = () => pieceStyleOverride === 'auto' ? (theme().pieceStyle || theme().style) : pieceStyleOverride;
 
 // ---------- analytics ----------
 // window.__oukTrack is the Firebase-backed sender defined in <head> (a
@@ -10323,6 +10327,9 @@ function applyTheme(key) {
 // must never yank the user's music choice back on its own).
 const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5', yantra: 'khmer6', orbs: 'arcade6' };
 document.getElementById('themeSel').onchange = (e) => {
+  // every theme loads with its own pieces: drop any manual piece-style choice
+  pieceStyleOverride = 'auto';
+  document.getElementById('pieceStyleSel').value = 'auto';
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
   if (track) {
@@ -14870,8 +14877,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.23';
+const APP_VERSION = '1.6.24';
 const WHATS_NEW = [
+  {
+    version: '1.6.24',
+    date: '2026-10-11',
+    title: { kh: 'ប្រភេទស្បែកក្តាអុក៖ ដើម និងច្នៃប្រឌិត', en: 'Themes now in two categories: Original and Custom' },
+    items: [
+      { kh: 'ស្បែកក្តាអុកត្រូវបានរៀបជា ២ ប្រភេទ៖ «ដើម Original» (ក្តាឈើបុរាណ និងកូនអុក Original Khmer ជាលំនាំដើម) និង «ច្នៃប្រឌិត Custom» (ស្បែកផ្សេងៗទាំងអស់)។',
+        en: 'Board themes are now grouped into two categories: "Original" (the classic wood board with the Original Khmer pieces, the default) and "Custom" (every other theme).' },
+      { kh: 'រាល់ស្បែកនីមួយៗឥឡូវផ្ទុកជាមួយកូនអុករបស់វាផ្ទាល់។ អ្នកនៅតែអាចជ្រើសរើសរចនាបថកូនអុកផ្សេងបាននៅក្នុងម៉ឺនុយរចនាបថកូនអុក។',
+        en: 'Every theme now loads with its own pieces. You can still pick a different piece style in the Piece style menu afterwards.' }
+    ]
+  },
   {
     version: '1.6.23',
     date: '2026-10-10',
@@ -16784,13 +16802,8 @@ function applyAccessTier() {
 // (not reordered for guests the way themeSel's own option order is) since
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
-  { key: 'khmer', label: 'ខ្មែរបុរាណ Khmer Heritage', themes: ['wood', 'stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d', 'yantra'] },
-  { key: 'fantasy', label: 'វេទមន្ត Fantasy', themes: ['magic', 'magic2', 'magicorb', 'avatar', 'atla', 'gems'] },
-  { key: 'scifi', label: 'អនាគត Sci-Fi & Future', themes: ['scifi', 'starwars', 'anno', 'transformers', 'modern', 'galactic'] },
-  { key: 'arcade', label: 'អាកាដ Arcade & Retro', themes: ['mario', 'contra', 'pvz', 'pixel'] },
-  { key: 'elegant', label: 'ប្រណីត Elegant & Minimal', themes: ['glass', 'marble', 'sofisticate', 'ios', 'night'] },
-  { key: 'playful', label: 'កុមារ Playful & Kids', themes: ['girlyPink', 'girlyPurple', 'girlyYellow', 'kids', 'orbs'] },
-  { key: 'nature', label: 'ធម្មជាតិ Nature & Scenic', themes: ['painting', 'nature'] }
+  { key: 'original', label: 'ដើម Original', themes: ['wood'] },
+  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d', 'yantra', 'magic', 'magic2', 'magicorb', 'avatar', 'atla', 'gems', 'scifi', 'starwars', 'anno', 'transformers', 'modern', 'galactic', 'mario', 'contra', 'pvz', 'pixel', 'glass', 'marble', 'sofisticate', 'ios', 'night', 'girlyPink', 'girlyPurple', 'girlyYellow', 'kids', 'orbs', 'painting', 'nature'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
 let openThemeCatKey = null;
@@ -17224,6 +17237,7 @@ window.__ouk = {
   tileColorsUniform: () => new Set(squareMeshes.map(m => m.userData.baseColor)).size === 1,
   gridVisible: () => gridOverlayMesh.visible,
   pieceStyle: () => pieceStyleOverride,
+  pieceStyleEffective: () => pieceStyle(),
   resolvedPieceStyle: () => pieceStyle(),
   audioReady: () => !!audioCtx,
   musicPlaying: () => musicPlaying,
