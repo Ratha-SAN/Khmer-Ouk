@@ -2583,6 +2583,7 @@
       <option value="sbek">Sbek Thom — ស្បែកធំ</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
+      <option value="okWood">Original Classic White &amp; Brown — ឈើបុរាណ ស-ត្នោត</option>
       <option value="okGems">Original Gold &amp; Amethyst — មាស និងត្បូង</option>
       <option value="okNaga">Original Jade — មរកត</option>
       <option value="okNight">Original Night — ទំនើបយប់</option>
@@ -4807,7 +4808,8 @@ const THEMES = {
 // set painted in those colours (okThemeColors -- unlike the default Original theme, whose
 // pieces keep their own boxwood and ebony finish). reflectOpacity is pinned because the
 // per-theme gloss table is keyed by theme key.
-[['okGems', 'gems', 'Original Gold & Amethyst — មាស និងត្បូង', null],
+[['okWood', 'wood', 'Original Classic White & Brown — ឈើបុរាណ ស-ត្នោត', 0.14],
+ ['okGems', 'gems', 'Original Gold & Amethyst — មាស និងត្បូង', null],
  ['okNaga', 'naga', 'Original Jade — មរកត', null],
  ['okNight', 'night', 'Original Night — ទំនើបយប់', 0.2],
  ['okStone', 'stone', 'Original Stone — ថ្មអង្គរ', 0.12]].forEach(([key, src, name, refl]) => {
@@ -14894,8 +14896,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.25';
+const APP_VERSION = '1.6.26';
 const WHATS_NEW = [
+  {
+    version: '1.6.26',
+    date: '2026-10-11',
+    title: { kh: 'ស្បែក «Original Classic» ពណ៌ស និងត្នោត', en: 'New Original theme: Classic White & Brown' },
+    items: [
+      { kh: 'ប្រភេទ «ដើម Original» មានស្បែកថ្មី៖ ក្តាឈើបុរាណ ជាមួយកូនអុក Original Khmer ពណ៌សក្រែម និងពណ៌ត្នោត (ពណ៌ដើមរបស់ឈើបុរាណ)។',
+        en: 'The "Original" category gains a theme with the classic wood board and the Original Khmer pieces in the classic wood\'s own cream-white and brown.' }
+    ]
+  },
   {
     version: '1.6.25',
     date: '2026-10-11',
@@ -16828,7 +16839,7 @@ function applyAccessTier() {
 // (not reordered for guests the way themeSel's own option order is) since
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
-  { key: 'original', label: 'ដើម Original', themes: ['wood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
+  { key: 'original', label: 'ដើម Original', themes: ['wood', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
   { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d', 'yantra', 'magic', 'magic2', 'magicorb', 'avatar', 'atla', 'gems', 'scifi', 'starwars', 'anno', 'transformers', 'modern', 'galactic', 'mario', 'contra', 'pvz', 'pixel', 'glass', 'marble', 'sofisticate', 'ios', 'night', 'girlyPink', 'girlyPurple', 'girlyYellow', 'kids', 'orbs', 'painting', 'nature'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
