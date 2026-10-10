@@ -2547,40 +2547,10 @@
     <div id="themeCatRow" class="themeCatRow"></div>
     <select id="themeSel" style="display:none">
       <option value="wood" selected>Classic Wood — ឈើបុរាណ</option>
-      <option value="stone">Angkor Stone — ថ្មអង្គរ</option>
-      <option value="night">Modern Night — ទំនើបយប់</option>
-      <option value="pixel">Pixel Jungle — ព្រៃភីកសែល</option>
-      <option value="painting">Painted Jungle — គំនូរព្រៃ</option>
-      <option value="magic">Magic — វេទមន្ត</option>
       <option value="magic2">Magic II — វេទមន្តខ្លាំង</option>
-      <option value="magicorb">Magic Orb — កូនកែវវេទមន្ត</option>
-      <option value="orbs">Orbs — កូនកែវល្អឹមល្អែម</option>
       <option value="galactic">Galactic — ចក្រវាឡ</option>
-      <option value="glass">Glass — កញ្ចក់</option>
-      <option value="marble">Marble — ថ្មម៉ាបល</option>
-      <option value="mario">Super Ouk World — ពិភពម៉ារីយ៉ូ</option>
-      <option value="contra">Contra 1988 — ចម្បាំង១៩៨៨</option>
-      <option value="sofisticate">Sofisticate — ទំនើបប្រណីត</option>
-      <option value="girlyPink">Girly Pink — ផ្កាឈូក</option>
-      <option value="girlyPurple">Girly Purple — ស្វាយ</option>
-      <option value="girlyYellow">Girly Yellow — លឿង</option>
-      <option value="kids">Kids Playroom — កុមារ</option>
-      <option value="pvz">Plants vs Zombies — រុក្ខជាតិទល់មនុស្សស្លាប់រស់</option>
-      <option value="avatar">Avatar Vibe — អវតារ</option>
-      <option value="scifi">Sci-Fi Frontier — វិទ្យាសាស្ត្រអនាគត</option>
-      <option value="atla">Last Airbender — អ្នកបញ្ជាខ្យល់</option>
-      <option value="starwars">Star Wars — សង្គ្រាមផ្កាយ</option>
-      <option value="nature">Mountain Valley — ជ្រលងភ្នំ</option>
-      <option value="cambodia">Kingdom of Wonder — នគរដ៏អស្ចារ្យ</option>
       <option value="gems">Gem Blitz — ត្បូងភ្លឺចាំង</option>
-      <option value="anno">ANNO Mutationem — ទីក្រុងអនាគត</option>
-      <option value="transformers">Transformers — មនុស្សយន្តប្រែរូប</option>
-      <option value="ios">iOS Studio — រចនាបថ Apple</option>
       <option value="flat2d">2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
-      <option value="angkor">Angkor Sandstone — ថ្មភ្នំអង្គរ</option>
-      <option value="naga">Naga Jade — នាគមរកត</option>
-      <option value="lacquer">Khmer Lacquer — គ្រឿងខ្មុកខ្មែរ</option>
-      <option value="sbek">Sbek Thom — ស្បែកធំ</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
       <option value="okWood">Original Classic White &amp; Brown — ឈើបុរាណ ស-ត្នោត</option>
@@ -4816,6 +4786,9 @@ const THEMES = {
   THEMES[key] = Object.assign({}, THEMES[src], { name, pieceStyle: 'khmerorig', okThemeColors: true });
   if (refl != null) THEMES[key].reflectOpacity = refl;
 });
+// Custom themes that wear the Original Khmer pieces (painted in the theme's own piece colours);
+// Gem Blitz, Modern Ops and Galactic keep their own distinctive sets.
+['flat2d', 'yantra', 'magic2'].forEach((key) => Object.assign(THEMES[key], { pieceStyle: 'khmerorig', okThemeColors: true }));
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
 // piece style is independent of the board theme; 'auto' follows the theme's own pieces
@@ -14896,8 +14869,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.26';
+const APP_VERSION = '1.6.27';
 const WHATS_NEW = [
+  {
+    version: '1.6.27',
+    date: '2026-10-11',
+    title: { kh: 'បញ្ជីស្បែកសាមញ្ញជាងមុន', en: 'A shorter theme list, and locked themes can be previewed' },
+    items: [
+      { kh: 'ប្រភេទ «ច្នៃប្រឌិត Custom» នៅសល់ ៦ ស្បែក៖ សិល្បៈខ្មែរ 2D, សាក់យន្ត, វេទមន្តII, Gem Blitz, Modern Ops និង Galactic។ ស្បែកដទៃទៀតត្រូវបានដកចេញ។ សិល្បៈខ្មែរ 2D សាក់យន្ត និងវេទមន្តII ប្រើកូនអុក Original Khmer ឥឡូវនេះ។',
+        en: 'The "Custom" category now has six themes: 2D Khmer Art, Sak Yantra, Magic II, Gem Blitz, Modern Ops and Galactic; the others were removed. 2D Khmer Art, Sak Yantra and Magic II now use the Original Khmer pieces.' },
+      { kh: 'ពេលភ្ញៀវជ្រើសស្បែកដែលចាក់សោ ប្រព័ន្ធបង្ហាញសារឲ្យចូលគណនី ហើយនៅតែប្តូរស្បែកឲ្យមើលជាមុន។',
+        en: 'When a guest picks a locked theme, the sign-in notice still appears, and the theme now changes too so it can be previewed.' }
+    ]
+  },
   {
     version: '1.6.26',
     date: '2026-10-11',
@@ -16173,6 +16157,9 @@ function loadGame() {
     document.getElementById('pieceStyleSel').value = pieceStyleOverride;
   }
   if (payload.themeKey && THEMES[payload.themeKey]) {
+    // a theme that is no longer in the picker (removed from the list) falls back to the default one
+    const hasOpt = Array.from(document.getElementById('themeSel').options).some(o => o.value === payload.themeKey);
+    if (!hasOpt) payload.themeKey = 'wood';
     document.getElementById('themeSel').value = payload.themeKey;
     applyTheme(payload.themeKey); // also reapplies khmerBoardStyle tiling
   }
@@ -16775,7 +16762,7 @@ document.getElementById('profileSignOutBtn').onclick = () => {
 const LOGIN_ENABLED = true;
 let accessTier = LOGIN_ENABLED ? 'guest' : 'full'; // 'guest' | 'full'
 const GUEST_SELECT_LIMITS = {
-  themeSel: { free: ['kids', 'mario', 'magic', 'girlyPink'], allowed: 2 },
+  themeSel: { free: ['wood', 'okWood'], allowed: 2 },
   bgSel: { free: ['auto'], allowed: 2 },
   musicSel: { free: ['none'], allowed: 2 }
 };
@@ -16840,7 +16827,7 @@ function applyAccessTier() {
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
   { key: 'original', label: 'ដើម Original', themes: ['wood', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
-  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d', 'yantra', 'magic', 'magic2', 'magicorb', 'avatar', 'atla', 'gems', 'scifi', 'starwars', 'anno', 'transformers', 'modern', 'galactic', 'mario', 'contra', 'pvz', 'pixel', 'glass', 'marble', 'sofisticate', 'ios', 'night', 'girlyPink', 'girlyPurple', 'girlyYellow', 'kids', 'orbs', 'painting', 'nature'] }
+  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
 let openThemeCatKey = null;
@@ -16968,15 +16955,19 @@ document.getElementById('lockPopupSignIn').onclick = openMidSessionLogin;
 // place: the wrapper decides, on every interaction, whether to call
 // through to the original behavior or block it with the lock popup --
 // this stays correct even as accessTier changes later (sign-in mid-session).
-function gateSelect(selId) {
+// previewLocked: a guest picking a locked option still gets the change (a preview) alongside
+// the sign-in warning, instead of the pick being reverted. Used for the theme picker.
+function gateSelect(selId, previewLocked) {
   const sel = document.getElementById(selId);
   const original = sel.onchange;
   let lastGood = sel.value;
   sel.onchange = function (e) {
     if (isSelectValueLocked(selId, sel.value)) {
-      sel.value = lastGood;
       showLockPopup();
-      return;
+      if (!previewLocked) {
+        sel.value = lastGood;
+        return;
+      }
     }
     lastGood = sel.value;
     return original.call(this, e);
@@ -16990,7 +16981,7 @@ function gateButton(btnId) {
     return original.call(this, e);
   };
 }
-Object.keys(GUEST_SELECT_LIMITS).forEach(gateSelect);
+Object.keys(GUEST_SELECT_LIMITS).forEach((id) => gateSelect(id, id === 'themeSel'));
 GUEST_LOCKED_BUTTONS.forEach(gateButton);
 buildThemeCategoryUI();
 applyAccessTier();
