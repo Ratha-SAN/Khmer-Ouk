@@ -2583,6 +2583,10 @@
       <option value="sbek">Sbek Thom — ស្បែកធំ</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
+      <option value="okGems">Original Gold &amp; Amethyst — មាស និងត្បូង</option>
+      <option value="okNaga">Original Jade — មរកត</option>
+      <option value="okNight">Original Night — ទំនើបយប់</option>
+      <option value="okStone">Original Stone — ថ្មអង្គរ</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -4798,6 +4802,18 @@ const THEMES = {
     reflectOpacity: 0.14, modernFx: true
   }
 };
+// Original-category colourways: the Original Khmer pieces on other board looks. Each copies
+// an existing theme's board, lighting and piece colours, but its pieces are the Original Khmer
+// set painted in those colours (okThemeColors -- unlike the default Original theme, whose
+// pieces keep their own boxwood and ebony finish). reflectOpacity is pinned because the
+// per-theme gloss table is keyed by theme key.
+[['okGems', 'gems', 'Original Gold & Amethyst — មាស និងត្បូង', null],
+ ['okNaga', 'naga', 'Original Jade — មរកត', null],
+ ['okNight', 'night', 'Original Night — ទំនើបយប់', 0.2],
+ ['okStone', 'stone', 'Original Stone — ថ្មអង្គរ', 0.12]].forEach(([key, src, name, refl]) => {
+  THEMES[key] = Object.assign({}, THEMES[src], { name, pieceStyle: 'khmerorig', okThemeColors: true });
+  if (refl != null) THEMES[key].reflectOpacity = refl;
+});
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
 // piece style is independent of the board theme; 'auto' follows the theme's own pieces
@@ -9044,7 +9060,8 @@ function buildOriginalKhmerPiece(g, add, type, promoted, color, seed) {
   // hollow-topped disc in the model) and moves as a Neang from then on.
   const name = (promoted && type === E.QUEEN) ? 'PROMOTED'
     : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
-  const mesh = add(okGeometry(name), 0, okMaterial(color, seed));
+  // the Original theme keeps the boxwood / ebony finish; the Original colourways paint the set in the theme's own piece colours
+  const mesh = add(okGeometry(name), 0, theme().okThemeColors ? null : okMaterial(color, seed));
   mesh.scale.setScalar(4.6);
   if (name === 'PROMOTED') g.userData.labelTopY = 0.25;
   if (type === E.KNIGHT) mesh.rotation.y = -Math.PI / 2; // the model's horse looks toward -x; turn it toward the opponent (-z for White)
@@ -10325,7 +10342,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5', yantra: 'khmer6', orbs: 'arcade6' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', okGems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5', yantra: 'khmer6', orbs: 'arcade6' };
 document.getElementById('themeSel').onchange = (e) => {
   // every theme loads with its own pieces: drop any manual piece-style choice
   pieceStyleOverride = 'auto';
@@ -14877,8 +14894,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.24';
+const APP_VERSION = '1.6.25';
 const WHATS_NEW = [
+  {
+    version: '1.6.25',
+    date: '2026-10-11',
+    title: { kh: 'ស្បែកថ្មី ៤ ក្នុងប្រភេទ «ដើម»', en: 'Four new themes in the Original category' },
+    items: [
+      { kh: 'ប្រភេទ «ដើម Original» មានស្បែកថ្មី ៤ ដែលប្រើកូនអុក Original Khmer ជាមួយពណ៌ផ្សេងៗ៖ មាស និងត្បូង, មរកត, ទំនើបយប់ និងថ្មអង្គរ។',
+        en: 'The "Original" category gains four themes that use the Original Khmer pieces in other colourways: Gold & Amethyst, Jade, Night and Stone.' }
+    ]
+  },
   {
     version: '1.6.24',
     date: '2026-10-11',
@@ -16802,7 +16828,7 @@ function applyAccessTier() {
 // (not reordered for guests the way themeSel's own option order is) since
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
-  { key: 'original', label: 'ដើម Original', themes: ['wood'] },
+  { key: 'original', label: 'ដើម Original', themes: ['wood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
   { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d', 'yantra', 'magic', 'magic2', 'magicorb', 'avatar', 'atla', 'gems', 'scifi', 'starwars', 'anno', 'transformers', 'modern', 'galactic', 'mario', 'contra', 'pvz', 'pixel', 'glass', 'marble', 'sofisticate', 'ios', 'night', 'girlyPink', 'girlyPurple', 'girlyYellow', 'kids', 'orbs', 'painting', 'nature'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
