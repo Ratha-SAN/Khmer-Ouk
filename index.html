@@ -9038,6 +9038,8 @@ function buildOriginalKhmerPiece(g, add, type, promoted, color, seed) {
   // the Original theme keeps the boxwood / ebony finish; the Original colourways paint the set in the theme's own piece colours
   const mesh = add(okGeometry(name), 0, theme().okThemeColors ? null : okMaterial(color, seed));
   mesh.scale.setScalar(4.6);
+  // the horse is brought down to exactly the Neang's height (the model has it a little taller)
+  if (type === E.KNIGHT) mesh.scale.y = 4.6 * OK_DATA.QUEEN.half[1] / OK_DATA.KNIGHT.half[1];
   if (name === 'PROMOTED') g.userData.labelTopY = 0.25;
   if (type === E.KNIGHT) mesh.rotation.y = -Math.PI / 2; // the model's horse looks toward -x; turn it toward the opponent (-z for White)
   if (color === E.BLACK) g.rotation.y = Math.PI;
@@ -9101,7 +9103,7 @@ const PIECE_TOP_Y = {
 const PIECE_TOP_Y_BY_STYLE = {
   real1: { [E.KING]: 1.37, [E.QUEEN]: 0.97, [E.BISHOP]: 0.87, [E.KNIGHT]: 1.15, [E.ROOK]: 0.64, [E.PAWN]: 0.33 },
   real2: { [E.KING]: 1.04, [E.QUEEN]: 0.72, [E.BISHOP]: 0.83, [E.KNIGHT]: 0.88, [E.ROOK]: 0.54, [E.PAWN]: 0.19 },
-  khmerorig: { [E.KING]: 1.23, [E.QUEEN]: 1.0, [E.BISHOP]: 0.9, [E.KNIGHT]: 1.02, [E.ROOK]: 0.59, [E.PAWN]: 0.25 }
+  khmerorig: { [E.KING]: 1.23, [E.QUEEN]: 1.0, [E.BISHOP]: 0.9, [E.KNIGHT]: 1.0, [E.ROOK]: 0.59, [E.PAWN]: 0.25 }
 };
 function labelY(type) {
   // "tip" raised 10% higher above the piece's own top; "base" lowered a
@@ -14869,8 +14871,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.27';
+const APP_VERSION = '1.6.28';
 const WHATS_NEW = [
+  {
+    version: '1.6.28',
+    date: '2026-10-11',
+    title: { kh: 'សេះ Original Khmer កម្ពស់ស្មើនាង', en: 'Original Khmer horse now the same height as the Neang' },
+    items: [
+      { kh: 'សេះក្នុងកូនអុក «Original Khmer» ឥឡូវមានកម្ពស់ស្មើនឹងនាង។',
+        en: 'The horse in the "Original Khmer" pieces is now exactly the same height as the Neang.' }
+    ]
+  },
   {
     version: '1.6.27',
     date: '2026-10-11',
