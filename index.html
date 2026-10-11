@@ -2553,6 +2553,7 @@
       <option value="flat2d">2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
+      <option value="okKids">Kids — កុមារ</option>
       <option value="okCartoon">Original Cartoon — គំនូរជីវចល</option>
       <option value="okWood">Original Classic White &amp; Brown — ឈើបុរាណ ស-ត្នោត</option>
       <option value="okGems">Original Gold &amp; Amethyst — មាស និងត្បូង</option>
@@ -4788,6 +4789,12 @@ THEMES.okCartoon = Object.assign({}, THEMES.wood, {
   name: 'Original Cartoon — គំនូរជីវចល', pieceStyle: 'khmerorig', okToon: true,
   bg: 0x26364a, frame: 0x5e3517, tileLight: 0xf2dca6, tileDark: 0xb87a3f,
   pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.9, metal: 0, labelInk: '#fff1cf', tray: 0x4a2a12, reflectOpacity: 0.05
+});
+// Kids: the Original Khmer pieces as bright gemstones on a neutral slate board
+THEMES.okKids = Object.assign({}, THEMES.night, {
+  name: 'Kids — កុមារ', pieceStyle: 'khmerorig', okGem: true,
+  bg: 0x16181d, frame: 0x23262e, tileLight: 0x9aa1ad, tileDark: 0x5b616d, labelInk: '#e4e8ef', tray: 0x1b1d23,
+  pieceW: 0xdfe6f2, pieceB: 0x3a3f4d, reflectOpacity: 0.22
 });
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
@@ -9086,6 +9093,38 @@ function okOutlineGeometry(name, thick) {
   return (okOutlineCache[name] = geo);
 }
 
+// Kids: the Original Khmer pieces as bright gemstones, one stone per rank --
+// ruby Ouk, amethyst Neang, emerald Seh, sapphire Koul, citrine Tuuk, topaz Trey and a clear crystal
+// promoted Trey. White is the bright end of each stone's gradient, Black the deep end.
+const okGemMatCache = {};
+const OK_GEMS = {
+  KING:     { w: 0xe8264e, b: 0x6a0a22 },
+  QUEEN:    { w: 0xa860e6, b: 0x3e1670 },
+  KNIGHT:   { w: 0x2fc858, b: 0x0d5226 },
+  BISHOP:   { w: 0x2f86e8, b: 0x0f3578 },
+  ROOK:     { w: 0xf29a2c, b: 0x8e4208 },
+  PAWN:     { w: 0xf6d546, b: 0x8c6c0a },
+  PROMOTED: { w: 0xeaf2ff, b: 0x4c5568 }
+};
+function okGemMaterial(name, color) {
+  const key = name + (color === E.WHITE ? 'w' : 'b');
+  if (!okGemMatCache[key]) {
+    const c = OK_GEMS[name][color === E.WHITE ? 'w' : 'b'];
+    const clear = name === 'PROMOTED';
+    const tint = new THREE.Color(c);
+    okGemMatCache[key] = new THREE.MeshPhysicalMaterial({
+      color: clear ? 0xffffff : tint, roughness: 0.07, metalness: 0,
+      clearcoat: 1, clearcoatRoughness: 0.05,
+      transmission: clear ? 0.8 : (color === E.WHITE ? 0.3 : 0.18), thickness: 1.0, ior: 1.7,
+      attenuationColor: new THREE.Color(c), attenuationDistance: clear ? 3 : 0.2,
+      emissive: c, emissiveIntensity: color === E.WHITE ? 0.2 : 0.16, envMapIntensity: 1.3,
+      specularIntensity: 1, iridescence: clear ? 0.4 : 0
+    });
+
+  }
+  return okGemMatCache[key];
+}
+
 function buildOriginalKhmerPiece(g, add, type, promoted, color, seed) {
   // A Trey that reaches the far end is turned over (a flipped bia, the
   // hollow-topped disc in the model) and moves as a Neang from then on.
@@ -9093,7 +9132,7 @@ function buildOriginalKhmerPiece(g, add, type, promoted, color, seed) {
     : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
   // the Original theme keeps the boxwood / ebony finish; the Original colourways paint the set in the theme's own piece colours
   const toon = !!theme().okToon;
-  const mesh = add(okGeometry(name), 0, toon ? okToonMaterial(color) : (theme().okThemeColors ? null : okMaterial(color, seed)));
+  const mesh = add(okGeometry(name), 0, theme().okGem ? okGemMaterial(name, color) : toon ? okToonMaterial(color) : (theme().okThemeColors ? null : okMaterial(color, seed)));
   mesh.scale.setScalar(4.6);
   // the horse is brought down to exactly the Neang's height (the model has it a little taller)
   if (type === E.KNIGHT) mesh.scale.y = 4.6 * OK_DATA.QUEEN.half[1] / OK_DATA.KNIGHT.half[1];
@@ -14932,8 +14971,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.30';
+const APP_VERSION = '1.6.31';
 const WHATS_NEW = [
+  {
+    version: '1.6.31',
+    date: '2026-10-12',
+    title: { kh: 'ស្បែកថ្មី «កុមារ Kids»', en: 'New Custom theme: Kids' },
+    items: [
+      { kh: 'ប្រភេទ «ច្នៃប្រឌិត Custom» មានស្បែកថ្មី «កុមារ Kids»៖ កូនអុក Original Khmer ជាត្បូងពណ៌ភ្លឺ — ក្រហមសម្រាប់អុក ស្វាយសម្រាប់នាង បៃតងសម្រាប់សេះ ខៀវសម្រាប់គោល ទឹកក្រូចសម្រាប់ទូក និងលឿងសម្រាប់ត្រី។',
+        en: 'The "Custom" category gains "Kids": the Original Khmer pieces as bright gemstones -- ruby red Ouk, amethyst Neang, emerald Seh, sapphire Koul, orange Tuuk and golden Trey.' }
+    ]
+  },
   {
     version: '1.6.30',
     date: '2026-10-12',
@@ -16921,7 +16969,7 @@ function applyAccessTier() {
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
   { key: 'original', label: 'ដើម Original', themes: ['wood', 'okCartoon', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
-  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic'] }
+  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
 let openThemeCatKey = null;
