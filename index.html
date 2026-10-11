@@ -2563,21 +2563,14 @@
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
       <option value="traditional">Piece style: Classic Turned</option>
-      <option value="carved">Piece style: Carved Angular</option>
-      <option value="minimal">Piece style: Modern Minimal</option>
       <option value="khmer">Piece style: Khmer Traditional — ខ្មែរបុរាណ</option>
       <option value="real1">Piece style: Real 1 — ពិតប្រាកដ ១</option>
       <option value="real2">Piece style: Real 2 — ពិតប្រាកដ ២</option>
       <option value="khmerorig">Piece style: Original Khmer — ខ្មែរដើម</option>
-      <option value="pixel">Piece style: Pixel Voxel</option>
-      <option value="angkor">Piece style: Angkor Towers — ប្រាសាទអង្គរ</option>
-      <option value="naga">Piece style: Naga — នាគ</option>
       <option value="modern">Piece style: Modern Military — យោធាទំនើប</option>
       <option value="2dkhmer">Piece style: 2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
       <option value="2dclassic">Piece style: 2D Classic — បុរាណ 2D</option>
       <option value="2dminimal">Piece style: 2D Minimal — សាមញ្ញ 2D</option>
-      <option value="2dlacquer">Piece style: 2D Lacquer — ខ្មុក 2D</option>
-      <option value="2dsbek">Piece style: 2D Shadow Puppet — ស្បែក 2D</option>
       <option value="2dyantra">Piece style: 2D Sak Yantra — សាក់យន្ត 2D</option>
       <option value="2dwarrior">Piece style: 2D Khmer Warrior — អ្នកចម្បាំង 2D</option>
     </select>
@@ -4787,9 +4780,9 @@ const THEMES = {
   THEMES[key] = Object.assign({}, THEMES[src], { name, pieceStyle: 'khmerorig', okThemeColors: true });
   if (refl != null) THEMES[key].reflectOpacity = refl;
 });
-// Custom themes that wear the Original Khmer pieces (painted in the theme's own piece colours);
-// Gem Blitz, Modern Ops and Galactic keep their own distinctive sets.
-['flat2d', 'yantra', 'magic2'].forEach((key) => Object.assign(THEMES[key], { pieceStyle: 'khmerorig', okThemeColors: true }));
+// Magic II wears the Original Khmer pieces (painted in its own piece colours); the other Custom
+// themes -- 2D Khmer Art, Sak Yantra, Gem Blitz, Modern Ops and Galactic -- keep their own sets.
+Object.assign(THEMES.magic2, { pieceStyle: 'khmerorig', okThemeColors: true });
 // Original Cartoon: the Original Khmer pieces in white and brown (the classic wood's own colours), cel-shaded with ink outlines
 THEMES.okCartoon = Object.assign({}, THEMES.wood, {
   name: 'Original Cartoon — គំនូរជីវចល', pieceStyle: 'khmerorig', okToon: true,
@@ -14939,8 +14932,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.29';
+const APP_VERSION = '1.6.30';
 const WHATS_NEW = [
+  {
+    version: '1.6.30',
+    date: '2026-10-12',
+    title: { kh: 'កូនអុកដើមរបស់សិល្បៈខ្មែរ 2D និងសាក់យន្ត ត្រឡប់មកវិញ', en: '2D Khmer Art and Sak Yantra get their own pieces back' },
+    items: [
+      { kh: 'ស្បែក «សិល្បៈខ្មែរ 2D» និង «សាក់យន្ត» ត្រឡប់ទៅប្រើកូនអុករបស់វាផ្ទាល់វិញជាលំនាំដើម។ វេទមន្តII នៅតែប្រើកូនអុក Original Khmer។',
+        en: 'The "2D Khmer Art" and "Sak Yantra" themes use their own pieces by default again. Magic II keeps the Original Khmer pieces.' },
+      { kh: 'ម៉ឺនុយរចនាបថកូនអុកត្រូវបានកាត់បន្ថយ៖ ដកកូនអុកដែលជារបស់ស្បែកដែលបានដកចេញ (Pixel, Angkor, Naga, Lacquer, Sbek, Carved, Minimal)។',
+        en: 'The Piece style menu is shorter: the sets that belonged to removed themes (Pixel, Angkor, Naga, Lacquer, Sbek, Carved Angular, Modern Minimal) are gone.' }
+    ]
+  },
   {
     version: '1.6.29',
     date: '2026-10-12',
@@ -16241,7 +16245,9 @@ function loadGame() {
     document.getElementById('khmerBoardChk').checked = !khmerBoardStyle;
   }
   if (payload.pieceStyleOverride) {
-    pieceStyleOverride = payload.pieceStyleOverride;
+    // a piece set that is no longer in the menu falls back to "matches theme"
+    const hasPs = Array.from(document.getElementById('pieceStyleSel').options).some(o => o.value === payload.pieceStyleOverride);
+    pieceStyleOverride = hasPs ? payload.pieceStyleOverride : 'auto';
     document.getElementById('pieceStyleSel').value = pieceStyleOverride;
   }
   if (payload.themeKey && THEMES[payload.themeKey]) {
