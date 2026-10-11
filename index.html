@@ -15075,8 +15075,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.33';
+const APP_VERSION = '1.6.34';
 const WHATS_NEW = [
+  {
+    version: '1.6.34',
+    date: '2026-10-12',
+    title: { kh: 'មិនចាំបាច់ចូលគណនីម្ដងទៀតនៅពេលប្ដូររបៀប', en: 'No more re-login when changing play mode' },
+    items: [
+      { kh: 'បើអ្នកបានចូលគណនីរួចហើយ ការចុច «ចាប់ផ្តើម Start» ក្រោយពេលចុច «បោះបង់ Cancel» ឬ «បោះបង់ហ្គេម Cancel Game» នឹងបើកទំព័រជ្រើសរបៀបភ្លាមៗ មិនសុំឲ្យចូលគណនីម្ដងទៀតទេ។',
+        en: 'If you are already signed in, pressing Start after Cancel or Cancel Game now goes straight to the mode screen instead of asking you to sign in again.' }
+    ]
+  },
   {
     version: '1.6.33',
     date: '2026-10-12',
@@ -15919,7 +15928,14 @@ function hideOverlays() {
   overlayOpen = false;
   tickHud();
 }
-document.getElementById('startBtn').onclick = () => { modeScreenOrigin = 'start'; showLoginScreen(); };
+// Start: a player who has already signed in this session (currentProfile is only cleared by Sign Out) goes
+// straight to the mode screen. Coming back to the Start screen via Cancel / Cancel Game used to send them
+// through the login screen again.
+document.getElementById('startBtn').onclick = () => {
+  modeScreenOrigin = 'start';
+  if (currentProfile) { document.getElementById('startScreen').style.display = 'none'; openModeScreen(); return; }
+  showLoginScreen();
+};
 document.getElementById('changeModeBtn').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
 // mode_access analytics: which top-level mode a visit actually reaches --
 // Learn to Play, Play -> 2 Player, or Play -> vs Computer (with the chosen
