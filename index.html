@@ -2553,6 +2553,7 @@
       <option value="flat2d">2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
+      <option value="okCartoon">Original Cartoon — គំនូរជីវចល</option>
       <option value="okWood">Original Classic White &amp; Brown — ឈើបុរាណ ស-ត្នោត</option>
       <option value="okGems">Original Gold &amp; Amethyst — មាស និងត្បូង</option>
       <option value="okNaga">Original Jade — មរកត</option>
@@ -4789,6 +4790,12 @@ const THEMES = {
 // Custom themes that wear the Original Khmer pieces (painted in the theme's own piece colours);
 // Gem Blitz, Modern Ops and Galactic keep their own distinctive sets.
 ['flat2d', 'yantra', 'magic2'].forEach((key) => Object.assign(THEMES[key], { pieceStyle: 'khmerorig', okThemeColors: true }));
+// Original Cartoon: the Original Khmer pieces in white and brown (the classic wood's own colours), cel-shaded with ink outlines
+THEMES.okCartoon = Object.assign({}, THEMES.wood, {
+  name: 'Original Cartoon — គំនូរជីវចល', pieceStyle: 'khmerorig', okToon: true,
+  bg: 0x26364a, frame: 0x5e3517, tileLight: 0xf2dca6, tileDark: 0xb87a3f,
+  pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.9, metal: 0, labelInk: '#fff1cf', tray: 0x4a2a12, reflectOpacity: 0.05
+});
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
 // piece style is independent of the board theme; 'auto' follows the theme's own pieces
@@ -9030,18 +9037,79 @@ function okMaterial(color, seed) {
   return okMatCache.white[v];
 }
 
+// Original Cartoon: the Original Khmer pieces cel-shaded (four hard light steps, flat poster-paint
+// wood with a few hard-edged patches) with a bold ink outline -- an inverted hull of the same piece,
+// its vertices pushed out along position-merged smooth normals so hard-edge splits don't open gaps.
+let okToonGradient = null;
+const okToonMatCache = {};
+const okOutlineCache = {};
+function okToonMaterial(color) {
+  if (!okToonGradient) {
+    // four hard light steps (shadow, mid, light, highlight): no smooth falloff, the cartoon look
+    const d = new Uint8Array([70, 140, 205, 255]);
+    okToonGradient = new THREE.DataTexture(d, 4, 1, THREE.RedFormat);
+    okToonGradient.minFilter = okToonGradient.magFilter = THREE.NearestFilter;
+    okToonGradient.generateMipmaps = false; okToonGradient.needsUpdate = true;
+  }
+  const key = color === E.WHITE ? 'w' : 'b';
+  if (!okToonMatCache[key]) {
+    // flat poster-paint wood: a base fill with a few hard-edged patches, no fine grain
+    const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
+    const ctx = cv.getContext('2d');
+    const base = color === E.WHITE ? '#f2e5c4' : '#8c3c24';
+    const patch = color === E.WHITE ? ['#e0cfa3', '#fff7e0'] : ['#6e2d1a', '#a64d2e'];
+    ctx.fillStyle = base; ctx.fillRect(0, 0, S, S);
+    let seed = color === E.WHITE ? 424242 : 171717; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    for (let i = 0; i < 16; i++) {
+      ctx.fillStyle = patch[i % 2]; ctx.beginPath();
+      const cx = rnd() * S, cy = rnd() * S, rx = 16 + rnd() * 46, ry = 40 + rnd() * 90, a = (rnd() - 0.5) * 0.9;
+      ctx.ellipse(cx, cy, rx, ry, a, 0, Math.PI * 2); ctx.fill();
+    }
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    okToonMatCache[key] = new THREE.MeshToonMaterial({ map: tex, gradientMap: okToonGradient });
+  }
+  return okToonMatCache[key];
+}
+const okInkMat = new THREE.MeshBasicMaterial({ color: 0x1b1009, side: THREE.BackSide });
+// the model's own geometry pushed out along smooth (position-merged) normals: an inverted-hull ink line
+function okOutlineGeometry(name, thick) {
+  if (okOutlineCache[name]) return okOutlineCache[name];
+  const src = okGeometry(name), P = src.attributes.position, N = src.attributes.normal, n = P.count;
+  const q = 1e5, sum = new Map();
+  for (let i = 0; i < n; i++) {
+    const k = Math.round(P.getX(i) * q) + ',' + Math.round(P.getY(i) * q) + ',' + Math.round(P.getZ(i) * q);
+    let a = sum.get(k); if (!a) { a = [0, 0, 0]; sum.set(k, a); }
+    a[0] += N.getX(i); a[1] += N.getY(i); a[2] += N.getZ(i);
+  }
+  const pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const k = Math.round(P.getX(i) * q) + ',' + Math.round(P.getY(i) * q) + ',' + Math.round(P.getZ(i) * q), a = sum.get(k);
+    const l = Math.hypot(a[0], a[1], a[2]) || 1;
+    pos[i * 3] = P.getX(i) + a[0] / l * thick; pos[i * 3 + 1] = P.getY(i) + a[1] / l * thick; pos[i * 3 + 2] = P.getZ(i) + a[2] / l * thick;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setIndex(src.index);
+  return (okOutlineCache[name] = geo);
+}
+
 function buildOriginalKhmerPiece(g, add, type, promoted, color, seed) {
   // A Trey that reaches the far end is turned over (a flipped bia, the
   // hollow-topped disc in the model) and moves as a Neang from then on.
   const name = (promoted && type === E.QUEEN) ? 'PROMOTED'
     : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
   // the Original theme keeps the boxwood / ebony finish; the Original colourways paint the set in the theme's own piece colours
-  const mesh = add(okGeometry(name), 0, theme().okThemeColors ? null : okMaterial(color, seed));
+  const toon = !!theme().okToon;
+  const mesh = add(okGeometry(name), 0, toon ? okToonMaterial(color) : (theme().okThemeColors ? null : okMaterial(color, seed)));
   mesh.scale.setScalar(4.6);
   // the horse is brought down to exactly the Neang's height (the model has it a little taller)
   if (type === E.KNIGHT) mesh.scale.y = 4.6 * OK_DATA.QUEEN.half[1] / OK_DATA.KNIGHT.half[1];
   if (name === 'PROMOTED') g.userData.labelTopY = 0.25;
   if (type === E.KNIGHT) mesh.rotation.y = -Math.PI / 2; // the model's horse looks toward -x; turn it toward the opponent (-z for White)
+  if (toon) { // ink outline: a back-face hull of the same piece, scaled and turned exactly like it
+    const ink = add(okOutlineGeometry(name, 0.0021), 0, okInkMat);
+    ink.scale.copy(mesh.scale); ink.rotation.copy(mesh.rotation); ink.castShadow = false;
+  }
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -14871,8 +14939,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.28';
+const APP_VERSION = '1.6.29';
 const WHATS_NEW = [
+  {
+    version: '1.6.29',
+    date: '2026-10-12',
+    title: { kh: 'ស្បែកថ្មី «Original Cartoon»', en: 'New Original theme: Cartoon' },
+    items: [
+      { kh: 'ប្រភេទ «ដើម Original» មានស្បែកថ្មី «Original Cartoon»៖ កូនអុក Original Khmer ពណ៌សក្រែម និងពណ៌ត្នោត ក្នុងរចនាបថគំនូរជីវចល ដោយមានស្រមោលជាថ្នាក់ៗ និងបន្ទាត់គ្រោងខ្មៅដិត។',
+        en: 'The "Original" category gains "Original Cartoon": the Original Khmer pieces in cream-white and brown, drawn in a cartoon style with stepped cel shading and bold ink outlines.' }
+    ]
+  },
   {
     version: '1.6.28',
     date: '2026-10-11',
@@ -16837,7 +16914,7 @@ function applyAccessTier() {
 // (not reordered for guests the way themeSel's own option order is) since
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
-  { key: 'original', label: 'ដើម Original', themes: ['wood', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
+  { key: 'original', label: 'ដើម Original', themes: ['wood', 'okCartoon', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
   { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
