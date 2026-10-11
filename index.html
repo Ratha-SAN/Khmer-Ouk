@@ -152,6 +152,19 @@
   #panel > * { flex-shrink: 0; }
   h1 { font-size: 20px; color: var(--accent); font-weight: 600; }
   h1 small { display: block; font-size: 12px; color: var(--text-muted); font-weight: 400; }
+  /* Control Panel header: the title on the left, each side's total thinking time on the right */
+  .panelHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .panelHead h1 { flex: 1 1 auto; min-width: 0; }
+  .thinkTimes {
+    flex: 0 0 auto; min-width: 104px; padding: 5px 8px 6px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--surface-1); font-size: 11px; line-height: 1.35; color: var(--text-muted);
+  }
+  .thinkTimes .thinkTitle { font-size: 10px; letter-spacing: .02em; color: var(--text-muted); margin-bottom: 2px; }
+  .thinkTimes .thinkRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 1px 3px; border-radius: 4px; }
+  .thinkTimes .thinkRow b { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--panel-fg); font-weight: 600; }
+  .thinkTimes .thinkRow.active { background: var(--surface-3); color: var(--panel-fg); }
+  .thinkTimes .thinkRow.active b { color: var(--accent); }
+  .thinkTimes .thinkRow.active .thinkLbl::before { content: '● '; color: var(--ok); font-size: 8px; vertical-align: 1px; }
   #langBtns button {
     flex: 1; padding: 8px 0; font-size: 13px; border-radius: 8px;
     border: 1px solid var(--accent-dim); background: var(--surface-1); color: var(--panel-fg); cursor: pointer;
@@ -2438,7 +2451,14 @@
 </div>
 
 <div id="panel">
-  <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
+  <div class="panelHead">
+    <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
+    <div id="thinkTimes" class="thinkTimes" style="display:none" title="ពេលគិតសរុបរបស់អ្នកលេងម្នាក់ៗ — each player's total thinking time">
+      <div class="thinkTitle">ពេលគិត Thinking time</div>
+      <div class="thinkRow" id="thinkRowW"><span class="thinkLbl">ស White</span><b id="thinkW">00:00</b></div>
+      <div class="thinkRow" id="thinkRowB"><span class="thinkLbl">ខ្មៅ Black</span><b id="thinkB">00:00</b></div>
+    </div>
+  </div>
   <span id="appVersionTag" class="appVersionTag" title="អ្វីថ្មី — What's New"></span>
 
   <div id="currentModeReadout" style="font-size:13px;margin:2px 0 8px;color:var(--text-muted)">Current mode: <b id="currentModeReadoutText">—</b></div>
@@ -4854,6 +4874,8 @@ let lastMove = null;
 let baselineCounts = null;   // piece multiset at game/lesson start, for the captured trays
 let flashMsg = '';
 let gameStartTs = null;      // Date.now() when the current play-mode game began
+let thinkMs = [0, 0];        // total thinking time per side [WHITE, BLACK], shown beside the panel title
+let thinkLastTick = null;    // timestamp of the previous thinking-time tick
 let frozenElapsed = null;    // ms captured once the game ends, so the HUD clock stops
 let pendingAiLevel = 1, pendingSide = E.WHITE; // choices being made in the mode-select screen
 let pendingPlayMode = null; // 'hotseat' | 'ai', which bigpick button is highlighted on the play-mode screen
@@ -15075,8 +15097,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.34';
+const APP_VERSION = '1.6.35';
 const WHATS_NEW = [
+  {
+    version: '1.6.35',
+    date: '2026-10-13',
+    title: { kh: 'ពេលគិតរបស់អ្នកលេង', en: 'Player thinking time' },
+    items: [
+      { kh: 'ក្បែរចំណងជើងនៃផ្ទាំងបញ្ជា មានប្រអប់ «ពេលគិត» បង្ហាញពេលវេលាសរុបដែលអ្នកលេងសនិងខ្មៅបានគិត។ ម៉ោងរត់តែសម្រាប់ខាងដែលដល់វេន ហើយឈប់នៅពេលបើកម៉ឺនុយ ពេលរៀន ពេលពិនិត្យឡើងវិញ ឬពេលចប់ល្បែង។ វាត្រូវបានរក្សាទុកជាមួយល្បែងដែលបានរក្សាទុក។',
+        en: 'Beside the Control Panel title, a "Thinking time" box shows how long White and Black have each spent thinking. Only the side to move runs, and it pauses while a menu is open, during Learn to Play, in review and once the game is over. It is saved with saved games.' }
+    ]
+  },
   {
     version: '1.6.34',
     date: '2026-10-12',
@@ -15735,6 +15766,7 @@ function resetGame() {
   history = []; moveEntries = []; lastMove = null;
   selected = -1; legalForSelected = []; gameOver = false; aiBusy = false;
   gameStartTs = Date.now(); frozenElapsed = null;
+  thinkMs = [0, 0]; thinkLastTick = null;
   hintMove = null; hintBusy = false;
   document.getElementById('hintBtn').disabled = false;
   timeoutResult = null;
@@ -16204,6 +16236,7 @@ function beginOnlineMatch(matchId, color, opponentName, stateJson, existingUnsub
   history = []; moveEntries = []; lastMove = null;
   selected = -1; legalForSelected = []; gameOver = false; aiBusy = false;
   gameStartTs = Date.now(); frozenElapsed = null;
+  thinkMs = [0, 0]; thinkLastTick = null;
   onlineTurnStartedAt = Date.now();
   hintMove = null; hintBusy = false;
   document.getElementById('hintBtn').disabled = false;
@@ -16396,7 +16429,7 @@ function saveGame() {
     elapsed: frozenElapsed !== null ? frozenElapsed : (gameStartTs ? Date.now() - gameStartTs : 0),
     themeKey, pieceStyleOverride, khmerBoardStyle, variant: currentVariant(),
     savedAt: Date.now(),
-    clockCfg, timeoutResult,
+    clockCfg, timeoutResult, thinkMs: thinkMs.slice(),
     // fold the running side's elapsed time in, so the clock resumes from
     // the true remaining balance rather than from the last move boundary
     clockMs: clockCfg ? [clockRemaining(E.WHITE), clockRemaining(E.BLACK)] : [0, 0]
@@ -16422,6 +16455,8 @@ function loadGame() {
   gameOver = !!payload.gameOver;
   gameStartTs = Date.now() - (payload.elapsed || 0);
   frozenElapsed = gameOver ? (payload.elapsed || 0) : null;
+  thinkMs = Array.isArray(payload.thinkMs) && payload.thinkMs.length === 2 ? payload.thinkMs.map((x) => +x || 0) : [0, 0];
+  thinkLastTick = null;
   if (reviewMode) exitReview(true);
   clockCfg = payload.clockCfg || null;
   clockMs = payload.clockMs || [0, 0];
@@ -16492,8 +16527,32 @@ function checkFlagFall() {
     refreshAll();
   }
 }
+// Total thinking time per side: the side to move accrues the real time between ticks while a game is
+// actually in play (not while an overlay / the mode screen is open, during Learn to Play, in review, or
+// once the game is over). A gap of more than 10 s between ticks (a sleeping device) is not counted.
+function fmtThink(ms) {
+  const t = Math.floor(ms / 1000), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sc = t % 60;
+  const mm = String(m).padStart(2, '0'), ss = String(sc).padStart(2, '0');
+  return h ? h + ':' + mm + ':' + ss : mm + ':' + ss;
+}
+function updateThinkTimes() {
+  const now = Date.now(), dt = thinkLastTick == null ? 0 : Math.min(now - thinkLastTick, 10000);
+  thinkLastTick = now;
+  const inGame = uiMode === 'play' && !!gameStartTs && !!state;
+  const running = inGame && !overlayOpen && !gameOver && !reviewMode && !timeoutResult;
+  if (running) thinkMs[state.turn] += dt;
+  // shown once a game is actually under way (running, or with some time already logged), not behind the Start / login screens
+  const box = document.getElementById('thinkTimes'), show = inGame && (running || thinkMs[0] + thinkMs[1] > 0);
+  box.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  document.getElementById('thinkW').textContent = fmtThink(thinkMs[E.WHITE]);
+  document.getElementById('thinkB').textContent = fmtThink(thinkMs[E.BLACK]);
+  document.getElementById('thinkRowW').classList.toggle('active', running && state.turn === E.WHITE);
+  document.getElementById('thinkRowB').classList.toggle('active', running && state.turn === E.BLACK);
+}
 function tickHud() {
   checkFlagFall();
+  updateThinkTimes();
   updateScoreboard(); // covers overlay open/close, theme recolors, and review stepping
   const hud = document.getElementById('hud');
   if (uiMode !== 'play' || overlayOpen || !gameStartTs) { hud.style.display = 'none'; return; }
@@ -17315,6 +17374,7 @@ window.__ouk = {
   // having to play out a whole game through UI clicks.
   debugLoadState: (json) => { state = E.fromJSON(json); lastMove = null; selected = -1; legalForSelected = []; gameOver = false; clearMarkers(); refreshAll(); },
   debugCurrentProfile: () => currentProfile,
+  thinkMs: () => thinkMs.slice(),
   // Test-only: stand in for a real completeSignIn() (which needs a real
   // Firebase Auth session) so Playwright can exercise the player-stats
   // recording pipeline without one.
