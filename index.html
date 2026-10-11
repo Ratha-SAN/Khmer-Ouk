@@ -2015,9 +2015,35 @@
         // Reads back a previously-saved profile (avatar choice, display
         // name) so it follows the account across devices/sessions -- the
         // security rule only allows a user to read their own doc.
+        // Counters written by the old (buggy) recordGameResult sit in the doc as literal top-level fields named
+        // 'stats.games', 'stats.wins', ... -- fold them into stats here so those players see their real totals,
+        // and (best effort, once per page) move them into the nested map and delete the stray fields.
+        var STAT_KEYS = ['games', 'wins', 'losses', 'draws', 'abandons'];
+        var legacyStatsMigrated = false;
+        function foldLegacyStats(ref, data) {
+          var legacy = STAT_KEYS.filter(function (k) { return typeof data['stats.' + k] === 'number'; });
+          if (!legacy.length) return data;
+          var stats = Object.assign({}, data.stats || {});
+          legacy.forEach(function (k) { stats[k] = (stats[k] || 0) + data['stats.' + k]; });
+          if (!legacyStatsMigrated) {
+            legacyStatsMigrated = true;
+            try {
+              var args = [];
+              legacy.forEach(function (k) {
+                args.push('stats.' + k, firebase.firestore.FieldValue.increment(data['stats.' + k]));      // nested path
+                args.push(new firebase.firestore.FieldPath('stats.' + k), firebase.firestore.FieldValue.delete()); // the stray literal field
+              });
+              ref.update.apply(ref, args).catch(function (err) { console.warn('Legacy stats migration failed:', err); });
+            } catch (err) { console.warn('Legacy stats migration threw:', err); }
+          }
+          var out = Object.assign({}, data, { stats: stats });
+          legacy.forEach(function (k) { delete out['stats.' + k]; });
+          return out;
+        }
         window.__oukAuth.fetchProfile = function (uid) {
-          return db.collection('users').doc(uid).get()
-            .then(function (doc) { return doc.exists ? doc.data() : null; })
+          var ref = db.collection('users').doc(uid);
+          return ref.get()
+            .then(function (doc) { return doc.exists ? foldLegacyStats(ref, doc.data()) : null; })
             .catch(function (err) { console.warn('Firestore profile fetch failed:', err); return null; });
         };
         // One doc per finished game (for the profile's progress graph) plus
@@ -2034,18 +2060,22 @@
         window.__oukAuth.recordGameResult = function (uid, entry) {
           try {
             var inc = firebase.firestore.FieldValue.increment(1);
-            var incField = entry.result === 'win' ? 'stats.wins' : entry.result === 'loss' ? 'stats.losses'
-              : entry.result === 'abandon' ? 'stats.abandons' : 'stats.draws';
+            var incField = entry.result === 'win' ? 'wins' : entry.result === 'loss' ? 'losses'
+              : entry.result === 'abandon' ? 'abandons' : 'draws';
             db.collection('users').doc(uid).collection('games').add(Object.assign({}, entry, {
               playedAt: firebase.firestore.FieldValue.serverTimestamp()
             })).catch(function (err) { window.__oukStatsSyncFailed = true; console.warn('Firestore game-result save failed:', err); });
             // "Games" (and the win-rate derived from it) only counts games
             // that actually reached a decisive end -- an abandoned game
             // still increments its own counter, just not that one.
+            // The counters must be written as a NESTED map ({ stats: { wins: inc } }). set() with {merge:true}
+            // only treats a dotted key like 'stats.wins' as a path in update(); in set() it became a literal
+            // top-level field NAMED "stats.wins", which the profile screen (it reads profile.stats.wins) never
+            // saw -- the progress graph (the games subcollection) filled up while every tile stayed at 0.
             var statsUpdate = {};
-            if (entry.result !== 'abandon') statsUpdate['stats.games'] = inc;
+            if (entry.result !== 'abandon') statsUpdate.games = inc;
             statsUpdate[incField] = inc;
-            db.collection('users').doc(uid).set(statsUpdate, { merge: true })
+            db.collection('users').doc(uid).set({ stats: statsUpdate }, { merge: true })
               .then(function () { window.__oukStatsSyncFailed = false; })
               .catch(function (err) { window.__oukStatsSyncFailed = true; console.warn('Firestore stats update failed:', err); });
           } catch (err) { window.__oukStatsSyncFailed = true; console.warn('Firestore game-result save threw:', err); }
@@ -15097,8 +15127,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.35';
+const APP_VERSION = '1.6.36';
 const WHATS_NEW = [
+  {
+    version: '1.6.36',
+    date: '2026-10-13',
+    title: { kh: 'កែស្ថិតិអ្នកលេង (ល្បែង ឈ្នះ ចាញ់ ស្មើ)', en: 'Fixed the player statistics tiles' },
+    items: [
+      { kh: 'ប្រអប់ស្ថិតិ (ល្បែង ឈ្នះ ចាញ់ ស្មើ បោះបង់ និងអត្រាឈ្នះ) ធ្លាប់បង្ហាញ 0 ទោះបីក្រាហ្វិកវឌ្ឍនភាពមានទិន្នន័យក៏ដោយ។ ឥឡូវវារាប់ត្រឹមត្រូវ ហើយល្បែងពីមុនក៏ត្រូវបានបូកបញ្ចូលវិញដែរ។',
+        en: 'The statistics tiles (Games, Wins, Losses, Draws, Abandoned and Win rate) used to stay at 0 even when the progress graph had data. They now count correctly, and the games you already played are added back in.' }
+    ]
+  },
   {
     version: '1.6.35',
     date: '2026-10-13',
