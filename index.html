@@ -15092,7 +15092,7 @@ function openPopup(id) {
   POPUP_IDS.forEach((pid) => { if (pid !== id) document.getElementById(pid).style.display = 'none'; });
   if (document.body.classList.contains('is-mobile') && !document.body.classList.contains('panel-hidden')) {
     document.body.classList.add('panel-hidden');
-    resize();
+    window.dispatchEvent(new Event('ouk-panel'));
   }
   document.getElementById(id).style.display = 'flex';
 }
@@ -15131,8 +15131,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.37';
+const APP_VERSION = '1.6.38';
 const WHATS_NEW = [
+  {
+    version: '1.6.38',
+    date: '2026-10-13',
+    title: { kh: 'កែបញ្ហាផ្ទាំងការកំណត់បើករួចបិទវិញលើទូរស័ព្ទ', en: 'Settings sheet no longer flashes shut on phones' },
+    items: [
+      { kh: 'នៅលើ iOS Chrome ផ្ទាំងការកំណត់ធ្លាប់បើករួចបាត់ភ្លាមៗ។ ឥឡូវការប្តូររូបរាងអេក្រង់ក្នុងរយៈពេលខ្លីមិនបិទវាទៀតទេ ការចុចពីរដងជាប់គ្នាត្រូវបានមិនអើពើ ហើយប៊ូតុងរបារខាងក្រោមតែងតែត្រូវនឹងស្ថានភាពពិត។',
+        en: 'On iOS Chrome the settings sheet used to open and vanish at once. A brief viewport change no longer closes it, a doubled tap is ignored, and the toolbar gear always matches the real state.' }
+    ]
+  },
   {
     version: '1.6.37',
     date: '2026-10-13',
@@ -16636,7 +16645,7 @@ window.__oukActions = {
   changeMode: () => openModeScreen(),
   save: () => saveGame(),
   load: () => loadGame(),
-  togglePanel: () => { document.body.classList.toggle('panel-hidden'); resize(); },
+  togglePanel: () => toggleSettingsPanel(),
   isPanelOpen: () => !document.body.classList.contains('panel-hidden'),
   fitCameraToBoard: () => fitCameraToBoard(),
   // Fullscreen is only requested once, automatically, from within the
@@ -17903,10 +17912,22 @@ document.getElementById('zoomResetBtn').onclick = () => { resetView(); viewSide 
 document.getElementById('topViewBtn').onclick = topView;
 
 // ---------- hide/show the settings panel ----------
-document.getElementById('panelToggle').onclick = () => {
+// One entry point for opening/closing the panel (the desktop button and the phone toolbar's gear both use it).
+// - A second toggle within 350 ms is ignored: some mobile browsers (notably iOS Chrome) can deliver a tap twice,
+//   which opened the sheet and immediately closed it again (it only "flashed").
+// - On the phone layout the sheet overlays the board and never changes the scene's size, so the (costly) WebGL
+//   resize is skipped there; on the desktop layout the sidebar does change it.
+// - Tells the toolbar ('ouk-panel') so its gear highlight always matches the real state.
+let lastPanelToggleAt = 0;
+function toggleSettingsPanel() {
+  const now = Date.now();
+  if (now - lastPanelToggleAt < 350) return;
+  lastPanelToggleAt = now;
   document.body.classList.toggle('panel-hidden');
-  resize();
-};
+  if (!document.body.classList.contains('is-mobile')) resize();
+  window.dispatchEvent(new Event('ouk-panel'));
+}
+document.getElementById('panelToggle').onclick = () => toggleSettingsPanel();
 
 let clock = new THREE.Clock();
 function loop() {
@@ -18048,10 +18069,15 @@ loop();
     var _s = React.useState(function () { return window.__oukActions.isPanelOpen(); });
     var open = _s[0], setOpen = _s[1];
     var act = function (fn) { return function () { window.__oukActions[fn](); }; };
-    var toggleSettings = function () {
-      window.__oukActions.togglePanel();
-      setOpen(window.__oukActions.isPanelOpen());
-    };
+    // the module announces every open/close (gear, a popup collapsing the sheet, ...) so the gear's highlight
+    // can never drift out of step with the real panel state
+    React.useEffect(function () {
+      var sync = function () { setOpen(window.__oukActions.isPanelOpen()); };
+      window.addEventListener('ouk-panel', sync);
+      sync();
+      return function () { window.removeEventListener('ouk-panel', sync); };
+    }, []);
+    var toggleSettings = function () { window.__oukActions.togglePanel(); };
     var toggleOrientation = function () { window.__oukActions.toggleOrientationLock(); };
     return e('div', { id: 'mobileToolbar' },
       e('button', { onClick: act('newGame'), title: 'New game', 'aria-label': 'New game' }, '🆕'),
@@ -18070,6 +18096,24 @@ loop();
   }
 
   var reactRoot = null;
+  var layoutFlipTimer = null;
+  // Called on every resize. A change of layout (phone <-> desktop) must hold for 250 ms before it is acted on:
+  // browsers (iOS Chrome especially) can report a brief odd viewport while a sheet opens or the toolbar moves,
+  // and acting on that used to tear the phone layout down and back up, which re-closed a just-opened settings
+  // sheet (it flashed and vanished). Ordinary resizes within the same layout are cheap and pass straight through.
+  function onViewportChange() {
+    var isMobileNow = document.body.classList.contains('is-mobile');
+    if (isMobileViewport() === isMobileNow) {
+      if (layoutFlipTimer) { clearTimeout(layoutFlipTimer); layoutFlipTimer = null; }
+      mountIfMobile();
+      return;
+    }
+    if (layoutFlipTimer) return;
+    layoutFlipTimer = setTimeout(function () {
+      layoutFlipTimer = null;
+      if (isMobileViewport() !== document.body.classList.contains('is-mobile')) mountIfMobile();
+    }, 250);
+  }
   function mountIfMobile() {
     var mobile = isMobileViewport();
     // The default camera distance/FOV is tuned for a wide desktop-like
@@ -18113,13 +18157,17 @@ loop();
     else setTimeout(function () { whenActionsReady(cb); }, 20);
   }
   whenActionsReady(function () {
-    window.addEventListener('resize', mountIfMobile);
+    window.addEventListener('resize', onViewportChange);
     // Orientation change fundamentally changes the aspect ratio (and so
     // what fits), unlike most other resizes, so it re-fits every time
     // rather than only on the first transition into mobile.
+    // (iOS reports the OLD window size inside the orientationchange event itself, so wait a beat for the real one.)
     window.addEventListener('orientationchange', function () {
-      mountIfMobile();
-      if (isMobileViewport()) window.__oukActions.fitCameraToBoard();
+      if (layoutFlipTimer) { clearTimeout(layoutFlipTimer); layoutFlipTimer = null; }
+      setTimeout(function () {
+        mountIfMobile();
+        if (isMobileViewport()) window.__oukActions.fitCameraToBoard();
+      }, 300);
     });
     mountIfMobile();
   });
