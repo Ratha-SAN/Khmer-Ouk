@@ -152,19 +152,6 @@
   #panel > * { flex-shrink: 0; }
   h1 { font-size: 20px; color: var(--accent); font-weight: 600; }
   h1 small { display: block; font-size: 12px; color: var(--text-muted); font-weight: 400; }
-  /* Control Panel header: the title on the left, each side's total thinking time on the right */
-  .panelHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-  .panelHead h1 { flex: 1 1 auto; min-width: 0; }
-  .thinkTimes {
-    flex: 0 0 auto; min-width: 104px; padding: 5px 8px 6px; border: 1px solid var(--line); border-radius: 8px;
-    background: var(--surface-1); font-size: 11px; line-height: 1.35; color: var(--text-muted);
-  }
-  .thinkTimes .thinkTitle { font-size: 10px; letter-spacing: .02em; color: var(--text-muted); margin-bottom: 2px; }
-  .thinkTimes .thinkRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 1px 3px; border-radius: 4px; }
-  .thinkTimes .thinkRow b { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--panel-fg); font-weight: 600; }
-  .thinkTimes .thinkRow.active { background: var(--surface-3); color: var(--panel-fg); }
-  .thinkTimes .thinkRow.active b { color: var(--accent); }
-  .thinkTimes .thinkRow.active .thinkLbl::before { content: '● '; color: var(--ok); font-size: 8px; vertical-align: 1px; }
   #langBtns button {
     flex: 1; padding: 8px 0; font-size: 13px; border-radius: 8px;
     border: 1px solid var(--accent-dim); background: var(--surface-1); color: var(--panel-fg); cursor: pointer;
@@ -2481,14 +2468,7 @@
 </div>
 
 <div id="panel">
-  <div class="panelHead">
-    <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
-    <div id="thinkTimes" class="thinkTimes" style="display:none" title="ពេលគិតសរុបរបស់អ្នកលេងម្នាក់ៗ — each player's total thinking time">
-      <div class="thinkTitle">ពេលគិត Thinking time</div>
-      <div class="thinkRow" id="thinkRowW"><span class="thinkLbl">ស White</span><b id="thinkW">00:00</b></div>
-      <div class="thinkRow" id="thinkRowB"><span class="thinkLbl">ខ្មៅ Black</span><b id="thinkB">00:00</b></div>
-    </div>
-  </div>
+  <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
   <span id="appVersionTag" class="appVersionTag" title="អ្វីថ្មី — What's New"></span>
 
   <div id="currentModeReadout" style="font-size:13px;margin:2px 0 8px;color:var(--text-muted)">Current mode: <b id="currentModeReadoutText">—</b></div>
@@ -2630,6 +2610,10 @@
     <label style="margin-top:6px">
       <input type="checkbox" id="khmerBoardChk">
       ក្តាអុកបែបបរទេស Checkered Board
+    </label>
+    <label>
+      <input type="checkbox" id="moveHintChk" checked>
+      សញ្ញាជំហាន Step indicator (legal-move markers)
     </label>
     <label>
       <input type="checkbox" id="pieceNameChk">
@@ -4910,6 +4894,7 @@ let flashMsg = '';
 let gameStartTs = null;      // Date.now() when the current play-mode game began
 let thinkMs = [0, 0];        // total thinking time per side [WHITE, BLACK], shown beside the panel title
 let thinkLastTick = null;    // timestamp of the previous thinking-time tick
+let thinkRunning = false;    // true while the side to move's thinking time is accruing
 let frozenElapsed = null;    // ms captured once the game ends, so the HUD clock stops
 let pendingAiLevel = 1, pendingSide = E.WHITE; // choices being made in the mode-select screen
 let pendingPlayMode = null; // 'hotseat' | 'ai', which bigpick button is highlighted on the play-mode screen
@@ -9625,8 +9610,15 @@ const capMarkMat = new THREE.MeshBasicMaterial({ color: 0xe05d44, transparent: t
 const checkMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.55 });
 let checkRing = null;
 
+// "Step indicator": the legal-move markers (green dots / red capture rings, or the Magic II portals) shown for
+// the selected piece. On by default; turning it off only hides these markers -- the step trace (the last-move
+// highlight and the move list) and picking a square to move to are unaffected. Remembered on this device.
+let showMoveHints = true;
+try { showMoveHints = localStorage.getItem('oukMoveHints') !== '0'; } catch (e) { /* storage blocked: stay on */ }
+
 function showMarkers() {
   markerGroup.clear();
+  if (!showMoveHints) { fxPortalsClear(); return; }
   // Both Magic themes replace the plain 3D markers with a DOM "portal" ring
   // (see the skill-effects section below); picking still works unchanged
   // since pickSquare() raycasts squareMeshes/pieceGroup, never markerGroup.
@@ -10593,6 +10585,12 @@ document.getElementById('themeSel').onchange = (e) => {
   }
 };
 document.getElementById('khmerBoardChk').onchange = (e) => { khmerBoardStyle = !e.target.checked; applyTheme(themeKey); };
+document.getElementById('moveHintChk').checked = showMoveHints;
+document.getElementById('moveHintChk').onchange = (e) => {
+  showMoveHints = e.target.checked;
+  try { localStorage.setItem('oukMoveHints', showMoveHints ? '1' : '0'); } catch (err) { /* ignore */ }
+  if (selected >= 0) showMarkers(); else clearMarkers();
+};
 document.getElementById('pieceNameChk').onchange = (e) => {
   showPieceNames = e.target.checked;
   document.getElementById('pieceNameOpts').style.display = showPieceNames ? 'block' : 'none';
@@ -15131,8 +15129,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.38';
+const APP_VERSION = '1.6.39';
 const WHATS_NEW = [
+  {
+    version: '1.6.39',
+    date: '2026-10-13',
+    title: { kh: 'ពេលគិតនៅជ្រុងខាងលើឆ្វេង និងកុងតាក់សញ្ញាជំហាន', en: 'Thinking time in the top-left corner, and a step-indicator switch' },
+    items: [
+      { kh: 'ជ្រុងខាងលើឆ្វេងឥឡូវបង្ហាញ «ជើង» និងពេលគិតរបស់ស និងខ្មៅ ជំនួសឲ្យ «ពេល»។ ប្រអប់ពេលគិតក្បែរចំណងជើងផ្ទាំងបញ្ជាត្រូវបានដកចេញ។',
+        en: 'The top-left corner now shows the move count and the White and Black thinking times in place of the single Time. The thinking-time box beside the panel title is gone.' },
+      { kh: 'ជម្រើសថ្មី «សញ្ញាជំហាន Step indicator» ក្នុងផ្ទាំងបញ្ជា បើក/បិទសញ្ញាចំណុចបៃតង និងរង្វង់ក្រហមនៃចលនាដែលអាចធ្វើបាន (បើកជាលំនាំដើម)។ ស្នាមជើងចុងក្រោយ និងបញ្ជីជំហានមិនប្រែប្រួលទេ។',
+        en: 'A new "Step indicator" switch in the panel turns the legal-move markers (green dots and red capture rings) on or off. It is on by default. The last-move highlight and the move list (the step trace) always stay.' }
+    ]
+  },
   {
     version: '1.6.38',
     date: '2026-10-13',
@@ -16599,41 +16608,40 @@ function fmtThink(ms) {
 function updateThinkTimes() {
   const now = Date.now(), dt = thinkLastTick == null ? 0 : Math.min(now - thinkLastTick, 10000);
   thinkLastTick = now;
-  const inGame = uiMode === 'play' && !!gameStartTs && !!state;
-  const running = inGame && !overlayOpen && !gameOver && !reviewMode && !timeoutResult;
+  const running = uiMode === 'play' && !!gameStartTs && !!state && !overlayOpen && !gameOver && !reviewMode && !timeoutResult;
   if (running) thinkMs[state.turn] += dt;
-  // shown once a game is actually under way (running, or with some time already logged), not behind the Start / login screens
-  const box = document.getElementById('thinkTimes'), show = inGame && (running || thinkMs[0] + thinkMs[1] > 0);
-  box.style.display = show ? 'block' : 'none';
-  if (!show) return;
-  document.getElementById('thinkW').textContent = fmtThink(thinkMs[E.WHITE]);
-  document.getElementById('thinkB').textContent = fmtThink(thinkMs[E.BLACK]);
-  document.getElementById('thinkRowW').classList.toggle('active', running && state.turn === E.WHITE);
-  document.getElementById('thinkRowB').classList.toggle('active', running && state.turn === E.BLACK);
+  thinkRunning = running;
 }
 function tickHud() {
   checkFlagFall();
   updateThinkTimes();
   updateScoreboard(); // covers overlay open/close, theme recolors, and review stepping
   const hud = document.getElementById('hud');
-  if (uiMode !== 'play' || overlayOpen || !gameStartTs) { hud.style.display = 'none'; return; }
+  if (uiMode !== 'play' || overlayOpen || !gameStartTs) {
+    hud.style.display = 'none'; hud.innerHTML = '';
+    const ml0 = document.getElementById('movelist'); if (ml0) ml0.style.top = '';
+    return;
+  }
   hud.style.display = 'block';
   if (gameOver) { if (frozenElapsed === null) frozenElapsed = Date.now() - gameStartTs; }
   else frozenElapsed = null;
-  const elapsed = frozenElapsed !== null ? frozenElapsed : Date.now() - gameStartTs;
-  const secs = Math.floor(elapsed / 1000);
-  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
-  const ss = String(secs % 60).padStart(2, '0');
+  // (frozenElapsed is still kept for saves; the HUD now shows each side's thinking time instead of one elapsed Time)
+  const wOn = thinkRunning && state && state.turn === E.WHITE, bOn = thinkRunning && state && state.turn === E.BLACK;
+  const idle = ' style="color:#fff"'; // the running side's value keeps the accent colour
   let html =
     '<div class="stat"><span class="lbl">ជើង<br>move</span><b>' + moveEntries.length + '</b></div>' +
-    '<div class="stat"><span class="lbl">ពេល<br>Time</span><b>' + mm + ':' + ss + '</b></div>';
+    '<div class="stat" id="hudThinkW"><span class="lbl">គិត ស<br>' + (wOn ? '● ' : '') + 'W think</span><b' + (wOn ? '' : idle) + '>' + fmtThink(thinkMs[E.WHITE]) + '</b></div>' +
+    '<div class="stat" id="hudThinkB"><span class="lbl">គិត ខ្មៅ<br>' + (bOn ? '● ' : '') + 'B think</span><b' + (bOn ? '' : idle) + '>' + fmtThink(thinkMs[E.BLACK]) + '</b></div>';
   if (clockCfg) {
     const wLow = clockRemaining(E.WHITE) < 30000, bLow = clockRemaining(E.BLACK) < 30000;
     html +=
-      '<div class="stat"><span class="lbl">ស<br>White</span><b' + (wLow ? ' style="color:#ff5a5a"' : '') + '>' + fmtClock(clockRemaining(E.WHITE)) + '</b></div>' +
-      '<div class="stat"><span class="lbl">ខ្មៅ<br>Black</span><b' + (bLow ? ' style="color:#ff5a5a"' : '') + '>' + fmtClock(clockRemaining(E.BLACK)) + '</b></div>';
+      '<div class="stat"><span class="lbl">នាឡិកា ស<br>W clock</span><b' + (wLow ? ' style="color:#ff5a5a"' : '') + '>' + fmtClock(clockRemaining(E.WHITE)) + '</b></div>' +
+      '<div class="stat"><span class="lbl">នាឡិកា ខ្មៅ<br>B clock</span><b' + (bLow ? ' style="color:#ff5a5a"' : '') + '>' + fmtClock(clockRemaining(E.BLACK)) + '</b></div>';
   }
   hud.innerHTML = html;
+  // the HUD is now three (or five, with chess clocks) stacked stats: keep the move list just below it
+  const ml = document.getElementById('movelist');
+  if (ml) ml.style.top = (hud.offsetTop + hud.offsetHeight + 8) + 'px';
 }
 setInterval(tickHud, 250);
 
@@ -17478,6 +17486,17 @@ window.__ouk = {
   debugLoadState: (json) => { state = E.fromJSON(json); lastMove = null; selected = -1; legalForSelected = []; gameOver = false; clearMarkers(); refreshAll(); },
   debugCurrentProfile: () => currentProfile,
   thinkMs: () => thinkMs.slice(),
+  showMoveHints: () => showMoveHints,
+  // Test-only: drive the select branch of onBoardClick() without a ray-cast.
+  debugSelect: (sq) => {
+    if (sq < 0) { selected = -1; legalForSelected = []; clearMarkers(); updateSquareTints(); return; }
+    const mc = uiMode === 'train' ? E.WHITE : state.turn;
+    selected = sq; legalForSelected = E.genLegal(state, mc).filter(m => m.from === sq);
+    showMarkers(); updateSquareTints();
+  },
+  selectedSq: () => selected,
+  legalCount: () => legalForSelected.length,
+  markerCount: () => markerGroup.children.length,
   // Test-only: stand in for a real completeSignIn() (which needs a real
   // Firebase Auth session) so Playwright can exercise the player-stats
   // recording pipeline without one.
