@@ -2831,6 +2831,10 @@
     <label style="display:block;text-align:left;margin-top:14px">ឈ្មោះបង្ហាញ Display name
       <input type="text" id="profileDisplayName" style="width:100%;margin-top:4px">
     </label>
+    <label style="display:block;text-align:left;margin-top:12px">ស្បែកលំនាំដើម Default theme
+      <select id="profileDefaultTheme" style="width:100%;margin-top:4px"></select>
+    </label>
+    <p class="loginHint" style="text-align:left;margin-top:4px">ប្រើរាល់ពេលអ្នកចូលគណនី — used every time you sign in. New accounts start on Classic Wood until you choose one.</p>
     <p id="profileMeta" class="loginHint" style="text-align:center;margin-top:10px"></p>
     <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
       <button id="profileSaveBtn">រក្សាទុក ▸ Save</button>
@@ -15127,8 +15131,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.36';
+const APP_VERSION = '1.6.37';
 const WHATS_NEW = [
+  {
+    version: '1.6.37',
+    date: '2026-10-13',
+    title: { kh: 'ជ្រើសរើសស្បែកលំនាំដើមរបស់អ្នក', en: 'Choose your own default theme' },
+    items: [
+      { kh: 'ក្នុងទំព័រគណនី (Profile) មានជម្រើសថ្មី «ស្បែកលំនាំដើម Default theme»។ ស្បែកដែលអ្នកជ្រើសនឹងត្រូវបានរក្សាទុកជាមួយគណនី ហើយប្រើរាល់ពេលអ្នកចូលគណនី។ គណនីថ្មីចាប់ផ្តើមជាមួយឈើបុរាណរហូតដល់អ្នកជ្រើសស្បែកផ្សេង។',
+        en: 'The Profile screen has a new "Default theme" choice. The theme you pick is saved with your account and used every time you sign in. New accounts start on Classic Wood until you choose another.' }
+    ]
+  },
   {
     version: '1.6.36',
     date: '2026-10-13',
@@ -16723,10 +16736,25 @@ function showLoginScreen() {
   overlayOpen = true;
   tickHud();
 }
+// Per-player default theme: a choice saved on the player's profile (profile.defaultTheme, picked in the
+// profile screen) and applied each time they sign in. New accounts have none and start on the app default
+// (Classic Wood). A theme that no longer exists in the picker, or that is locked for a guest, is skipped.
+function applyProfileDefaultTheme() {
+  const t = currentProfile && currentProfile.defaultTheme;
+  const sel = document.getElementById('themeSel');
+  if (!t || !THEMES[t] || !Array.from(sel.options).some((o) => o.value === t)) return false;
+  if (isSelectValueLocked('themeSel', t)) return false;
+  if (sel.value === t && pieceStyleOverride === 'auto') return true;
+  sel.value = t;
+  sel.dispatchEvent(new Event('change')); // the same path as picking it from the theme list (resets the piece style, music, ...)
+  refreshThemeCategoryUI();
+  return true;
+}
 function finishLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('loginPassword').value = '';
   if (loginMidSession) { loginMidSession = false; return; }
+  applyProfileDefaultTheme();
   openModeScreen();
 }
 // A random offline-only id, used only as a last resort if Firebase itself
@@ -16752,7 +16780,7 @@ function profileWriteFields(p) {
   // null is written through on purpose (it clears a stale field in
   // Firestore, e.g. photoURL after explicitly picking a gradient) --
   // only undefined is skipped, since the Firestore SDK throws on it.
-  ['displayName', 'email', 'photoURL', 'avatarPhoto', 'avatarGradient', 'provider'].forEach((k) => {
+  ['displayName', 'email', 'photoURL', 'avatarPhoto', 'avatarGradient', 'provider', 'defaultTheme'].forEach((k) => {
     if (p[k] !== undefined) out[k] = p[k];
   });
   return out;
@@ -17011,9 +17039,25 @@ function providerLabel(p) {
   const map = { 'anonymous': 'ភ្ញៀវ — Guest account', 'google.com': 'Google', 'facebook.com': 'Facebook', 'apple.com': 'Apple', 'password': 'អ៊ីមែល — Email' };
   return (p && map[p.provider]) || 'Unknown';
 }
+// "Default theme" choices in the profile screen: automatic (= the app default) plus every theme in the picker,
+// labelled as the picker shows them (guest-locked ones carry their lock mark).
+function fillProfileThemeSelect() {
+  const sel = document.getElementById('profileDefaultTheme');
+  sel.innerHTML = '';
+  const auto = document.createElement('option');
+  auto.value = ''; auto.textContent = 'ស្វ័យប្រវត្តិ Automatic (Classic Wood)';
+  sel.appendChild(auto);
+  Array.from(document.getElementById('themeSel').options).forEach((o) => {
+    const op = document.createElement('option');
+    op.value = o.value; op.textContent = o.textContent;
+    sel.appendChild(op);
+  });
+  sel.value = (currentProfile && currentProfile.defaultTheme) || '';
+}
 function openProfileScreen() {
   if (!currentProfile) return;
   pendingAvatar = null;
+  fillProfileThemeSelect();
   document.getElementById('profileDisplayName').value = currentProfile.displayName || '';
   document.getElementById('profileMeta').textContent = 'ចូលតាមរយៈ — Signed in via ' + providerLabel(currentProfile);
   document.getElementById('profileStatus').style.display = 'none';
@@ -17121,11 +17165,22 @@ document.getElementById('profileSaveBtn').onclick = () => {
     if (pendingAvatar.avatarGradient) { currentProfile.avatarGradient = pendingAvatar.avatarGradient; currentProfile.avatarPhoto = null; currentProfile.photoURL = null; }
     pendingAvatar = null;
   }
+  let lockedDefaultNote = false;
+  const chosenTheme = document.getElementById('profileDefaultTheme').value || null;
+  if (chosenTheme && isSelectValueLocked('themeSel', chosenTheme)) {
+    // a guest cannot keep a locked theme as their default: leave the saved default alone and say why below
+    document.getElementById('profileDefaultTheme').value = currentProfile.defaultTheme || '';
+    lockedDefaultNote = true;
+  } else {
+    currentProfile.defaultTheme = chosenTheme; // null clears it (writeFields passes null through)
+  }
   rememberUsername(name);
   window.__oukAuth.recordProfile(profileWriteFields(currentProfile));
   updateModeProfileChip();
   const status = document.getElementById('profileStatus');
-  status.textContent = 'រក្សាទុករួច Saved!';
+  status.textContent = lockedDefaultNote
+    ? 'រក្សាទុករួច Saved — but 🔒 that theme needs a full account, so your default theme was not changed. Sign in to keep it.'
+    : 'រក្សាទុករួច Saved!';
   status.style.display = 'block';
 };
 document.getElementById('profileSignOutBtn').onclick = () => {
@@ -17392,7 +17447,7 @@ function tryAutoResume() {
     completeSignIn(s.uid, {
       displayName: rememberedUsername() || nextGuestUsername(),
       provider: s.method === 'guest' ? 'anonymous' : s.method
-    }).then(() => openModeScreen()).catch(() => {});
+    }).then(() => { applyProfileDefaultTheme(); openModeScreen(); }).catch(() => {});
   });
 }
 if (LOGIN_ENABLED) tryAutoResume();
