@@ -7139,14 +7139,14 @@ function flat2DArtTexture(setStyle, type, color, promoted) {
     }
     const body = document.createElement('canvas'); body.width = body.height = W;
     body.getContext('2d').putImageData(img, 0, 0);
-    // silhouette in ink (or vivid orange-red for a promoted Trey), stamped around the body for the outline
+    // silhouette in ink (orange for a promoted White Trey, red for a Black one), stamped around the body for the outline
     const sil = document.createElement('canvas'); sil.width = sil.height = W;
     const sc = sil.getContext('2d');
     sc.drawImage(body, 0, 0); sc.globalCompositeOperation = 'source-in';
-    sc.fillStyle = promoted ? '#ee4b1f' : (light ? '#1d2430' : '#080a0e'); sc.fillRect(0, 0, W, W);
+    sc.fillStyle = promoted ? (color === E.WHITE ? '#ff8a14' : '#e11d2e') : (light ? '#1d2430' : '#080a0e'); sc.fillRect(0, 0, W, W);
     const out = document.createElement('canvas'); out.width = out.height = W;
     const oc = out.getContext('2d');
-    const ow = Math.round(W / (promoted ? 48 : 85)); // a promoted Trey wears a thick orange-red rim
+    const ow = Math.round(W / (promoted ? 48 : 85)); // a promoted Trey wears a thick orange (White) or red (Black) rim
     // drop shadow, always to the viewer's lower right
     oc.globalAlpha = 0.24;
     const shadow = document.createElement('canvas'); shadow.width = shadow.height = W;
