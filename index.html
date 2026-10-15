@@ -7269,6 +7269,7 @@ const FLAT2D_FLOATING = { '2dwarrior': true };
 // Pawn-shortest hierarchy of the 3D set carries over unchanged.
 const PROJ_PX = 512;
 const FLAT2D_KING_TILE = 1.012, FLAT2D_CANVAS = 1.2, FLAT2D_BASE_LIFT = 0.06; // tiles
+const FLAT2D_KING_FIT = 0.90; // the King alone is brought down to this height so it stays inside its square
 let projScene = null, projCam = null, projRT = null, projRef = null;
 const projCache = {};
 function projectPieceShade(srcStyle, type, promoted) {
@@ -7293,7 +7294,8 @@ function projectPieceShade(srcStyle, type, promoted) {
   // one shared scale: the King stands FLAT2D_KING_TILE tiles tall; the art canvas spans FLAT2D_CANVAS tiles
   // (a little more than the square, so the tallest pieces may reach over the square's far edge)
   const kb = build(E.KING, false).box;
-  const frame = (kb.max.y - kb.min.y) / FLAT2D_KING_TILE * FLAT2D_CANVAS;
+  // (the King itself is drawn a little smaller than that shared scale, see FLAT2D_KING_FIT)
+  const frame = (kb.max.y - kb.min.y) / FLAT2D_KING_TILE * FLAT2D_CANVAS * (type === E.KING ? FLAT2D_KING_TILE / FLAT2D_KING_FIT : 1);
   const { g, box } = build(type, !!promoted);
   projCam.left = -frame / 2; projCam.right = frame / 2; projCam.top = frame / 2; projCam.bottom = -frame / 2;
   // every standing piece's base sits on one line, slightly above the square's lower edge
