@@ -7329,6 +7329,7 @@ function projectPieceShade(srcStyle, type, promoted) {
   // read-back rows are bottom-up and linear: flip, and convert the lighting to display luminance
   const cv = document.createElement('canvas'); cv.width = cv.height = PROJ_PX;
   const c2 = cv.getContext('2d'); const id = c2.createImageData(PROJ_PX, PROJ_PX);
+  let inkMin = PROJ_PX, inkMax = -1;
   for (let y = 0; y < PROJ_PX; y++) {
     const sy = PROJ_PX - 1 - y;
     for (let x = 0; x < PROJ_PX; x++) {
@@ -7337,10 +7338,11 @@ function projectPieceShade(srcStyle, type, promoted) {
       // un-premultiply the coverage, then gamma so the posterize bands sit evenly
       const l = a ? Math.min(255, Math.round(255 * Math.pow(Math.min(1, px[si] / a), 1 / 2.2))) : 0;
       id.data[di] = l; id.data[di + 1] = l; id.data[di + 2] = l; id.data[di + 3] = a;
+      if (a > 24) { if (y < inkMin) inkMin = y; if (y > inkMax) inkMax = y; }
     }
   }
   c2.putImageData(id, 0, 0);
-  return (projCache[ckey] = { width: PROJ_PX, ctx: c2 });
+  return (projCache[ckey] = { width: PROJ_PX, ctx: c2, inkCy: inkMax < 0 ? 0 : (inkMin + inkMax) / 2 / PROJ_PX - 0.5 });
 }
 // four flat tones for a side colour: shadow, mid, base-ish, highlight
 function flatProjectionTones(hex) {
@@ -7430,6 +7432,11 @@ function retrackFlat2DArt() {
       if (!plane) continue;
       if (az == null) az = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z);
       plane.rotation.y = az - g.rotation.y; // lying tokens use order YXZ, so this spins them flat on the board
+      if (g.userData.flat2dLying) {
+        // slide the art up the screen by flat2dShift so its ink is centred on the tile (0 on a starting square)
+        const up = g.userData.flat2dShift || 0, a = plane.rotation.y;
+        plane.position.x = -up * Math.sin(a); plane.position.z = -up * Math.cos(a);
+      }
       if (g.userData.floatBaseY != null) {
         const bob = reduced ? 0 : Math.sin(t * 1.7 + g.userData.floatPhase) * 0.06;
         plane.position.y = g.userData.floatBaseY + bob;
@@ -9676,6 +9683,19 @@ function retrackOnlineThinkingTip() {
   el.textContent = name + ' កំពុងគិត… — ' + name + ' is thinking…';
   el.style.display = 'block';
 }
+// Flat 2D: a piece standing on its starting square keeps the common base line; once it has moved it is centred in its tile
+let startBoardCache = null, startBoardVariant = null;
+function onStartingSquare(sq, p) {
+  const v = currentVariant();
+  if (startBoardVariant !== v) { startBoardCache = E.initialState(v).board; startBoardVariant = v; }
+  const q = startBoardCache[sq];
+  return q !== E.EMPTY && E.typeOf(q) === E.typeOf(p) && E.colorOf(q) === E.colorOf(p) && !E.isProm(p);
+}
+// how far (in tiles) a projected piece's ink sits below the middle of its art canvas
+function flat2dInkShift(type, promoted) {
+  if (pieceStyle() !== '2dflat') return 0;
+  return projectPieceShade(theme().projectFrom || 'khmerorig', type, promoted).inkCy * FLAT2D_CANVAS;
+}
 function rebuildPieces() {
   pieceGroup.clear();
   pieceAt = {};
@@ -9687,6 +9707,7 @@ function rebuildPieces() {
     const g = buildPiece(type, color, E.isProm(p), sq);
     const pos = sqPos(sq);
     g.position.set(pos.x, 0, pos.z);
+    if (g.userData.flat2dPlane && !onStartingSquare(sq, p)) g.userData.flat2dShift = flat2dInkShift(type, E.isProm(p));
     if (showPieceNames) addPieceLabel(g, type, color);
     pieceGroup.add(g);
     pieceAt[sq] = g;
@@ -9712,18 +9733,18 @@ for (const z of [5.25, -5.25]) {
 }
 // Flat 2D (a plan view on a wide screen): the captured pieces stand in two side columns instead of the
 // top/bottom strips, so the board itself can be centred and fill the screen (see updateTrayLayout)
-for (const x of [5.45, -5.45]) {
-  const t = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.06, 9.4), trayMat);
-  t.position.set(x, -0.05, 0);
-  t.receiveShadow = true;
+const traySideMat = new THREE.MeshBasicMaterial({ color: 0x2c1a0c, transparent: true, opacity: 0.25, depthWrite: false });
+for (const x of [5.57, -5.57]) { // two columns wide, hung from the board's top edge
+  const t = new THREE.Mesh(new THREE.BoxGeometry(1.54, 0.06, 6.6), traySideMat);
+  t.position.set(x, -0.05, -1.4);
   t.visible = false;
   trayGroup.add(t); traySides.push(t);
 }
 const TRAY_SIDE_ASPECT = 1.15; // side columns need a landscape-ish viewport
-const PLAN_DROP = 0.15; // the plan view sits this fraction of the viewport height below centre
+const CAP_SIDE_SCALE = 0.595; // captured pieces in the side columns (0.85 of a board piece, then the panel cut by 30%)
 let capSideLayout = false;
 function updateTrayLayout() {
-  const want = !!theme().topDown && camera.aspect >= TRAY_SIDE_ASPECT;
+  const want = !!theme().topDown && sceneDiv.clientWidth / Math.max(1, sceneDiv.clientHeight) >= TRAY_SIDE_ASPECT;
   if (want === capSideLayout) return;
   capSideLayout = want;
   trayEnds.forEach(t => { t.visible = !want; });
@@ -9771,11 +9792,12 @@ function rebuildCaptured() {
     row.list.forEach((t, i) => {
       const occ = typeCounts[t] = (typeCounts[t] || 0) + 1;
       const g = buildPiece(t, row.color, false, 1000 + row.color * 100 + t * 10 + occ);
-      g.scale.setScalar(0.55);
+      g.scale.setScalar(capSideLayout ? CAP_SIDE_SCALE : 0.55);
       if (capSideLayout) {
         // two columns per side, filled from the top edge down; White's lost pieces on the left, Black's on the right
         const sgn = row.color === E.WHITE ? -1 : 1;
-        g.position.set(sgn * (5.17 + (i % 2) * 0.6), -0.02, -3.75 + Math.floor(i / 2) * 0.62);
+        g.position.set(sgn * (5.2375 + (i % 2) * 0.665), -0.02, -4.3 + Math.floor(i / 2) * 0.665);
+        if (g.userData.flat2dPlane) g.userData.flat2dShift = flat2dInkShift(t, false); // centred in its cell
       } else {
         g.position.set(-3.75 + i * 0.5, -0.02, row.z);
       }
@@ -10553,6 +10575,7 @@ function applyTheme(key) {
   }
   frameMat.needsUpdate = true;
   trayMat.color.setHex(t.tray);
+  traySideMat.color.setHex(t.tray);
   // Dim (and, for Magic/Magic II, recolor) the flat ambient+hemisphere fill
   // lights for themes that ask for it (see the "ambientScale"/"hemiScale"/
   // "*ColorOverride" comment above); every other theme leaves these at their
@@ -15321,8 +15344,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.40';
+const APP_VERSION = '1.6.41';
 const WHATS_NEW = [
+  {
+    version: '1.6.41',
+    date: '2026-10-16',
+    title: { kh: 'Flat 2D៖ ក្តារនៅកណ្តាល និងកូនអុកដែលស៊ីរួចនៅខាងក្រៅ', en: 'Flat 2D: a centred, screen-fitted board and captured pieces at the side' },
+    items: [
+      { kh: 'ក្នុងស្បែក Flat 2D ក្តារអុកត្រូវបានដាក់នៅកណ្តាលផ្ទៃទំនេរ និងពង្រីកឲ្យល្មមអេក្រង់ ដោយគ្មានអ្វីត្រួតលើក្តារ (ឈ្មោះអ្នកលេង ចំណងជើង បញ្ជីជំហាន និងប៊ូតុងកាមេរ៉ា)។ ក៏ដូចគ្នានៅលើទូរស័ព្ទ។',
+        en: 'In the Flat 2D theme the board is centred in the free part of the screen and zoomed to fit it, with nothing overlapping it (player cards, title, move list, camera buttons). The same goes for phones.' },
+      { kh: 'កូនអុកដែលត្រូវស៊ីឥឡូវនៅក្នុងជួរពីរតាមចំហៀងក្តារ (ខាងឆ្វេងសម្រាប់ស ខាងស្តាំសម្រាប់ខ្មៅ) នៅលើផ្ទាំងថ្លាពាក់កណ្តាល។ លើអេក្រង់បញ្ឈរ វានៅតែនៅខាងលើ និងខាងក្រោមក្តារ។',
+        en: 'Captured pieces now stand in two columns beside the board (White on the left, Black on the right) on a see-through panel. On a portrait screen they stay in the strips above and below the board.' },
+      { kh: 'កូនអុកដែលបានផ្លាស់ចេញពីកន្លែងដើម (លើកលែងត្រី) ត្រូវបានដាក់នៅកណ្តាលក្រឡារបស់វា។',
+        en: 'Once a piece has moved off its starting square (the Trey aside) it is centred in its tile.' }
+    ]
+  },
   {
     version: '1.6.40',
     date: '2026-10-15',
@@ -16818,6 +16854,10 @@ function updateThinkTimes() {
   thinkRunning = running;
 }
 function tickHud() {
+  if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
+    const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
+    if ([I.T, I.B, I.L, I.R].map(Math.round).join('/') !== planSig) resize();
+  }
   checkFlagFall();
   updateThinkTimes();
   updateScoreboard(); // covers overlay open/close, theme recolors, and review stepping
@@ -17999,6 +18039,16 @@ function resize() {
     renderer.setSize(w, h, true);
   }
   camera.aspect = w / h;
+  if (theme().topDown) {
+    // plan view: centre the board in the part of the viewport no HUD element covers (see planLayout)
+    const P = planLayout();
+    camera.aspect = P.fullW / P.fullH;
+    camera.setViewOffset(P.fullW, P.fullH, P.offX, P.offY, w, h);
+    camera.updateProjectionMatrix();
+    updateTrayLayout();
+    topView();
+    return;
+  }
   // Lens-shift the frustum vertically so the board renders about 10%
   // higher in frame than a naturally-centered view would put it -- the
   // board's near/White-side edge otherwise sits quite low, with a lot of
@@ -18006,17 +18056,11 @@ function resize() {
   // changes which slice of the rendered image is shown; it leaves the
   // camera's actual position/angle (and so OrbitControls' rotation
   // behavior around controls.target) untouched.
-  if (theme().topDown) {
-    // plan view: the board's centre sits PLAN_DROP of the viewport height below the middle (frustum slice from the top)
-    camera.setViewOffset(w, h * (1 + 2 * PLAN_DROP), 0, 0, w, h);
-  } else {
-    const liftFrac = 0.10;
-    const fullH = h * (1 + liftFrac);
-    camera.setViewOffset(w, fullH, 0, fullH - h, w, h);
-  }
+  const liftFrac = 0.10;
+  const fullH = h * (1 + liftFrac);
+  camera.setViewOffset(w, fullH, 0, fullH - h, w, h);
   camera.updateProjectionMatrix();
   updateTrayLayout();
-  if (theme().topDown) topView(); // keep the plan view fitted to the viewport (panel opened/closed, window resized, phone turned)
 }
 window.addEventListener('resize', resize);
 
@@ -18081,14 +18125,53 @@ function resetView() {
   controls.target.set(0, 0, 0);
   controls.update();
 }
-// camera distance at which a plan view shows the whole board (frame, labels and the side columns) centred in the viewport
+// Plan view: the board (frame, labels and the captured-piece columns) is centred in the part of the viewport that
+// no UI element covers -- below the player cards / title, clear of the move list on the left and the camera
+// buttons on the right -- and zoomed to fill it.
+let planSig = '';
+function planInsets(w, h, side) {
+  const sr = sceneDiv.getBoundingClientRect();
+  const vis = (id) => { const e = document.getElementById(id); if (!e || !e.offsetWidth || !e.offsetHeight) return null; const cs = getComputedStyle(e); return cs.display === 'none' || cs.visibility === 'hidden' ? null : e; };
+  let T = 0, B = 0, L = 0, R = 0;
+  // vertical rule: an element in the upper half of the viewport pushes the board down, one in the lower half pushes it up
+  const vertical = (r) => { if ((r.top + r.bottom) / 2 - sr.top < h / 2) T = Math.max(T, r.bottom - sr.top); else B = Math.max(B, sr.bottom - r.top); };
+  for (const id of ['scoreW', 'scoreB', 'boardTitle']) { const e = vis(id); if (e) vertical(e.getBoundingClientRect()); }
+  for (const id of ['camControls', 'panelToggle']) {
+    const e = vis(id); if (!e) continue;
+    const r = e.getBoundingClientRect();
+    if (side) R = Math.max(R, sr.right - r.left); else vertical(r); // beside the board when there is room, else above it
+  }
+  for (const id of ['hud', 'movelist']) { // the extent of the text itself, not of the (wider) box holding it
+    const e = vis(id); if (!e) continue;
+    const tw = document.createTreeWalker(e, NodeFilter.SHOW_TEXT), rg = document.createRange();
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+      if (!n.nodeValue.trim()) continue;
+      rg.selectNodeContents(n);
+      const r = rg.getBoundingClientRect();
+      if (!r.width) continue;
+      if (side) L = Math.max(L, r.right - sr.left); else vertical(r);
+    }
+  }
+  const m = 10; // breathing room
+  if (!side) { T = B = Math.max(T, B); } // portrait: keep the board in the middle of the screen, clear of whichever side has more UI
+  return { T: T ? Math.min(T + m, h * 0.35) : m, B: B ? Math.min(B + m, h * 0.35) : m, L: L ? Math.min(L + m, w * 0.3) : 0, R: R ? Math.min(R + m, w * 0.2) : 0 };
+}
+function planLayout() {
+  const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
+  const side = w / Math.max(1, h) >= TRAY_SIDE_ASPECT;
+  const I = planInsets(w, h, side);
+  const cx = (I.L + (w - I.R)) / 2, cy = (I.T + (h - I.B)) / 2;
+  const fullW = w + 2 * Math.abs(cx - w / 2), fullH = h + 2 * Math.abs(cy - h / 2);
+  planSig = [I.T, I.B, I.L, I.R].map(Math.round).join('/');
+  return { w, h, side, I, cx, cy, fullW, fullH, offX: cx > w / 2 ? 0 : fullW - w, offY: cy > h / 2 ? 0 : fullH - h,
+    Aw: (w - I.L - I.R) / 2, Ah: (h - I.T - I.B) / 2 };
+}
 function topViewFitDist() {
-  const tanH = Math.tan(camera.fov * Math.PI / 360), asp = camera.aspect || 1;
-  const side = asp >= TRAY_SIDE_ASPECT;
-  const needH = side ? 4.95 : 6.1, needW = side ? 6.5 : 5.2;
-  // the frustum covers (1 + 2*PLAN_DROP) of the viewport height with the board's centre at PLAN_DROP below the middle
-  const k = 1 + 2 * PLAN_DROP;
-  const d = Math.max(needH * k / (tanH * (1 - 2 * PLAN_DROP)), needW * k / (tanH * asp));
+  const P = planLayout();
+  const tanH = Math.tan(camera.fov * Math.PI / 360);
+  const needH = P.side ? 4.95 : 6.1, needW = P.side ? 6.5 : 5.2; // half-extents (world units) that must stay visible
+  // vertical pixels per world unit at distance d is fullH / (2 d tanH); the same on x (the aspect is set to fullW/fullH)
+  const d = Math.max(needH * P.fullH / (2 * tanH * P.Ah), needW * P.fullH / (2 * tanH * P.Aw));
   controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
   return Math.min(controls.maxDistance, Math.max(controls.minDistance, d));
 }
