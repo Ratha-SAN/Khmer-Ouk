@@ -2581,6 +2581,7 @@
       <option value="galactic">Galactic — ចក្រវាឡ</option>
       <option value="gems">Gem Blitz — ត្បូងភ្លឺចាំង</option>
       <option value="flat2d">2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
+      <option value="flatVec">Flat 2D — រាបស្មើ 2D</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
       <option value="tfBattle">Transformers: Autobots vs Decepticons</option>
@@ -2602,6 +2603,7 @@
       <option value="khmerorig">Piece style: Original Khmer — ខ្មែរដើម</option>
       <option value="modern">Piece style: Modern Military — យោធាទំនើប</option>
       <option value="2dkhmer">Piece style: 2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
+      <option value="2dflat">Piece style: Flat 2D tokens — រាបស្មើ 2D</option>
       <option value="2dclassic">Piece style: 2D Classic — បុរាណ 2D</option>
       <option value="2dminimal">Piece style: 2D Minimal — សាមញ្ញ 2D</option>
       <option value="2dyantra">Piece style: 2D Sak Yantra — សាក់យន្ត 2D</option>
@@ -4720,6 +4722,18 @@ const THEMES = {
     labelInk: '#f7e7bf', tray: 0x3c170e,
     reflectOpacity: 0.1
   },
+  // Flat 2D: a clean flat-design board -- solid-colour tiles in a slim flat
+  // frame, no gloss, no reflection -- with flat round tokens (the '2dflat'
+  // set, see buildFlat2DPiece) lying on the squares like a printed diagram.
+  // topDown: choosing the theme also turns the camera to look straight down.
+  flatVec: {
+    name: 'Flat 2D', style: '2dflat',
+    bg: 0x1d2630, fog: null,
+    frame: 0x2f3e4e, tileLight: 0xdde8f1, tileDark: 0x7fa3c0,
+    pieceW: 0xffffff, pieceB: 0x2b323c, rough: 1, metal: 0.0, pieceBFloor: 0.1,
+    labelInk: '#d7e3ee', tray: 0x263340,
+    reflectOpacity: 0, topDown: true, projectFrom: 'khmerorig'
+  },
   // Angkor Sandstone: the temple complex itself as a board -- weathered
   // sandstone tiles inside a dark laterite frame, warm sandstone pieces
   // vs moss-darkened basalt, played on the buildAngkorPiece architecture
@@ -4947,6 +4961,7 @@ function configureControls(c) {
   c.enablePan = false;
   c.minDistance = 5; c.maxDistance = 22;
   c.maxPolarAngle = 1.45;
+  c.enableRotate = !theme().topDown;
   c.enableDamping = true;
 }
 function attachPickingHandlers(el) {
@@ -5765,9 +5780,9 @@ function mulberry32(seed) {
 
 // Three piece-set styles. 'traditional' = smooth turned wood; 'carved' =
 // faceted, angular like carved stone; 'minimal' = slender high-polish forms.
-function buildPiece(type, color, promoted, seed) {
+function buildPiece(type, color, promoted, seed, styleOverride) {
   const rand = mulberry32(seed == null ? ((Math.random() * 2 ** 31) | 0) : seed);
-  const style = pieceStyle();
+  const style = styleOverride || pieceStyle();
   const seg = style === 'carved' ? 6 : (style === 'minimal' ? 32 : 20);
   const wide = style === 'carved' ? 1.12 : (style === 'minimal' ? 0.88 : 1);
   const g = new THREE.Group();
@@ -6368,9 +6383,9 @@ function glyphInkBox(text, font) {
   }
   return minX <= maxX ? { minX, maxX, minY, maxY } : null;
 }
-function flat2DArtTexture(setStyle, type, color) {
+function flat2DArtTexture(setStyle, type, color, promoted) {
   const t = theme();
-  const key = setStyle + '_' + type + '_' + color + '_' + themeKey;
+  const key = setStyle + '_' + type + '_' + color + '_' + themeKey + (promoted ? '_p' : '');
   if (flat2DArtCache[key]) return flat2DArtCache[key];
   const sideHex = color === E.WHITE ? t.pieceW : t.pieceB;
   const body = hexCss(sideHex);
@@ -7109,6 +7124,39 @@ function flat2DArtTexture(setStyle, type, color) {
     ctx.globalAlpha = 0.8;
     ctx.fillText(NAMES[type].tr, cxp, botY + 14);
     ctx.globalAlpha = 1;
+  } else if (setStyle === '2dflat') {
+    // Flat projection of the 3D piece: the real model's side elevation,
+    // cel-shaded to a few flat tones in the side's colour with a clean ink
+    // outline and a baked drop shadow (see projectPieceShade).
+    const src = projectPieceShade(t.projectFrom || 'khmerorig', type, promoted);
+    const tones = flatProjectionTones(sideHex);
+    const W = src.width, img = src.ctx.getImageData(0, 0, W, W), d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue;
+      const L = d[i] / 255;
+      const c = tones[L < 0.3 ? 0 : L < 0.55 ? 1 : L < 0.8 ? 2 : 3];
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2];
+    }
+    const body = document.createElement('canvas'); body.width = body.height = W;
+    body.getContext('2d').putImageData(img, 0, 0);
+    // silhouette in ink (or gold for a promoted Trey), stamped around the body for the outline
+    const sil = document.createElement('canvas'); sil.width = sil.height = W;
+    const sc = sil.getContext('2d');
+    sc.drawImage(body, 0, 0); sc.globalCompositeOperation = 'source-in';
+    sc.fillStyle = promoted ? '#e0b341' : (light ? '#1d2430' : '#080a0e'); sc.fillRect(0, 0, W, W);
+    const out = document.createElement('canvas'); out.width = out.height = W;
+    const oc = out.getContext('2d');
+    const ow = Math.round(W / 85);
+    // drop shadow, always to the viewer's lower right
+    oc.globalAlpha = 0.24;
+    const shadow = document.createElement('canvas'); shadow.width = shadow.height = W;
+    const shc = shadow.getContext('2d'); shc.drawImage(body, 0, 0); shc.globalCompositeOperation = 'source-in';
+    shc.fillStyle = '#000'; shc.fillRect(0, 0, W, W);
+    oc.drawImage(shadow, W / 40, W / 32);
+    oc.globalAlpha = 1;
+    for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2; oc.drawImage(sil, Math.cos(a) * ow, Math.sin(a) * ow); }
+    oc.drawImage(body, 0, 0);
+    ctx.drawImage(out, 0, 0, 256, 256);
   } else if (setStyle === '2dclassic') {
     // Round medallion with the classic (western) chess glyph -- the
     // filled glyph variants tint cleanly with the side color.
@@ -7165,6 +7213,7 @@ function flat2DArtTexture(setStyle, type, color) {
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.anisotropy = 4;
+  if (setStyle === '2dflat') tex.colorSpace = THREE.SRGBColorSpace; // flat colours must come out exactly as drawn
   flat2DArtCache[key] = tex;
   return tex;
 }
@@ -7210,7 +7259,107 @@ function flat2DWHRatio(setStyle, type) {
 // an idle "breathing" cycle in retrackFlat2DArt below; every other flat
 // set keeps the card flush against its puck like before.
 const FLAT2D_FLOATING = { '2dwarrior': true };
+// ---------- Flat 2D: projections of the real 3D pieces ----------
+// '2dflat' pieces are the actual 3D models seen in orthographic side
+// elevation (the way a chess diagram draws them), cel-shaded to flat tones
+// and laid on the square with their tops pointing away from the viewer and
+// every base on one common line (the Trey, a low disc, is drawn from above).
+// The source set is the theme's projectFrom (default: the Original Khmer
+// models). All six ranks share ONE scale, so the King-tallest /
+// Pawn-shortest hierarchy of the 3D set carries over unchanged.
+const PROJ_PX = 512;
+const FLAT2D_KING_TILE = 1.012, FLAT2D_CANVAS = 1.2, FLAT2D_BASE_LIFT = 0.06; // tiles
+let projScene = null, projCam = null, projRT = null, projRef = null;
+const projCache = {};
+function projectPieceShade(srcStyle, type, promoted) {
+  const ckey = srcStyle + '_' + type + (promoted ? 'p' : '');
+  if (projCache[ckey]) return projCache[ckey];
+  if (!projScene) {
+    projScene = new THREE.Scene();
+    projScene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const key = new THREE.DirectionalLight(0xffffff, 1.25); key.position.set(2, 3, -1.6); projScene.add(key); // from the viewer's left, above
+    const fill = new THREE.DirectionalLight(0xffffff, 0.25); fill.position.set(2, 0.2, 2); projScene.add(fill);
+    projCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 20);
+    projRT = new THREE.WebGLRenderTarget(PROJ_PX, PROJ_PX, { samples: 4 });
+  }
+  const lam = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const build = (ty, pr) => {
+    const g = buildPiece(ty, E.WHITE, pr, 7, srcStyle);
+    g.rotation.set(0, 0, 0); // every piece (horse included) faces the same way, toward the top of the diagram
+    g.traverse((o) => { if (o.isMesh) o.material = lam; });
+    g.updateMatrixWorld(true);
+    return { g, box: new THREE.Box3().setFromObject(g) };
+  };
+  // one shared scale: the King stands FLAT2D_KING_TILE tiles tall; the art canvas spans FLAT2D_CANVAS tiles
+  // (a little more than the square, so the tallest pieces may reach over the square's far edge)
+  const kb = build(E.KING, false).box;
+  const frame = (kb.max.y - kb.min.y) / FLAT2D_KING_TILE * FLAT2D_CANVAS;
+  const { g, box } = build(type, !!promoted);
+  projCam.left = -frame / 2; projCam.right = frame / 2; projCam.top = frame / 2; projCam.bottom = -frame / 2;
+  // every standing piece's base sits on one line, slightly above the square's lower edge
+  const pad = (FLAT2D_CANVAS / 2 - (0.5 - FLAT2D_BASE_LIFT)) / FLAT2D_CANVAS * frame;
+  if (type === E.PAWN) {
+    // the Trey (a cowrie / flipped bia) is drawn from ABOVE, its footprint centred in the square
+    const cxx = (box.min.x + box.max.x) / 2, czz = (box.min.z + box.max.z) / 2;
+    projCam.up.set(0, 0, -1);
+    projCam.position.set(cxx, 8, czz); projCam.lookAt(cxx, 0, czz);
+  } else {
+    const cy = box.min.y - pad + frame / 2, cz = (box.min.z + box.max.z) / 2;
+    projCam.up.set(0, 1, 0);
+    projCam.position.set(6, cy, cz); projCam.lookAt(0, cy, cz); // looking along -x: world -z is screen-right
+  }
+  projCam.updateProjectionMatrix(); projCam.updateMatrixWorld(true);
+  projScene.add(g);
+  const prev = { rt: renderer.getRenderTarget(), tm: renderer.toneMapping, alpha: renderer.getClearAlpha(), col: renderer.getClearColor(new THREE.Color()) };
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.setRenderTarget(projRT); renderer.setClearColor(0x000000, 0); renderer.clear();
+  renderer.render(projScene, projCam);
+  const px = new Uint8Array(PROJ_PX * PROJ_PX * 4);
+  renderer.readRenderTargetPixels(projRT, 0, 0, PROJ_PX, PROJ_PX, px);
+  renderer.setRenderTarget(prev.rt); renderer.toneMapping = prev.tm; renderer.setClearColor(prev.col, prev.alpha);
+  projScene.remove(g);
+  g.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+  // read-back rows are bottom-up and linear: flip, and convert the lighting to display luminance
+  const cv = document.createElement('canvas'); cv.width = cv.height = PROJ_PX;
+  const c2 = cv.getContext('2d'); const id = c2.createImageData(PROJ_PX, PROJ_PX);
+  for (let y = 0; y < PROJ_PX; y++) {
+    const sy = PROJ_PX - 1 - y;
+    for (let x = 0; x < PROJ_PX; x++) {
+      const si = (sy * PROJ_PX + x) * 4, di = (y * PROJ_PX + x) * 4;
+      const a = px[si + 3];
+      // un-premultiply the coverage, then gamma so the posterize bands sit evenly
+      const l = a ? Math.min(255, Math.round(255 * Math.pow(Math.min(1, px[si] / a), 1 / 2.2))) : 0;
+      id.data[di] = l; id.data[di + 1] = l; id.data[di + 2] = l; id.data[di + 3] = a;
+    }
+  }
+  c2.putImageData(id, 0, 0);
+  return (projCache[ckey] = { width: PROJ_PX, ctx: c2 });
+}
+// four flat tones for a side colour: shadow, mid, base-ish, highlight
+function flatProjectionTones(hex) {
+  const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
+  const mix = (k, to) => [Math.round(r + (to - r) * k), Math.round(g + (to - g) * k), Math.round(b + (to - b) * k)];
+  const light = hexIsLight(hex);
+  return light
+    ? [mix(0.46, 20), mix(0.24, 20), mix(0.07, 20), mix(0.0, 255)]
+    : [mix(0.45, 0), [r, g, b], mix(0.30, 255), mix(0.52, 255)];
+}
+function buildFlatProjectionPiece(g, type, promoted, color, setStyle) {
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(FLAT2D_CANVAS, FLAT2D_CANVAS),
+    new THREE.MeshBasicMaterial({ map: flat2DArtTexture(setStyle, type, color, promoted), transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, toneMapped: false }));
+  plane.rotation.order = 'YXZ';
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.y = 0.025;
+  plane.raycast = () => {}; // the art overhangs the square; clicks fall through to the square itself
+  g.add(plane);
+  g.userData.flat2dPlane = plane;
+  g.userData.flat2dLying = true;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
 function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
+  if (setStyle === '2dflat') return buildFlatProjectionPiece(g, type, promoted, color, setStyle);
   const floating = !!FLAT2D_FLOATING[setStyle];
   // a smaller platform for floating sets -- a full-size coin base would
   // dwarf the hovering figure and read as "character glued to a puck"
@@ -7273,7 +7422,7 @@ function retrackFlat2DArt() {
       const plane = g.userData && g.userData.flat2dPlane;
       if (!plane) continue;
       if (az == null) az = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z);
-      plane.rotation.y = az - g.rotation.y;
+      plane.rotation.y = az - g.rotation.y; // lying tokens use order YXZ, so this spins them flat on the board
       if (g.userData.floatBaseY != null) {
         const bob = reduced ? 0 : Math.sin(t * 1.7 + g.userData.floatPhase) * 0.06;
         plane.position.y = g.userData.floatBaseY + bob;
@@ -10341,9 +10490,16 @@ function updatePieceMaterialTexture() {
 }
 
 // ---------- theme application ----------
+let themeWasTopDown = false;
 function applyTheme(key) {
   themeKey = key;
   const t = theme();
+  // a topDown theme (Flat 2D) is a plan view: the camera looks straight down and can't be tilted,
+  // so the board never shows perspective; leaving it restores the usual tilt
+  controls.enableRotate = !t.topDown;
+  if (t.topDown) topView();
+  else if (themeWasTopDown) tiltedView();
+  themeWasTopDown = !!t.topDown;
   applyUiPalette(t);
   updateBackground();
   scene.fog = t.fog ? new THREE.Fog(t.bg, t.fog[0], t.fog[1]) : null;
@@ -17283,7 +17439,7 @@ function applyAccessTier() {
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
   { key: 'original', label: 'ដើម Original', themes: ['wood', 'okCartoon', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
-  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'tfBattle', 'lowPoly'] }
+  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'flatVec', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'tfBattle', 'lowPoly'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
 let openThemeCatKey = null;
@@ -17495,6 +17651,8 @@ window.__ouk = {
     showMarkers(); updateSquareTints();
   },
   selectedSq: () => selected,
+  cameraPos: () => camera.position.toArray(),
+  flatPlaneState: () => { for (const g of pieceGroup.children) if (g.userData.flat2dLying) return { rotX: g.userData.flat2dPlane.rotation.x, rotY: g.userData.flat2dPlane.rotation.y, groupRotY: g.rotation.y }; return null; },
   legalCount: () => legalForSelected.length,
   markerCount: () => markerGroup.children.length,
   // Test-only: stand in for a real completeSignIn() (which needs a real
@@ -17872,7 +18030,13 @@ function topView() {
   // gave atan2(x,z) a 45° azimuth, which is why the board looked rotated
   // diagonally instead of square to the screen). A small positive z keeps
   // the same 0° azimuth as the default view, just orbited to look straight down.
-  camera.position.set(0, dist, 0.001);
+  camera.position.set(0, dist, viewSide === E.BLACK ? -0.001 : 0.001);
+  controls.update();
+}
+// back from topView(): the default elevation, still seen from the current seat
+function tiltedView() {
+  controls.target.set(0, 0, 0);
+  camera.position.set(0, DEFAULT_CAM_POS.y, viewSide === E.BLACK ? -DEFAULT_CAM_POS.z : DEFAULT_CAM_POS.z);
   controls.update();
 }
 // ---------- board-view flipping (for the Black-side player) ----------
