@@ -7139,14 +7139,14 @@ function flat2DArtTexture(setStyle, type, color, promoted) {
     }
     const body = document.createElement('canvas'); body.width = body.height = W;
     body.getContext('2d').putImageData(img, 0, 0);
-    // silhouette in ink (orange for a promoted White Trey, red for a Black one), stamped around the body for the outline
+    // silhouette in ink (orange for a promoted Trey of either side), stamped around the body for the outline
     const sil = document.createElement('canvas'); sil.width = sil.height = W;
     const sc = sil.getContext('2d');
     sc.drawImage(body, 0, 0); sc.globalCompositeOperation = 'source-in';
-    sc.fillStyle = promoted ? (color === E.WHITE ? '#ff8a14' : '#e11d2e') : (light ? '#1d2430' : '#080a0e'); sc.fillRect(0, 0, W, W);
+    sc.fillStyle = promoted ? '#ff8a14' : (light ? '#1d2430' : '#080a0e'); sc.fillRect(0, 0, W, W);
     const out = document.createElement('canvas'); out.width = out.height = W;
     const oc = out.getContext('2d');
-    const ow = Math.round(W / (promoted ? 48 : 85)); // a promoted Trey wears a thick orange (White) or red (Black) rim
+    const ow = Math.round(W / (promoted ? 48 : 85)); // a promoted Trey wears a thick orange rim
     // drop shadow, always to the viewer's lower right
     oc.globalAlpha = 0.24;
     const shadow = document.createElement('canvas'); shadow.width = shadow.height = W;
@@ -7297,17 +7297,21 @@ function projectPieceShade(srcStyle, type, promoted) {
   // (the King itself is drawn a little smaller than that shared scale, see FLAT2D_KING_FIT)
   const frame = (kb.max.y - kb.min.y) / FLAT2D_KING_TILE * FLAT2D_CANVAS * (type === E.KING ? FLAT2D_KING_TILE / FLAT2D_KING_FIT : 1);
   const { g, box } = build(type, !!promoted);
-  const wide = type === E.KING && !promoted ? 1.1 : 1; // the King is drawn 10% wider than tall-scaled, sideways only
-  projCam.left = -frame / 2 / wide; projCam.right = frame / 2 / wide; projCam.top = frame / 2; projCam.bottom = -frame / 2;
+  // per-rank tweaks on top of the shared scale: the King is drawn 15.5% wider (sideways only);
+  // the Neang, Koul and Seh are 5% lower (height only)
+  const wide = type === E.KING && !promoted ? 1.155 : 1;
+  const low = !promoted && (type === E.QUEEN || type === E.BISHOP || type === E.KNIGHT) ? 0.95 : 1;
+  const fv = frame / low; // vertical extent of the view: a larger window draws the piece lower
+  projCam.left = -frame / 2 / wide; projCam.right = frame / 2 / wide; projCam.top = fv / 2; projCam.bottom = -fv / 2;
   // every standing piece's base sits on one line, slightly above the square's lower edge
-  const pad = (FLAT2D_CANVAS / 2 - (0.5 - FLAT2D_BASE_LIFT)) / FLAT2D_CANVAS * frame;
+  const pad = (FLAT2D_CANVAS / 2 - (0.5 - FLAT2D_BASE_LIFT)) / FLAT2D_CANVAS * fv;
   if (type === E.PAWN || promoted) {
     // the Trey (a cowrie / flipped bia), promoted or not, is drawn from ABOVE, its footprint centred in the square
     const cxx = (box.min.x + box.max.x) / 2, czz = (box.min.z + box.max.z) / 2;
     projCam.up.set(0, 0, -1);
     projCam.position.set(cxx, 8, czz); projCam.lookAt(cxx, 0, czz);
   } else {
-    const cy = box.min.y - pad + frame / 2, cz = (box.min.z + box.max.z) / 2;
+    const cy = box.min.y - pad + fv / 2, cz = (box.min.z + box.max.z) / 2;
     projCam.up.set(0, 1, 0);
     projCam.position.set(6, cy, cz); projCam.lookAt(0, cy, cz); // looking along -x: world -z is screen-right
   }
