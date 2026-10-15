@@ -7146,7 +7146,7 @@ function flat2DArtTexture(setStyle, type, color, promoted) {
     sc.fillStyle = promoted ? '#e0b341' : (light ? '#1d2430' : '#080a0e'); sc.fillRect(0, 0, W, W);
     const out = document.createElement('canvas'); out.width = out.height = W;
     const oc = out.getContext('2d');
-    const ow = Math.round(W / 85);
+    const ow = Math.round(W / (promoted ? 48 : 85)); // a promoted Trey wears a thick gold rim
     // drop shadow, always to the viewer's lower right
     oc.globalAlpha = 0.24;
     const shadow = document.createElement('canvas'); shadow.width = shadow.height = W;
@@ -7300,8 +7300,8 @@ function projectPieceShade(srcStyle, type, promoted) {
   projCam.left = -frame / 2; projCam.right = frame / 2; projCam.top = frame / 2; projCam.bottom = -frame / 2;
   // every standing piece's base sits on one line, slightly above the square's lower edge
   const pad = (FLAT2D_CANVAS / 2 - (0.5 - FLAT2D_BASE_LIFT)) / FLAT2D_CANVAS * frame;
-  if (type === E.PAWN) {
-    // the Trey (a cowrie / flipped bia) is drawn from ABOVE, its footprint centred in the square
+  if (type === E.PAWN || promoted) {
+    // the Trey (a cowrie / flipped bia), promoted or not, is drawn from ABOVE, its footprint centred in the square
     const cxx = (box.min.x + box.max.x) / 2, czz = (box.min.z + box.max.z) / 2;
     projCam.up.set(0, 0, -1);
     projCam.position.set(cxx, 8, czz); projCam.lookAt(cxx, 0, czz);
