@@ -7139,14 +7139,14 @@ function flat2DArtTexture(setStyle, type, color, promoted) {
     }
     const body = document.createElement('canvas'); body.width = body.height = W;
     body.getContext('2d').putImageData(img, 0, 0);
-    // silhouette in ink (or gold for a promoted Trey), stamped around the body for the outline
+    // silhouette in ink (or vivid orange-red for a promoted Trey), stamped around the body for the outline
     const sil = document.createElement('canvas'); sil.width = sil.height = W;
     const sc = sil.getContext('2d');
     sc.drawImage(body, 0, 0); sc.globalCompositeOperation = 'source-in';
-    sc.fillStyle = promoted ? '#e0b341' : (light ? '#1d2430' : '#080a0e'); sc.fillRect(0, 0, W, W);
+    sc.fillStyle = promoted ? '#ee4b1f' : (light ? '#1d2430' : '#080a0e'); sc.fillRect(0, 0, W, W);
     const out = document.createElement('canvas'); out.width = out.height = W;
     const oc = out.getContext('2d');
-    const ow = Math.round(W / (promoted ? 48 : 85)); // a promoted Trey wears a thick gold rim
+    const ow = Math.round(W / (promoted ? 48 : 85)); // a promoted Trey wears a thick orange-red rim
     // drop shadow, always to the viewer's lower right
     oc.globalAlpha = 0.24;
     const shadow = document.createElement('canvas'); shadow.width = shadow.height = W;
@@ -7297,7 +7297,8 @@ function projectPieceShade(srcStyle, type, promoted) {
   // (the King itself is drawn a little smaller than that shared scale, see FLAT2D_KING_FIT)
   const frame = (kb.max.y - kb.min.y) / FLAT2D_KING_TILE * FLAT2D_CANVAS * (type === E.KING ? FLAT2D_KING_TILE / FLAT2D_KING_FIT : 1);
   const { g, box } = build(type, !!promoted);
-  projCam.left = -frame / 2; projCam.right = frame / 2; projCam.top = frame / 2; projCam.bottom = -frame / 2;
+  const wide = type === E.KING && !promoted ? 1.1 : 1; // the King is drawn 10% wider than tall-scaled, sideways only
+  projCam.left = -frame / 2 / wide; projCam.right = frame / 2 / wide; projCam.top = frame / 2; projCam.bottom = -frame / 2;
   // every standing piece's base sits on one line, slightly above the square's lower edge
   const pad = (FLAT2D_CANVAS / 2 - (0.5 - FLAT2D_BASE_LIFT)) / FLAT2D_CANVAS * frame;
   if (type === E.PAWN || promoted) {
