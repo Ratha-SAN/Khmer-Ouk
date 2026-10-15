@@ -9703,11 +9703,33 @@ function rebuildPieces() {
 const trayGroup = new THREE.Group();
 scene.add(trayGroup);
 const trayMat = new THREE.MeshPhysicalMaterial({ color: 0x2c1a0c, roughness: 0.9 });
+const trayEnds = [], traySides = [];
 for (const z of [5.25, -5.25]) {
   const t = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.06, 0.9), trayMat);
   t.position.set(0, -0.05, z);
   t.receiveShadow = true;
-  trayGroup.add(t);
+  trayGroup.add(t); trayEnds.push(t);
+}
+// Flat 2D (a plan view on a wide screen): the captured pieces stand in two side columns instead of the
+// top/bottom strips, so the board itself can be centred and fill the screen (see updateTrayLayout)
+for (const x of [5.45, -5.45]) {
+  const t = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.06, 9.4), trayMat);
+  t.position.set(x, -0.05, 0);
+  t.receiveShadow = true;
+  t.visible = false;
+  trayGroup.add(t); traySides.push(t);
+}
+const TRAY_SIDE_ASPECT = 1.15; // side columns need a landscape-ish viewport
+const PLAN_DROP = 0.15; // the plan view sits this fraction of the viewport height below centre
+let capSideLayout = false;
+function updateTrayLayout() {
+  const want = !!theme().topDown && camera.aspect >= TRAY_SIDE_ASPECT;
+  if (want === capSideLayout) return;
+  capSideLayout = want;
+  trayEnds.forEach(t => { t.visible = !want; });
+  traySides.forEach(t => { t.visible = want; });
+  frame.scale.z = want ? 9.4 / 11.9 : 1; // without the top/bottom strips the frame is just the square board
+  if (state) rebuildCaptured();
 }
 const capturedGroup = new THREE.Group();
 scene.add(capturedGroup);
@@ -9750,7 +9772,13 @@ function rebuildCaptured() {
       const occ = typeCounts[t] = (typeCounts[t] || 0) + 1;
       const g = buildPiece(t, row.color, false, 1000 + row.color * 100 + t * 10 + occ);
       g.scale.setScalar(0.55);
-      g.position.set(-3.75 + i * 0.5, -0.02, row.z);
+      if (capSideLayout) {
+        // two columns per side, filled from the top edge down; White's lost pieces on the left, Black's on the right
+        const sgn = row.color === E.WHITE ? -1 : 1;
+        g.position.set(sgn * (5.17 + (i % 2) * 0.6), -0.02, -3.75 + Math.floor(i / 2) * 0.62);
+      } else {
+        g.position.set(-3.75 + i * 0.5, -0.02, row.z);
+      }
       capturedGroup.add(g);
     });
   }
@@ -10507,6 +10535,7 @@ function applyTheme(key) {
   if (t.topDown) topView();
   else if (themeWasTopDown) tiltedView();
   themeWasTopDown = !!t.topDown;
+  resize(); // the plan view drops the lens-shift; the captured pieces move beside the board (updateTrayLayout)
   applyUiPalette(t);
   updateBackground();
   scene.fog = t.fog ? new THREE.Fog(t.bg, t.fog[0], t.fog[1]) : null;
@@ -17977,10 +18006,17 @@ function resize() {
   // changes which slice of the rendered image is shown; it leaves the
   // camera's actual position/angle (and so OrbitControls' rotation
   // behavior around controls.target) untouched.
-  const liftFrac = 0.10;
-  const fullH = h * (1 + liftFrac);
-  camera.setViewOffset(w, fullH, 0, fullH - h, w, h);
+  if (theme().topDown) {
+    // plan view: the board's centre sits PLAN_DROP of the viewport height below the middle (frustum slice from the top)
+    camera.setViewOffset(w, h * (1 + 2 * PLAN_DROP), 0, 0, w, h);
+  } else {
+    const liftFrac = 0.10;
+    const fullH = h * (1 + liftFrac);
+    camera.setViewOffset(w, fullH, 0, fullH - h, w, h);
+  }
   camera.updateProjectionMatrix();
+  updateTrayLayout();
+  if (theme().topDown) topView(); // keep the plan view fitted to the viewport (panel opened/closed, window resized, phone turned)
 }
 window.addEventListener('resize', resize);
 
@@ -18020,6 +18056,7 @@ const BOARD_FIT_RADIUS = 6.0;
 function fitCameraToBoard() {
   const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
   if (!w || !h) return;
+  if (theme().topDown) { topView(); return; }
   const aspect = w / h;
   const vFovRad = camera.fov * Math.PI / 180;
   const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * aspect);
@@ -18039,12 +18076,24 @@ function fitCameraToBoard() {
   controls.update();
 }
 function resetView() {
+  if (theme().topDown) { topView(); return; }
   camera.position.copy(DEFAULT_CAM_POS);
   controls.target.set(0, 0, 0);
   controls.update();
 }
+// camera distance at which a plan view shows the whole board (frame, labels and the side columns) centred in the viewport
+function topViewFitDist() {
+  const tanH = Math.tan(camera.fov * Math.PI / 360), asp = camera.aspect || 1;
+  const side = asp >= TRAY_SIDE_ASPECT;
+  const needH = side ? 4.95 : 6.1, needW = side ? 6.5 : 5.2;
+  // the frustum covers (1 + 2*PLAN_DROP) of the viewport height with the board's centre at PLAN_DROP below the middle
+  const k = 1 + 2 * PLAN_DROP;
+  const d = Math.max(needH * k / (tanH * (1 - 2 * PLAN_DROP)), needW * k / (tanH * asp));
+  controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
+  return Math.min(controls.maxDistance, Math.max(controls.minDistance, d));
+}
 function topView() {
-  const dist = camera.position.distanceTo(controls.target) || DEFAULT_CAM_POS.length();
+  const dist = theme().topDown ? topViewFitDist() : (camera.position.distanceTo(controls.target) || DEFAULT_CAM_POS.length());
   controls.target.set(0, 0, 0);
   // x must be exactly 0 (not a matching tiny epsilon on both axes — that
   // gave atan2(x,z) a 45° azimuth, which is why the board looked rotated
@@ -18111,7 +18160,7 @@ document.getElementById('autoFlipChk').onchange = (e) => {
 document.getElementById('flipViewBtn').onclick = () => setViewSide(viewSide === E.WHITE ? E.BLACK : E.WHITE, true);
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
-document.getElementById('zoomResetBtn').onclick = () => { resetView(); viewSide = E.WHITE; setLabelOrientation(false); };
+document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; resetView(); setLabelOrientation(false); };
 document.getElementById('topViewBtn').onclick = topView;
 
 // ---------- hide/show the settings panel ----------
