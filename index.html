@@ -2582,6 +2582,10 @@
       <option value="gems">Gem Blitz — ត្បូងភ្លឺចាំង</option>
       <option value="flat2d">2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
       <option value="flatVec">Flat 2D — រាបស្មើ 2D</option>
+      <option value="flatClassic">Flat Classic — រាបស្មើ បុរាណ</option>
+      <option value="flatKhmer">Flat Khmer — រាបស្មើ ខ្មែរ</option>
+      <option value="flatPaper">Flat Paper — រាបស្មើ ក្រដាស</option>
+      <option value="flatNight">Flat Night — រាបស្មើ យប់</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
       <option value="tfBattle">Transformers: Autobots vs Decepticons</option>
@@ -4722,9 +4726,11 @@ const THEMES = {
     labelInk: '#f7e7bf', tray: 0x3c170e,
     reflectOpacity: 0.1
   },
-  // Flat 2D: a clean flat-design board -- solid-colour tiles in a slim flat
-  // frame, no gloss, no reflection -- with flat round tokens (the '2dflat'
-  // set, see buildFlat2DPiece) lying on the squares like a printed diagram.
+  // Flat 2D family: a clean flat-design board -- solid-colour tiles in a slim flat
+  // frame, no gloss, no reflection -- with pieces that are flat side-elevation
+  // projections of a 3D set (the '2dflat' style, see projectPieceShade) lying on the
+  // squares like a printed diagram. All themes of the family project the same Original Khmer
+  // models (projectFrom) and differ only in board and piece colours.
   // topDown: choosing the theme also turns the camera to look straight down.
   flatVec: {
     name: 'Flat 2D', style: '2dflat',
@@ -4732,6 +4738,42 @@ const THEMES = {
     frame: 0x2f3e4e, tileLight: 0xdde8f1, tileDark: 0x7fa3c0,
     pieceW: 0xffffff, pieceB: 0x2b323c, rough: 1, metal: 0.0, pieceBFloor: 0.1,
     labelInk: '#d7e3ee', tray: 0x263340,
+    reflectOpacity: 0, topDown: true, projectFrom: 'khmerorig'
+  },
+  // Flat Classic: the familiar green-and-cream diagram board
+  flatClassic: {
+    name: 'Flat Classic', style: '2dflat',
+    bg: 0x1d2420, fog: null,
+    frame: 0x3b4a32, tileLight: 0xeeeed2, tileDark: 0x769656,
+    pieceW: 0xfafafa, pieceB: 0x3a3a3a, rough: 1, metal: 0.0, pieceBFloor: 0.1,
+    labelInk: '#e6efd8', tray: 0x2b3526,
+    reflectOpacity: 0, topDown: true, projectFrom: 'khmerorig'
+  },
+  // Flat Khmer: sandalwood and terracotta squares, ivory vs oxblood pieces
+  flatKhmer: {
+    name: 'Flat Khmer', style: '2dflat',
+    bg: 0x1c1410, fog: null,
+    frame: 0x5a2c16, tileLight: 0xf0d9a8, tileDark: 0xc07a3c,
+    pieceW: 0xfff3d6, pieceB: 0x6b1f14, rough: 1, metal: 0.0, pieceBFloor: 0.1,
+    labelInk: '#f7e3b6', tray: 0x3a1c0e,
+    reflectOpacity: 0, topDown: true, projectFrom: 'khmerorig'
+  },
+  // Flat Paper: warm paper board, cream vs espresso pieces
+  flatPaper: {
+    name: 'Flat Paper', style: '2dflat',
+    bg: 0x1d1a17, fog: null,
+    frame: 0x4a3a2c, tileLight: 0xe9dcc3, tileDark: 0xa9896a,
+    pieceW: 0xf6ead0, pieceB: 0x2f2823, rough: 1, metal: 0.0, pieceBFloor: 0.1,
+    labelInk: '#efe0c4', tray: 0x362c22,
+    reflectOpacity: 0, topDown: true, projectFrom: 'khmerorig'
+  },
+  // Flat Night: an indigo board, ice-white vs coral pieces
+  flatNight: {
+    name: 'Flat Night', style: '2dflat',
+    bg: 0x0d1220, fog: null,
+    frame: 0x1b2540, tileLight: 0x4a5a8a, tileDark: 0x2a3558,
+    pieceW: 0xe6efff, pieceB: 0xf0765a, rough: 1, metal: 0.0, pieceBFloor: 0.1,
+    labelInk: '#c9d6ff', tray: 0x141c33,
     reflectOpacity: 0, topDown: true, projectFrom: 'khmerorig'
   },
   // Angkor Sandstone: the temple complex itself as a board -- weathered
@@ -15347,8 +15389,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.42';
+const APP_VERSION = '1.6.43';
 const WHATS_NEW = [
+  {
+    version: '1.6.43',
+    date: '2026-10-17',
+    title: { kh: 'ក្រុមស្បែក Flat 2D ថ្មី បើកសម្រាប់ភ្ញៀវ', en: 'A new Flat 2D theme group, open to guests' },
+    items: [
+      { kh: 'ក្រុមថ្មី «Flat 2D» នៅក្នុងបញ្ជីស្បែក ដែលអ្នកលេងជាភ្ញៀវអាចប្រើបានទាំងអស់ ដោយមិនចាំបាច់ចូលគណនី។',
+        en: 'A new "Flat 2D" group in the theme list, fully open to guests with no sign-in needed.' },
+      { kh: 'មានស្បែកថ្មីបួន៖ Flat Classic (បៃតង-ក្រែម) Flat Khmer (ដីឥដ្ឋ-ភ្លុក) Flat Paper (ក្រដាស) និង Flat Night (ពណ៌ធ្មេញ-ទឹកក្រូចក្រហម)។ ទាំងអស់ប្រើរូបរាងកូនអុកដូចគ្នា ដោយប្តូរតែពណ៌ក្តារ និងពណ៌កូនអុក។',
+        en: 'Four new themes: Flat Classic (green and cream), Flat Khmer (terracotta and ivory), Flat Paper, and Flat Night (ice white vs coral). They all use the same piece shapes and differ only in board and piece colours.' }
+    ]
+  },
   {
     version: '1.6.42',
     date: '2026-10-16',
@@ -17475,7 +17528,7 @@ document.getElementById('profileSignOutBtn').onclick = () => {
 const LOGIN_ENABLED = true;
 let accessTier = LOGIN_ENABLED ? 'guest' : 'full'; // 'guest' | 'full'
 const GUEST_SELECT_LIMITS = {
-  themeSel: { free: ['wood', 'okWood'], allowed: 2 },
+  themeSel: { free: ['wood', 'okWood', 'flatVec', 'flatClassic', 'flatKhmer', 'flatPaper', 'flatNight'], allowed: 2 }, // the whole Flat 2D family is open to guests
   bgSel: { free: ['auto'], allowed: 2 },
   musicSel: { free: ['none'], allowed: 2 }
 };
@@ -17540,7 +17593,8 @@ function applyAccessTier() {
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
   { key: 'original', label: 'ដើម Original', themes: ['wood', 'okCartoon', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
-  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'flatVec', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'tfBattle', 'lowPoly'] }
+  { key: 'flat', label: 'រាបស្មើ Flat 2D', themes: ['flatVec', 'flatClassic', 'flatKhmer', 'flatPaper', 'flatNight'] },
+  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'tfBattle', 'lowPoly'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
 let openThemeCatKey = null;
