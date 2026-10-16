@@ -9734,9 +9734,9 @@ for (const z of [5.25, -5.25]) {
 // Flat 2D (a plan view on a wide screen): the captured pieces stand in two side columns instead of the
 // top/bottom strips, so the board itself can be centred and fill the screen (see updateTrayLayout)
 const traySideMat = new THREE.MeshBasicMaterial({ color: 0x2c1a0c, transparent: true, opacity: 0.25, depthWrite: false });
-for (const x of [5.57, -5.57]) { // two columns wide, hung from the board's top edge
+for (const x of [5.57, -5.57]) { // two columns wide, level with the middle of the board
   const t = new THREE.Mesh(new THREE.BoxGeometry(1.54, 0.06, 6.6), traySideMat);
-  t.position.set(x, -0.05, -1.4);
+  t.position.set(x, -0.05, 0);
   t.visible = false;
   trayGroup.add(t); traySides.push(t);
 }
@@ -9794,9 +9794,12 @@ function rebuildCaptured() {
       const g = buildPiece(t, row.color, false, 1000 + row.color * 100 + t * 10 + occ);
       g.scale.setScalar(capSideLayout ? CAP_SIDE_SCALE : 0.55);
       if (capSideLayout) {
-        // two columns per side, filled from the top edge down; White's lost pieces on the left, Black's on the right
+        // two columns per side, White's lost pieces on the left, Black's on the right
         const sgn = row.color === E.WHITE ? -1 : 1;
-        g.position.set(sgn * (5.2375 + (i % 2) * 0.665), -0.02, -4.3 + Math.floor(i / 2) * 0.665);
+        // from the inside out: the first pair stands at the middle of the panel, in the column next to the board,
+        // and the rest alternate below / above it, outward
+        const rowN = Math.floor(i / 2), rowOff = rowN === 0 ? 0 : (rowN % 2 === 1 ? (rowN + 1) / 2 : -rowN / 2);
+        g.position.set(sgn * (5.2375 + (i % 2) * 0.665), -0.02, rowOff * 0.665);
         if (g.userData.flat2dPlane) g.userData.flat2dShift = flat2dInkShift(t, false); // centred in its cell
       } else {
         g.position.set(-3.75 + i * 0.5, -0.02, row.z);
