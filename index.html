@@ -2269,29 +2269,45 @@
             console.warn('Guest sign-in failed:', err); throw err;
           });
         };
-        window.__oukAuth.signInGoogle = function () {
-          var provider = new firebase.auth.GoogleAuthProvider();
-          return auth.signInWithPopup(provider).catch(function (err) {
-            console.warn('Google sign-in failed:', err); throw err;
+        // A player who started as a guest (a Firebase anonymous account) and then signs up keeps the SAME uid by
+        // LINKING the new provider to that account, so the games and stats recorded as a guest follow them. A
+        // link keeps the user object, so onAuthStateChanged does not fire: announce() pushes the new state itself.
+        var currentAnon = function () { return auth.currentUser && auth.currentUser.isAnonymous ? auth.currentUser : null; };
+        var announce = function (cred) {
+          var u = cred.user;
+          window.__oukAuth._setState({
+            signedIn: true,
+            method: (u.providerData[0] && u.providerData[0].providerId) || 'unknown',
+            uid: u.uid,
+            tier: u.isAnonymous ? 'guest' : 'full'
           });
+          return cred;
         };
+        var popupSignIn = function (provider, label) {
+          var anon = currentAnon();
+          var plain = function () { return auth.signInWithPopup(provider); };
+          var p = anon
+            ? anon.linkWithPopup(provider).then(announce).catch(function (err) {
+                // that account already has its own player record: sign into it (the guest's games stay with the guest)
+                if (err && err.code === 'auth/credential-already-in-use' && err.credential) return auth.signInWithCredential(err.credential);
+                if (err && (err.code === 'auth/email-already-in-use' || err.code === 'auth/provider-already-linked')) return plain();
+                throw err;
+              })
+            : plain();
+          return p.catch(function (err) { console.warn(label + ' sign-in failed:', err); throw err; });
+        };
+        window.__oukAuth.signInGoogle = function () { return popupSignIn(new firebase.auth.GoogleAuthProvider(), 'Google'); };
         // Apple's real sign-in product is "Sign in with Apple" (tied to the
         // user's Apple ID/iCloud account) -- there is no separate "iCloud
         // sign-in" API, so this is the correct implementation of that request.
-        window.__oukAuth.signInApple = function () {
-          var provider = new firebase.auth.OAuthProvider('apple.com');
-          return auth.signInWithPopup(provider).catch(function (err) {
-            console.warn('Apple sign-in failed:', err); throw err;
-          });
-        };
-        window.__oukAuth.signInFacebook = function () {
-          var provider = new firebase.auth.FacebookAuthProvider();
-          return auth.signInWithPopup(provider).catch(function (err) {
-            console.warn('Facebook sign-in failed:', err); throw err;
-          });
-        };
+        window.__oukAuth.signInApple = function () { return popupSignIn(new firebase.auth.OAuthProvider('apple.com'), 'Apple'); };
+        window.__oukAuth.signInFacebook = function () { return popupSignIn(new firebase.auth.FacebookAuthProvider(), 'Facebook'); };
         window.__oukAuth.signUpEmail = function (email, password) {
-          return auth.createUserWithEmailAndPassword(email, password).catch(function (err) {
+          var anon = currentAnon();
+          var p = anon
+            ? anon.linkWithCredential(firebase.auth.EmailAuthProvider.credential(email, password)).then(announce)
+            : auth.createUserWithEmailAndPassword(email, password);
+          return p.catch(function (err) {
             console.warn('Email sign-up failed:', err); throw err;
           });
         };
@@ -15433,8 +15449,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.44';
+const APP_VERSION = '1.6.45';
 const WHATS_NEW = [
+  {
+    version: '1.6.45',
+    date: '2026-10-18',
+    title: { kh: 'ស្ថិតិភ្ញៀវមិនបាត់ពេលចុះឈ្មោះ', en: 'Your guest games and stats are kept when you sign up' },
+    items: [
+      { kh: 'ពេលអ្នកចាប់ផ្ដើមជាភ្ញៀវ ហើយបន្ទាប់មកចុះឈ្មោះដោយ Google, Facebook ឬអ៊ីមែល គណនីថ្មីត្រូវបានភ្ជាប់ទៅគណនីភ្ញៀវដដែល ដូច្នេះហ្គេម និងស្ថិតិដែលបានលេងជាភ្ញៀវនៅតែជារបស់អ្នក។',
+        en: 'If you start as a guest and then sign up with Google, Facebook or email, the new sign-in is linked to the same account, so the games and stats you played as a guest stay yours.' },
+      { kh: 'បើគណនី Google ឬ Facebook នោះមានគណនីលេងរួចហើយ អ្នកនឹងចូលទៅក្នុងគណនីនោះជំនួសវិញ។',
+        en: 'If that Google or Facebook account already has a player record, you are signed into it instead.' }
+    ]
+  },
   {
     version: '1.6.44',
     date: '2026-10-18',
