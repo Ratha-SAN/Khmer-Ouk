@@ -499,11 +499,9 @@
       0 0 70px 14px rgba(79,216,255,.08), 0 24px 60px rgba(0,0,0,.55);
     animation: overlayBoxIn .18s ease-out;
   }
-  #modeScreen .box { position: relative; }
-  #modeScreen h2 { padding-right: 76px; }
   #modeProfileChip {
-    position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px;
-    max-width: 150px; background: var(--surface-2); border: 1px solid var(--accent-dim);
+    display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+    max-width: 100%; background: var(--surface-2); border: 1px solid var(--accent-dim);
     border-radius: 999px; padding: 3px 10px 3px 3px; cursor: pointer;
   }
   #modeProfileChip:hover { border-color: var(--accent); }
@@ -600,7 +598,6 @@
   #onlineInviteBanner.warn { border-color: var(--danger); color: var(--danger); }
   #onlineJoinCodeBtn.inviteGlow { box-shadow: 0 0 0 2px var(--accent), 0 0 18px 2px var(--accent-dim); }
   #startInviteNote { margin: 0 0 14px; font-size: 14px; color: var(--accent); }
-  #pickInvite { margin-top: 10px; width: 100%; padding: 12px 10px; font-size: 16px; }
   #onlineCodeInput {
     font-family: inherit; font-size: 18px; text-align: center; border-radius: 6px; border: 1px solid var(--accent-dim);
     background: var(--surface-2); color: var(--panel-fg); padding: 8px 10px; box-sizing: border-box;
@@ -619,20 +616,60 @@
     box-shadow: 0 0 24px 3px rgba(255,207,107,.4), 0 8px 20px rgba(0,0,0,.35);
   }
   #startScreen .box button:hover { filter: brightness(1.08); }
-  #modeScreen h2 { font-size: 18px; color: var(--accent); margin-bottom: 16px; text-shadow: 0 0 16px rgba(255,207,107,.3); }
-  #modeScreen .bigpick { display: flex; gap: 10px; }
-  #modeScreen .bigpick button {
-    flex: 1; padding: 20px 10px; font-size: 18px; line-height: 1.4;
+  /* first screen: one big Play now, then smaller secondary choices; the sign-in link is deliberately quiet */
+  #startScreen .box #playNowBtn { display: block; width: 100%; font-size: 22px; padding: 18px 20px; margin-bottom: 12px; }
+  #playNowBtn small { display: block; font-size: 12px; font-weight: 500; opacity: .8; margin-top: 4px; }
+  #startScreen .box #startBtn { font-size: 14px; padding: 8px 12px; background: none; color: var(--accent); box-shadow: none; text-decoration: underline; }
+  #startLangRow { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  #startScreen .box #startLangToggle {
+    font-size: 13px; padding: 6px 14px; border-radius: 999px; background: var(--surface-2); color: var(--panel-fg);
+    border: 1px solid var(--accent-dim); box-shadow: none; font-weight: 600;
+  }
+  #startScreen .box #startLearnBtn {
+    display: block; width: 100%; margin-bottom: 12px; font-size: 15px; padding: 12px 8px;
+    background: linear-gradient(160deg, rgba(50,30,90,.85), rgba(22,12,45,.9)); color: var(--panel-fg);
+    border: 1px solid rgba(180,140,255,.35); box-shadow: none; font-weight: 600;
+  }
+  /* opened inside a social app's own browser: Google sign-in is blocked there */
+  .iabHint {
+    display: none; margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.5;
+    border: 1px solid var(--accent); background: var(--surface-2); color: var(--panel-fg); text-align: left;
+  }
+  .iabHint button { margin-top: 6px; font-size: 13px; padding: 6px 12px; }
+  #startScreen .box .iabHint button { font-size: 13px; padding: 6px 12px; background: var(--accent); color: var(--on-accent); box-shadow: none; }
+  /* the computer-level reminder: a chip under the board title, plus a short toast when such a game starts */
+  #aiChip {
+    position: absolute; top: 58px; left: 50%; transform: translateX(-50%); z-index: 3; display: none;
+    padding: 4px 12px; font-size: 12px; font-weight: 600; border-radius: 999px; cursor: pointer; white-space: nowrap;
+    background: color-mix(in srgb, var(--panel-bg) 82%, transparent); color: var(--accent); border: 1px solid var(--accent-dim);
+  }
+  #aiChip:hover { border-color: var(--accent); }
+  #aiNotice {
+    position: fixed; top: 96px; left: 50%; z-index: 30; max-width: 86vw; text-align: center; cursor: pointer;
+    background: var(--accent); color: var(--on-accent); padding: 10px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4); opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-10px);
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  #aiNotice.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  /* mode cards with a leading icon, and the quiet Options switch under them */
+  #modeAcc .bigpick button .cardIcon { font-size: 26px; line-height: 1; }
+  #playOptionsBtn { margin-top: 10px; width: 100%; padding: 8px 10px; font-size: 14px; background: none; border: 1px dashed var(--accent-dim); color: var(--text-faint); }
+  #playOptionsBtn.active { color: var(--accent); border-color: var(--accent); }
+  /* the three mode cards stack in the settings panel: icon on the left, label beside it */
+  #modeAcc .bigpick { display: flex; flex-direction: column; gap: 8px; }
+  #modeAcc .bigpick button {
+    display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; font-size: 15px; line-height: 1.35;
     background: linear-gradient(160deg, rgba(50,30,90,.85), rgba(22,12,45,.9));
     border: 1px solid rgba(180,140,255,.3); color: var(--panel-fg);
   }
-  #modeScreen .bigpick button:nth-child(1) { box-shadow: 0 0 18px 1px rgba(255,207,107,.35); border-color: rgba(255,207,107,.5); }
-  #modeScreen .bigpick button:nth-child(2) { box-shadow: 0 0 18px 1px rgba(79,216,255,.35); border-color: rgba(79,216,255,.5); }
-  #modeScreen .bigpick button:hover { filter: brightness(1.18); }
+  #modeAcc .bigpick button:nth-child(1) { box-shadow: 0 0 18px 1px rgba(255,207,107,.35); border-color: rgba(255,207,107,.5); }
+  #modeAcc .bigpick button:nth-child(2) { box-shadow: 0 0 18px 1px rgba(79,216,255,.35); border-color: rgba(79,216,255,.5); }
+  #modeAcc .bigpick button:hover { filter: brightness(1.18); }
+  #pickInvite, #pickLearn { margin-top: 8px; width: 100%; padding: 10px; font-size: 14px; }
   /* selected 2 Player / vs Computer mode button, once chosen on the
      play-mode screen -- a solid accent fill + ring reads as a clearly
      "chosen" state distinct from the two buttons' own idle gold/cyan glow */
-  #modeScreen .bigpick button.active {
+  #modeAcc .bigpick button.active {
     background: var(--accent); color: var(--on-accent);
     border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim), 0 8px 20px rgba(0,0,0,.35);
   }
@@ -641,13 +678,18 @@
   .levelgrid button.active, .sidebtn.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
   .sidepick { display: flex; gap: 8px; margin-top: 12px; }
   .sidepick button { flex: 1; }
-  #modeScreen .btnrow { justify-content: center; }
   #confirmPlay {
     font-size: 18px; padding: 14px 40px; background: var(--accent); color: var(--on-accent);
     font-weight: 700; border: none; box-shadow: 0 0 24px 3px rgba(255,207,107,.4), 0 8px 20px rgba(0,0,0,.35);
   }
   #confirmPlay:hover { background: var(--accent-hover); }
-  #modeCancel { background: transparent; border-color: var(--accent-dim); color: var(--text-muted); }
+  /* a narrow scene (laptop with the control panel open) has no room to flank the title with the scorecards without
+     running into the move/time HUD at the top left: use the same bottom-corner scorecards as on a phone */
+  body.scene-narrow #scoreW { right: auto; left: 8px; top: auto; bottom: 10px; padding: 3px 10px 3px 4px; }
+  body.scene-narrow #scoreB { left: auto; right: 8px; top: auto; bottom: 10px; padding: 3px 10px 3px 4px; }
+  body.scene-narrow .scorecard .avatar { width: 28px; height: 28px; }
+  body.scene-narrow .scorecard .pname { font-size: 11px; max-width: 110px; }
+  body.scene-narrow .scorecard .pscore { font-size: 13px; }
   /* ---------- mobile (phone) layout: portrait and landscape ----------
      The settings panel becomes a full-screen slide-up sheet (toggled by
      the React touch toolbar or the panel-hide button) instead of a fixed
@@ -662,9 +704,6 @@
        board visible above it and correctly centered in what's left. */
     #scene { width: 100%; height: calc(100% - 64px - env(safe-area-inset-bottom, 0px)); }
     #panelToggle { display: none; }
-    /* 2 or 3 big mode-pick buttons side-by-side get too cramped on a
-       phone-width screen -- stack them instead. */
-    #modeScreen .bigpick { flex-direction: column; }
     /* no room to flank the title on a phone (the HUD and move list own
        the top corners): compact the scorecards into the empty bottom
        corners of the scene, just above the toolbar */
@@ -702,6 +741,9 @@
        under topViewBtn/zoomOutBtn rather than leaving a lopsided gap. */
     #flipViewBtn { grid-column: 2; }
     #boardTitle { font-size: 20px; top: 14px; }
+    /* no room under the title on a phone (HUD and camera buttons flank it): the level chip and its toast sit above the bottom scorecards */
+    #aiChip { top: auto; bottom: 76px; }
+    #aiNotice { top: auto; bottom: 120px; font-size: 12px; }
     #hud { font-size: 11px; }
     /* cap to ~4 visible lines (line-height 1.7em/line) instead of the
        desktop 26vh, which on a phone showed far more history than fits
@@ -741,6 +783,8 @@
        old single-column layout instead of the portrait rule's top:60px */
     #camControls { top: 12px; right: 68px; }
     #boardTitle { top: 12px; font-size: 15px; }
+    #aiChip { top: 42px; font-size: 11px; padding: 3px 10px; }
+    #aiNotice { top: 72px; font-size: 12px; }
     #boardTitle small { font-size: 9px; }
   }
   /* ============ Magic theme: MOBA-style skill effects ============
@@ -1897,6 +1941,7 @@
     var listeners = [];
     var state = { signedIn: false, method: null, uid: null, tier: 'guest' };
     return {
+      ready: false, // set true once the real Firebase-backed sign-in methods replace these stubs
       getState: function () { return state; },
       onChange: function (cb) { listeners.push(cb); cb(state); },
       _setState: function (s) { state = s; listeners.forEach(function (cb) { try { cb(state); } catch (e) {} }); },
@@ -2218,6 +2263,7 @@
             tier: user.isAnonymous ? 'guest' : 'full'
           } : { signedIn: false, method: null, uid: null, tier: 'guest' });
         });
+        window.__oukAuth.ready = true;
         window.__oukAuth.signInGuest = function () {
           return auth.signInAnonymously().catch(function (err) {
             console.warn('Guest sign-in failed:', err); throw err;
@@ -2321,6 +2367,7 @@
     <img class="avatar" alt="Black player avatar">
     <div class="meta"><span class="pname">Black</span><span class="pscore">0</span></div>
   </div>
+  <button id="aiChip" type="button" aria-label="Computer level"></button>
   <div id="hud"></div>
   <div id="movelist"></div>
   <div id="thinking">កំពុងគិត… Computer is thinking…</div>
@@ -2347,9 +2394,15 @@
   </div>
 </div>
 
+<div id="aiNotice" aria-live="polite"></div>
+
 <div id="loginScreen" class="fullOverlay" style="display:none">
   <div class="box">
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
+    <div class="iabHint" id="loginIabHint">
+      <span>ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។ — Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
+      <button type="button" class="iabCopyBtn">ចម្លងតំណ — Copy link</button>
+    </div>
     <div id="loginGuestPanel">
       <p>ចូលជាភ្ញៀវ — Continue as a guest</p>
       <div style="text-align:left;margin-top:6px">
@@ -2406,40 +2459,43 @@
 
 <div id="startScreen" class="fullOverlay">
   <div class="box">
+    <div id="startLangRow"><button id="startLangToggle" type="button" title="Language ភាសា"></button></div>
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
     <p>ល្បែងអុកខ្មែរបែបប្រពៃណី — Traditional Cambodian chess</p>
-    <p id="startInviteNote" style="display:none">🎉 មិត្តភក្ដិបានអញ្ជើញអ្នកលេង! ចុចចាប់ផ្ដើម ហើយចូលគណនី ដើម្បីចូលរួម។<br>A friend invited you to play! Tap START and sign in to join.</p>
-    <button id="startBtn">ចាប់ផ្ដើម ▸ START</button>
+    <p id="startInviteNote" style="display:none">🎉 មិត្តភក្ដិបានអញ្ជើញអ្នកលេង! ចុចលេងឥឡូវ ដើម្បីចូលរួម។<br>A friend invited you to play! Tap Play now to join.</p>
+    <div class="iabHint" id="startIabHint">
+      <span>ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។ — Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
+      <button type="button" class="iabCopyBtn">ចម្លងតំណ — Copy link</button>
+    </div>
+    <button id="playNowBtn" type="button">លេងឥឡូវ ▸ PLAY NOW<small>ជាមួយកុំព្យូទ័រ កម្រិត ២ — vs Computer, level 2</small></button>
+    <button id="startLearnBtn" type="button">📖 រៀនលេង Learn to Play</button>
+    <button id="startBtn" type="button">ចូលគណនី ▸ Sign in / Create account</button>
   </div>
 </div>
 
-<div id="modeScreen" class="fullOverlay" style="display:none">
-  <div class="box">
-    <button id="modeProfileChip" type="button" title="គណនីរបស់អ្នក — Your profile">
-      <span id="modeProfileAvatar"><img id="modeProfileImg" alt="" style="display:none"><span id="modeProfileInitial"></span></span>
-      <span id="modeProfileText">
-        <span id="modeProfileName"></span>
-        <span id="modeProfileTier"></span>
-      </span>
-    </button>
-    <div id="modeScreenChoice">
-      <h2>ជ្រើសរើសរបៀប — Choose a mode</h2>
+<div id="panel">
+  <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
+  <span id="appVersionTag" class="appVersionTag" title="អ្វីថ្មី — What's New"></span>
+
+  <div id="currentModeReadout" style="font-size:13px;margin:2px 0 8px;color:var(--text-muted)">Current mode: <b id="currentModeReadoutText">—</b></div>
+  <details class="acc" id="modeAcc">
+    <summary id="changeModeBtn">ប្ដូររបៀបលេង Change Mode</summary>
+    <div class="acc-body">
+      <button id="modeProfileChip" type="button" title="គណនីរបស់អ្នក — Your profile">
+        <span id="modeProfileAvatar"><img id="modeProfileImg" alt="" style="display:none"><span id="modeProfileInitial"></span></span>
+        <span id="modeProfileText">
+          <span id="modeProfileName"></span>
+          <span id="modeProfileTier"></span>
+        </span>
+      </button>
       <div class="bigpick">
-        <button id="pickLearn">រៀនលេង<br>Learn to Play</button>
-        <button id="pickPlay">លេង<br>Play</button>
-      </div>
-      <div class="btnrow" style="margin-top:18px">
-        <button id="modeChoiceCancel">បោះបង់ Cancel</button>
-      </div>
-    </div>
-    <div id="modeScreenPlay" style="display:none">
-      <h2>ជ្រើសរើសរបៀបលេង — Choose a play mode</h2>
-      <div class="bigpick">
-        <button id="pick2p">លេង២នាក់<br>2 Player</button>
-        <button id="pickAi">ជាមួយកុំព្យូទ័រ<br>vs Computer</button>
-        <button id="pickOnline">លេងអនឡាញ<br>Play Online</button>
+        <button id="pickAi"><span class="cardIcon">🤖</span><span>ជាមួយកុំព្យូទ័រ vs Computer</span></button>
+        <button id="pick2p"><span class="cardIcon">👥</span><span>លេង២នាក់ 2 Player</span></button>
+        <button id="pickOnline"><span class="cardIcon">🌐</span><span>លេងអនឡាញ Play Online</span></button>
       </div>
       <button id="pickInvite" type="button">👥 អញ្ជើញមិត្តភក្ដិ Invite a Friend</button>
+      <button id="pickLearn" type="button">📖 រៀនលេង Learn to Play</button>
+      <button id="playOptionsBtn" type="button">⚙ ជម្រើសបន្ថែម (ពេលវេលា កម្រិត ខាង) More options (time, level, side)</button>
       <div id="playConfig" style="display:none">
         <div id="clockPick" style="margin-top:14px">
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
@@ -2460,21 +2516,8 @@
           <button id="confirmPlay">លេង ▸ Play</button>
         </div>
       </div>
-      <div class="btnrow" style="margin-top:18px">
-        <button id="modeCancel">ត្រឡប់ក្រោយ Back</button>
-      </div>
     </div>
-  </div>
-</div>
-
-<div id="panel">
-  <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
-  <span id="appVersionTag" class="appVersionTag" title="អ្វីថ្មី — What's New"></span>
-
-  <div id="currentModeReadout" style="font-size:13px;margin:2px 0 8px;color:var(--text-muted)">Current mode: <b id="currentModeReadoutText">—</b></div>
-  <div class="btnrow">
-    <button id="changeModeBtn">ប្ដូររបៀបលេង Change Mode</button>
-  </div>
+  </details>
   <div class="btnrow" id="langBtns">
     <button data-lang="both" class="active">ខ្មែរ + English</button>
     <button data-lang="kh">ខ្មែរ</button>
@@ -4952,7 +4995,7 @@ let thinkMs = [0, 0];        // total thinking time per side [WHITE, BLACK], sho
 let thinkLastTick = null;    // timestamp of the previous thinking-time tick
 let thinkRunning = false;    // true while the side to move's thinking time is accruing
 let frozenElapsed = null;    // ms captured once the game ends, so the HUD clock stops
-let pendingAiLevel = 1, pendingSide = E.WHITE; // choices being made in the mode-select screen
+let pendingAiLevel = 2, pendingSide = E.WHITE; // choices being made in the mode-select screen
 let pendingPlayMode = null; // 'hotseat' | 'ai', which bigpick button is highlighted on the play-mode screen
 let hintMove = null;         // engine-suggested move currently shown as a square tint
 let hintBusy = false;        // a hint request is in flight on the worker
@@ -14069,6 +14112,7 @@ function applyMove(m) {
   // pieceGroup out from under them.
   const modernCaptureCue = (theme().modernFx && captured !== E.EMPTY && !fxPrefersReducedMotion())
     ? grabModernCaptureCue(m.from, m.to) : null;
+  if (uiMode === 'play' && moveEntries.length === 0 && gameStartTs) funnel('first_move', { mode, secs: Math.round((Date.now() - gameStartTs) / 1000) });
   E.makeMove(state, m);
   const promoted = wasPawn && E.isProm(state.board[m.to]);
   moveEntries.push(notation(m, mover, captured, promoted));
@@ -15389,8 +15433,27 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.43';
+const APP_VERSION = '1.6.44';
 const WHATS_NEW = [
+  {
+    version: '1.6.44',
+    date: '2026-10-18',
+    title: { kh: 'ចូលលេងបានភ្លាម៖ លេងឥឡូវ និងរបៀបលេងក្នុងផ្ទាំងបញ្ជា', en: 'Play in one tap: Play now, and the mode choices live in the settings panel' },
+    items: [
+      { kh: 'ទំព័រដំបូងមានប៊ូតុង «លេងឥឡូវ» ធំមួយ ដែលចាប់ផ្ដើមហ្គេមជាមួយកុំព្យូទ័រកម្រិត ២ ភ្លាមៗ ដោយមិនចាំបាច់ចូលគណនី ឬបញ្ចូលឈ្មោះ (មានឈ្មោះភ្ញៀវស្វ័យប្រវត្តិ ហើយស្ថិតិនៅតែត្រូវបានកត់ត្រា)។ ក្រោមវាមាន «រៀនលេង» និងតំណ «ចូលគណនី»។',
+        en: 'The first screen now has one big "Play now" button that starts a game against the computer at level 2 right away, with no sign-in or name to type (a guest name is made automatically and your stats are still recorded). Under it are "Learn to Play" and a quiet "Sign in" link.' },
+      { kh: 'ប៊ូតុងភាសានៅទំព័រដំបូងជាប៊ូតុងតែមួយ ដែលប្ដូររវាងខ្មែរ និងអង់គ្លេស ហើយបង្ហាញតែភាសាមួយ។ អ្នកមកថ្មីឃើញភាសាខ្មែរមុន។',
+        en: 'The language control on the first screen is a single button that switches between Khmer and English and shows only one language. New visitors start in Khmer.' },
+      { kh: 'ផ្ទាំងជ្រើសរើសរបៀបលេងពេលមុនត្រូវបានលុប ហើយចូលទៅក្នុងផ្ទាំងបញ្ជា ក្រោម «ប្ដូររបៀបលេង» ដែលអាចបត់បានវិញ៖ ជាមួយកុំព្យូទ័រ ២នាក់ អនឡាញ អញ្ជើញមិត្តភក្ដិ រៀនលេង និងជម្រើសបន្ថែម (ពេលវេលា កម្រិត ខាង)។',
+        en: 'The old mode pop-up is gone. Its choices now sit in the settings panel under a collapsible "Change Mode": vs Computer, 2 Player, Online, Invite a friend, Learn, and More options (time, level, side).' },
+      { kh: 'ពេលលេងជាមួយកុំព្យូទ័រ មានស្លាកតូចក្រោមចំណងជើងប្រាប់កម្រិតរបស់កុំព្យូទ័រ ហើយប៉ះដើម្បីប្តូរបាន។ បើរកគូប្រកួតអនឡាញមិនឃើញក្នុង ២០វិនាទី នឹងប្ដូរមកលេងជាមួយកុំព្យូទ័រ។',
+        en: 'While playing the computer, a small chip under the title shows its level (tap to change it). If no online opponent is found within 20 seconds you are moved to a computer game instead.' },
+      { kh: 'បើបើកក្នុងកម្មវិធីបណ្ដាញសង្គម (Facebook, Instagram, TikTok…) ប៊ូតុង Google ត្រូវបានលាក់ព្រោះមិនដំណើរការ ហើយមានការណែនាំឲ្យបើកក្នុង Chrome ឬ Safari។',
+        en: 'Inside a social app\'s own browser (Facebook, Instagram, TikTok...) the Google button is hidden, since it cannot work there, and a hint says to open the game in Chrome or Safari.' },
+      { kh: 'ក្តារបន្ថែមពិន្ទុនៅជ្រុងខាងក្រោមនៅពេលអេក្រង់ចង្អៀត ដើម្បីកុំឲ្យត្រួតលើម៉ោង។',
+        en: 'On a narrow screen the player cards move to the bottom corners so they no longer run into the move and time readout.' }
+    ]
+  },
   {
     version: '1.6.43',
     date: '2026-10-17',
@@ -16281,32 +16344,22 @@ let pendingInviteCode = parseInviteCode(location.search, location.hash);
 // the Start button -- finishLogin() uses this to resume right back into
 // the same mode/game instead of dropping into mode selection.
 let loginMidSession = false;
-// The mode-select overlay is a 2-step wizard: step A (modeScreenChoice) is
-// the top-level Learn to Play / Play choice; step B (modeScreenPlay) is
-// the pre-existing 2 Player / vs Computer + time-control picker, only
-// reached after choosing Play. openModeScreen() always resets to step A
-// -- both the in-game "Change Mode" button and the Training panel's own
-// "Change Mode" button reopen this same top-level choice, not just the
-// 2P/AI submenu, so either mode can freely switch to the other.
-function showModeChoiceStep() {
-  document.getElementById('modeScreenChoice').style.display = 'block';
-  document.getElementById('modeScreenPlay').style.display = 'none';
-}
+// Mode choices (vs Computer / 2 Player / Online / Invite / Learn, plus the optional time / level / side config)
+// live in the settings panel's collapsible "Change Mode" section (#modeAcc) -- there is no separate pop-up for
+// them. openModeScreen() is the old entry point every "let me change the mode" path still calls; it now just
+// opens that section (and the panel itself where it is a slide-up sheet).
 // Resets the 2 Player / vs Computer picker back to its unselected state
 // -- neither bigpick button highlighted, no time-control/level/chess-set
 // config shown yet -- so reopening the wizard (Change Mode, or Back-ing
 // out and in again) never shows a stale selection from a previous visit.
 function resetPlayModeStep() {
+  playOptionsOpen = false;
+  document.getElementById('playOptionsBtn').classList.remove('active');
   pendingPlayMode = null;
   document.getElementById('pick2p').classList.remove('active');
   document.getElementById('pickAi').classList.remove('active');
   document.getElementById('playConfig').style.display = 'none';
   document.getElementById('aiLevelPick').style.display = 'none';
-}
-function showModePlayStep() {
-  resetPlayModeStep();
-  document.getElementById('modeScreenChoice').style.display = 'none';
-  document.getElementById('modeScreenPlay').style.display = 'block';
 }
 // Clicking 2 Player or vs Computer highlights that button (rather than
 // immediately acting on it) and progressively reveals its own config:
@@ -16320,31 +16373,179 @@ function selectPlayMode(m) {
   document.getElementById('aiLevelPick').style.display = m === 'ai' ? 'block' : 'none';
   document.getElementById('playConfig').style.display = 'block';
 }
+function panelIsOpen() { return !!(window.__oukActions && window.__oukActions.isPanelOpen && window.__oukActions.isPanelOpen()); }
+function openModeAccordion() {
+  const acc = document.getElementById('modeAcc');
+  hideAiNotice();
+  resetPlayModeStep();
+  acc.open = true;
+  if (!panelIsOpen() && window.__oukActions && window.__oukActions.togglePanel) window.__oukActions.togglePanel();
+  try { acc.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+}
+function closeModeAccordion() {
+  document.getElementById('modeAcc').open = false;
+  resetPlayModeStep();
+  // on a phone the panel is a sheet over the board: a started game should show the board again
+  if (document.body.classList.contains('is-mobile') && panelIsOpen()) window.__oukActions.togglePanel();
+}
 function openModeScreen() {
+  funnel('mode_screen_shown', { origin: modeScreenOrigin });
   if (mode === 'online') leaveOnlineMatch();
   document.getElementById('startScreen').style.display = 'none';
-  showModeChoiceStep();
-  document.getElementById('modeScreen').style.display = 'flex';
-  overlayOpen = true;
+  overlayOpen = false;
+  openModeAccordion();
   updateModeProfileChip();
   tickHud();
   consumePendingInvite();
 }
 function hideOverlays() {
   document.getElementById('startScreen').style.display = 'none';
-  document.getElementById('modeScreen').style.display = 'none';
   overlayOpen = false;
+  closeModeAccordion();
   tickHud();
 }
+// After a sign-in (or a remembered one resuming) the player goes straight into a game against the computer, or,
+// arriving through a friend's invite link, to the Join screen.
+function landAfterSignIn() {
+  document.getElementById('startScreen').style.display = 'none';
+  if (pendingInviteCode) { consumePendingInvite(); return; } // straight to the Join screen
+  startAiNow(pendingAiLevel);
+}
 // Start: a player who has already signed in this session (currentProfile is only cleared by Sign Out) goes
-// straight to the mode screen. Coming back to the Start screen via Cancel / Cancel Game used to send them
+// straight into a game. Coming back to the Start screen via Cancel / Cancel Game used to send them
 // through the login screen again.
 document.getElementById('startBtn').onclick = () => {
+  funnel('start_signin_click');
   modeScreenOrigin = 'start';
-  if (currentProfile) { document.getElementById('startScreen').style.display = 'none'; openModeScreen(); return; }
+  if (currentProfile) { landAfterSignIn(); return; }
   showLoginScreen();
 };
-document.getElementById('changeModeBtn').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
+// ---------- funnel analytics (where do new players drop out?) ----------
+// Every event carries the UI language, a coarse device class and whether the page runs inside a social app's
+// own browser (where Google sign-in is blocked), so the funnel can be split by those.
+function inAppBrowserName() {
+  const ua = navigator.userAgent || '';
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook';
+  if (/Instagram/i.test(ua)) return 'instagram';
+  if (/TikTok|musical_ly|BytedanceWebview/i.test(ua)) return 'tiktok';
+  if (/Telegram/i.test(ua)) return 'telegram';
+  if (/\bLine\//i.test(ua)) return 'line';
+  if (/MicroMessenger|Zalo/i.test(ua)) return 'other';
+  return '';
+}
+const IN_APP_BROWSER = window.__oukForceInAppBrowser || inAppBrowserName();
+function uiLang() { return document.body.classList.contains('lang-kh') ? 'kh' : document.body.classList.contains('lang-en') ? 'en' : 'both'; }
+function funnel(name, extra) {
+  trackEvent(name, Object.assign({ lang: uiLang(), dev: (window.innerWidth <= 820 || window.innerHeight <= 560) ? 'mobile' : 'desktop', iab: IN_APP_BROWSER || 'none' }, extra || {}));
+}
+// A guest identity made silently, the same way the login screen's guest button does it (a Firebase anonymous
+// account, so the player's stats are recorded under a real uid); a player who never types a name still gets
+// the auto-generated one. Waits briefly for Firebase on a slow connection before settling for a local-only identity.
+let guestSignInPromise = null;
+function ensureGuest() {
+  if (currentProfile) return Promise.resolve(currentProfile);
+  if (guestSignInPromise) return guestSignInPromise;
+  autoResumeAttempted = true; // the auth-state listener must not also open the mode screen for this sign-in
+  const username = rememberedUsername() || nextGuestUsername();
+  const waitMs = window.__oukGuestWaitMs != null ? window.__oukGuestWaitMs : 5000;
+  const ready = new Promise((res) => {
+    const t0 = Date.now();
+    (function poll() { if (window.__oukAuth.ready || Date.now() - t0 >= waitMs) res(); else setTimeout(poll, 100); })();
+  });
+  guestSignInPromise = ready.then(() => window.__oukAuth.signInGuest()).then((cred) => {
+    const uid = cred && cred.user ? cred.user.uid : offlineUid();
+    rememberUsername(username);
+    return completeSignIn(uid, { displayName: username, provider: 'anonymous' });
+  }).catch(() => {
+    const uid = offlineUid();
+    window.__oukAuth._setState({ signedIn: true, method: 'guest', uid, tier: 'guest' });
+    rememberUsername(username);
+    currentProfile = { uid, displayName: username, provider: 'anonymous' };
+    return currentProfile;
+  }).then((prof) => {
+    applyProfileDefaultTheme();
+    funnel('guest_auto', { offline: String(prof.uid).indexOf('offline:') === 0 ? 'yes' : 'no' });
+    return prof;
+  }).finally(() => { guestSignInPromise = null; });
+  return guestSignInPromise;
+}
+// The computer level in plain words, shown as a reminder chip under the board title and as a short toast when
+// such a game starts, so nobody plays the computer without knowing at which level.
+const AI_LEVEL_NAMES = { 1: ['ស្រួល', 'Easy'], 2: ['ធម្មតា', 'Normal'], 3: ['មធ្យម', 'Medium'], 4: ['ពិបាក', 'Hard'], 5: ['ជំនាញ', 'Expert'] };
+function aiLevelHtml(level, kind) {
+  const n = AI_LEVEL_NAMES[level] || ['', ''];
+  return kind === 'chip'
+    ? '🤖 <span class="t-kh">កុំព្យូទ័រ កម្រិត ' + level + ' (' + n[0] + ')</span><span class="t-en">Computer level ' + level + ' (' + n[1] + ')</span> ▾'
+    : '<span class="t-kh">កំពុងលេងជាមួយកុំព្យូទ័រ កម្រិត ' + level + ' (' + n[0] + ')។ ប៉ះដើម្បីប្តូរកម្រិត។</span><span class="t-en">You are playing the computer at level ' + level + ' (' + n[1] + '). Tap to change.</span>';
+}
+let aiNoticeTimer = null;
+function showAiNotice(level, prefixHtml) {
+  const el = document.getElementById('aiNotice');
+  el.innerHTML = (prefixHtml ? prefixHtml + '<br>' : '') + aiLevelHtml(level, 'notice');
+  el.classList.add('show');
+  if (aiNoticeTimer) clearTimeout(aiNoticeTimer);
+  aiNoticeTimer = setTimeout(hideAiNotice, 8000);
+}
+function hideAiNotice() { document.getElementById('aiNotice').classList.remove('show'); if (aiNoticeTimer) { clearTimeout(aiNoticeTimer); aiNoticeTimer = null; } }
+function openLevelPicker() {
+  hideAiNotice();
+  modeScreenOrigin = 'game';
+  openModeScreen();
+  if (/^ai\d$/.test(mode)) pendingAiLevel = +mode.slice(2);
+  setPlayOptions(true);
+  selectPlayMode('ai');
+  markLevelButtons();
+}
+document.getElementById('aiNotice').onclick = openLevelPicker;
+document.getElementById('aiChip').onclick = () => { funnel('ai_chip_click'); openLevelPicker(); };
+function updateAiChip() {
+  const chip = document.getElementById('aiChip');
+  const show = uiMode === 'play' && /^ai\d$/.test(mode) && !overlayOpen && !!gameStartTs;
+  if (!show) { if (chip.style.display !== 'none' && chip.style.display !== '') chip.style.display = 'none'; return; }
+  const html = aiLevelHtml(+mode.slice(2), 'chip');
+  if (chip.dataset.html !== html) { chip.innerHTML = html; chip.dataset.html = html; }
+  if (chip.style.display !== 'block') chip.style.display = 'block';
+}
+// Starting a computer game without the config screen (Play now, the vs Computer card, the online fallback)
+function startAiNow(level, prefixHtml) {
+  pendingClock = null; pendingSide = E.WHITE; pendingAiLevel = level;
+  trackEvent('mode_access', { mode: 'computer', level });
+  startGameWithMode('ai' + level, E.WHITE);
+  hideOverlays();
+  showAiNotice(level, prefixHtml);
+}
+document.getElementById('playNowBtn').onclick = () => {
+  funnel('play_now_click', { invite: pendingInviteCode ? 'yes' : 'no' });
+  const btn = document.getElementById('playNowBtn');
+  btn.disabled = true;
+  ensureGuest().then(() => {
+    modeScreenOrigin = 'start';
+    if (pendingInviteCode) landAfterSignIn(); // a friend's invite link: on to the Join screen
+    else startAiNow(2);
+  }).finally(() => { btn.disabled = false; });
+};
+document.getElementById('startLearnBtn').onclick = () => {
+  funnel('start_learn_click');
+  ensureGuest().then(() => { trackEvent('mode_access', { mode: 'learn' }); hideOverlays(); setUiMode('train'); });
+};
+// Opened inside a social app's own browser (Facebook, Instagram, TikTok, ...): Google blocks its sign-in
+// there, so hide that button and say how to get out to a real browser.
+if (IN_APP_BROWSER) {
+  document.getElementById('signupGoogleBtn').style.display = 'none';
+  document.querySelectorAll('.iabHint').forEach((h) => { h.style.display = 'block'; });
+  document.querySelectorAll('.iabCopyBtn').forEach((b) => {
+    b.onclick = () => {
+      const done = () => { b.textContent = '✓'; };
+      try { navigator.clipboard.writeText(location.href).then(done, done); } catch (e) { done(); }
+    };
+  });
+  funnel('iab_hint_shown');
+}
+
+document.getElementById('modeAcc').addEventListener('toggle', (e) => {
+  if (e.target.open) { funnel('mode_section_open'); updateModeProfileChip(); }
+  else resetPlayModeStep(); // folding the section away forgets a half-made choice (and the options switch)
+});
 // mode_access analytics: which top-level mode a visit actually reaches --
 // Learn to Play, Play -> 2 Player, or Play -> vs Computer (with the chosen
 // level) -- fired at the moment the choice is confirmed (not just hovered/
@@ -16353,13 +16554,25 @@ document.getElementById('changeModeBtn').onclick = () => { modeScreenOrigin = 'g
 // the resulting game session itself (mode+side, for later game_end
 // correlation) rather than which mode-picker button got pressed.
 document.getElementById('pickLearn').onclick = () => { trackEvent('mode_access', { mode: 'learn' }); hideOverlays(); setUiMode('train'); };
-document.getElementById('pickPlay').onclick = () => { trackEvent('mode_access', { mode: 'play' }); showModePlayStep(); };
-document.getElementById('modeChoiceCancel').onclick = () => {
-  if (modeScreenOrigin === 'start') showStartScreen();
-  else hideOverlays();
-};
-document.getElementById('pick2p').onclick = () => selectPlayMode('hotseat');
-document.getElementById('pickAi').onclick = () => selectPlayMode('ai');
+// A mode card starts that game straight away with sensible defaults (no clock, White, the last-used computer
+// level -- 2 on a fresh visit). "More options" turns the cards back into a pick-then-configure step.
+let playOptionsOpen = false;
+function setPlayOptions(open) {
+  playOptionsOpen = open;
+  document.getElementById('playOptionsBtn').classList.toggle('active', open);
+  if (open) { funnel('options_open'); if (!pendingPlayMode) selectPlayMode('ai'); }
+  else resetPlayModeStep();
+}
+document.getElementById('playOptionsBtn').onclick = () => setPlayOptions(!playOptionsOpen);
+function quickStartMode(m) {
+  if (m === 'ai') { startAiNow(pendingAiLevel); return; }
+  pendingClock = null; pendingSide = E.WHITE;
+  trackEvent('mode_access', { mode: '2player' });
+  startGameWithMode('hotseat', E.WHITE);
+  hideOverlays();
+}
+document.getElementById('pick2p').onclick = () => (playOptionsOpen ? selectPlayMode('hotseat') : quickStartMode('hotseat'));
+document.getElementById('pickAi').onclick = () => (playOptionsOpen ? selectPlayMode('ai') : quickStartMode('ai'));
 document.getElementById('confirmPlay').onclick = () => {
   if (!pendingPlayMode) return;
   trackEvent('mode_access', pendingPlayMode === 'hotseat'
@@ -16368,7 +16581,6 @@ document.getElementById('confirmPlay').onclick = () => {
   startGameWithMode(pendingPlayMode === 'hotseat' ? 'hotseat' : 'ai' + pendingAiLevel, pendingSide);
   hideOverlays();
 };
-document.getElementById('modeCancel').onclick = () => showModeChoiceStep();
 
 // ---------- online multiplayer: matchmaking ----------
 function showOnlineIdleUI() {
@@ -16406,7 +16618,12 @@ function hideOnlineBalloon() {
   if (onlineBalloonTimer) { clearTimeout(onlineBalloonTimer); onlineBalloonTimer = null; }
 }
 document.getElementById('onlineBalloon').onclick = hideOnlineBalloon;
+// Quick match with nobody else searching: after a short wait the player is moved into a computer game instead
+// of staring at a spinner (see the quick-match handler below).
+let onlineFallbackTimer = null;
+function clearOnlineFallback() { if (onlineFallbackTimer) { clearTimeout(onlineFallbackTimer); onlineFallbackTimer = null; } }
 function onlineCleanupSearch() {
+  clearOnlineFallback();
   if (onlineUnsubLobby) { onlineUnsubLobby(); onlineUnsubLobby = null; }
   if (onlineLobbyId && !onlineMatchId) window.__oukOnline.cancelLobby(onlineLobbyId);
   onlineLobbyId = null;
@@ -16418,7 +16635,9 @@ document.getElementById('pickOnline').onclick = () => {
 document.getElementById('onlineBackBtn').onclick = () => {
   onlineCleanupSearch();
   document.getElementById('onlineMatchScreen').style.display = 'none';
-  document.getElementById('modeScreen').style.display = 'flex';
+  overlayOpen = false;
+  openModeAccordion();
+  tickHud();
 };
 document.getElementById('onlineCancelBtn').onclick = () => {
   onlineCleanupSearch();
@@ -16427,10 +16646,19 @@ document.getElementById('onlineCancelBtn').onclick = () => {
 document.getElementById('onlineQuickBtn').onclick = () => {
   const uid = currentProfile.uid, name = currentProfile.displayName || 'Player';
   const initialState = E.toJSON(E.initialState(currentVariant()));
-  showOnlineSearchingUI('កំពុងស្វែងរកគូប្រកួត...<br>Searching for an opponent…');
+  showOnlineSearchingUI('កំពុងស្វែងរកគូប្រកួត... បើគ្មានអ្នកលេង នឹងលេងជាមួយកុំព្យូទ័រ<br>Searching for an opponent… if nobody joins you will play the computer');
   Promise.resolve(window.__oukOnline.findQuickMatch(uid, name, initialState)).then((r) => {
     if (r.matchId) { beginOnlineMatch(r.matchId, r.color, null, initialState); return; }
     onlineLobbyId = r.lobbyId;
+    clearOnlineFallback();
+    onlineFallbackTimer = setTimeout(() => {
+      onlineFallbackTimer = null;
+      if (!onlineLobbyId || onlineMatchId) return; // somebody joined, or the search was cancelled
+      onlineCleanupSearch();
+      document.getElementById('onlineMatchScreen').style.display = 'none';
+      funnel('online_fallback');
+      startAiNow(2, '<span class="t-kh">រកគូប្រកួតអនឡាញមិនឃើញទេ។</span><span class="t-en">No online player was found.</span>');
+    }, window.__oukOnlineFallbackMs != null ? window.__oukOnlineFallbackMs : 20000);
     onlineUnsubLobby = window.__oukOnline.watchLobby(r.lobbyId, (lobby) => {
       if (lobby && lobby.matchId) {
         if (onlineUnsubLobby) { onlineUnsubLobby(); onlineUnsubLobby = null; }
@@ -16546,8 +16774,9 @@ document.getElementById('inviteShareBtn').onclick = () => {
 function openOnlineScreen() {
   resetPlayModeStep();
   showOnlineIdleUI();
-  document.getElementById('modeScreen').style.display = 'none';
   document.getElementById('onlineMatchScreen').style.display = 'flex';
+  overlayOpen = true; // the matchmaking screen is a full overlay: the clock and HUD wait behind it
+  tickHud();
 }
 document.getElementById('pickInvite').onclick = () => {
   if (!currentProfile) return;
@@ -16596,6 +16825,7 @@ document.getElementById('startInviteNote').style.display = pendingInviteCode ? '
 // E.initialState(currentVariant()), two clients with different variant
 // selections would silently start out-of-sync.
 function beginOnlineMatch(matchId, color, opponentName, stateJson, existingUnsub) {
+  clearOnlineFallback();
   // Must run before mode/state below get overwritten -- covers e.g.
   // leaving an unfinished vs-Computer game to accept an online match.
   recordGameAbandonIfInProgress();
@@ -16746,7 +16976,6 @@ function leaveOnlineMatch() {
 }
 function showStartScreen() {
   if (mode === 'online') leaveOnlineMatch();
-  document.getElementById('modeScreen').style.display = 'none';
   document.getElementById('startScreen').style.display = 'flex';
   overlayOpen = true;
   tickHud();
@@ -16919,6 +17148,7 @@ function updateThinkTimes() {
   thinkRunning = running;
 }
 function tickHud() {
+  updateAiChip();
   if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
     const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
     if ([I.T, I.B, I.L, I.R].map(Math.round).join('/') !== planSig) resize();
@@ -17039,6 +17269,7 @@ function setRememberMe(enabled) {
   try { localStorage.setItem(REMEMBER_ME_KEY, enabled ? '1' : '0'); } catch (e) {}
 }
 function showLoginError(msg) {
+  funnel('login_error', { msg: String(msg).slice(0, 60) });
   const el = document.getElementById('loginError');
   el.textContent = msg;
   el.style.display = 'block';
@@ -17056,6 +17287,7 @@ function resetLoginFields() {
   document.getElementById('loginRememberMe').checked = rememberMeEnabled();
 }
 function showLoginScreen() {
+  funnel('login_shown');
   document.getElementById('startScreen').style.display = 'none';
   loginMidSession = false;
   resetLoginFields();
@@ -17078,11 +17310,12 @@ function applyProfileDefaultTheme() {
   return true;
 }
 function finishLogin() {
+  funnel('login_success', { method: (currentProfile && currentProfile.provider) || 'unknown' });
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('loginPassword').value = '';
   if (loginMidSession) { loginMidSession = false; return; }
   applyProfileDefaultTheme();
-  openModeScreen();
+  landAfterSignIn();
 }
 // A random offline-only id, used only as a last resort if Firebase itself
 // is unreachable (blocked network, ad-blocker, fully offline play) -- the
@@ -17712,7 +17945,6 @@ document.getElementById('lockPopupClose').onclick = () => { document.getElementB
 function openMidSessionLogin() {
   document.getElementById('lockPopup').style.display = 'none';
   document.getElementById('startScreen').style.display = 'none';
-  document.getElementById('modeScreen').style.display = 'none';
   loginMidSession = true;
   resetLoginFields();
   document.getElementById('loginScreen').style.display = 'flex';
@@ -17775,7 +18007,7 @@ function tryAutoResume() {
     completeSignIn(s.uid, {
       displayName: rememberedUsername() || nextGuestUsername(),
       provider: s.method === 'guest' ? 'anonymous' : s.method
-    }).then(() => { applyProfileDefaultTheme(); openModeScreen(); }).catch(() => {});
+    }).then(() => { applyProfileDefaultTheme(); landAfterSignIn(); }).catch(() => {});
   });
 }
 if (LOGIN_ENABLED) tryAutoResume();
@@ -17797,6 +18029,9 @@ window.__ouk = {
   debugLoadState: (json) => { state = E.fromJSON(json); lastMove = null; selected = -1; legalForSelected = []; gameOver = false; clearMarkers(); refreshAll(); },
   debugCurrentProfile: () => currentProfile,
   thinkMs: () => thinkMs.slice(),
+  trackLog: () => oukTrackLog.slice(),
+  currentMode: () => mode,
+  aiChipText: () => { const c = document.getElementById('aiChip'); return c.style.display === 'block' ? c.textContent : null; },
   showMoveHints: () => showMoveHints,
   // Test-only: drive the select branch of onBoardClick() without a ray-cast.
   debugSelect: (sq) => {
@@ -18105,6 +18340,7 @@ function resize() {
     renderer.setSize(w, h, true);
   }
   camera.aspect = w / h;
+  document.body.classList.toggle('scene-narrow', w < 1000);
   if (theme().topDown) {
     // plan view: centre the board in the part of the viewport no HUD element covers (see planLayout)
     const P = planLayout();
@@ -18201,7 +18437,7 @@ function planInsets(w, h, side) {
   let T = 0, B = 0, L = 0, R = 0;
   // vertical rule: an element in the upper half of the viewport pushes the board down, one in the lower half pushes it up
   const vertical = (r) => { if ((r.top + r.bottom) / 2 - sr.top < h / 2) T = Math.max(T, r.bottom - sr.top); else B = Math.max(B, sr.bottom - r.top); };
-  for (const id of ['scoreW', 'scoreB', 'boardTitle']) { const e = vis(id); if (e) vertical(e.getBoundingClientRect()); }
+  for (const id of ['scoreW', 'scoreB', 'boardTitle', 'aiChip']) { const e = vis(id); if (e) vertical(e.getBoundingClientRect()); }
   for (const id of ['camControls', 'panelToggle']) {
     const e = vis(id); if (!e) continue;
     const r = e.getBoundingClientRect();
@@ -18364,7 +18600,7 @@ function wrapLangRuns(root) {
   const skipEl = (el) => {
     const tag = el.tagName;
     if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'SELECT' || tag === 'OPTION' || tag === 'TEXTAREA') return true;
-    if (['modal', 'movelist', 'status', 'lessonText', 'boardTitle', 'langBtns'].includes(el.id)) return true;
+    if (['modal', 'movelist', 'status', 'lessonText', 'boardTitle', 'langBtns', 'startLangRow', 'aiChip', 'aiNotice'].includes(el.id)) return true;
     if (el.classList.contains('t-kh') || el.classList.contains('t-en') || el.classList.contains('t-sep')) return true;
     return false;
   };
@@ -18425,20 +18661,31 @@ function applyLangPref(v) {
 (function initLangToggle() {
   wrapLangRuns(document.getElementById('panel'));
   wrapLangRuns(document.getElementById('startScreen'));
-  wrapLangRuns(document.getElementById('modeScreen'));
+  wrapLangRuns(document.getElementById('loginScreen'));
   wrapLangRuns(document.getElementById('reviewBar'));
   const langBtns = document.querySelectorAll('#langBtns button');
-  let saved = 'both';
-  try { saved = localStorage.getItem(LANG_PREF_KEY) || 'both'; } catch (e) {}
-  const markActive = (v) => langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === v));
+  const startLangToggle = document.getElementById('startLangToggle');
+  // a first-time visitor sees Khmer only (English is one tap away); an explicit earlier choice is kept
+  let saved = 'kh';
+  try { saved = localStorage.getItem(LANG_PREF_KEY) || 'kh'; } catch (e) {}
+  const markActive = (v) => {
+    langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === v));
+    // one button showing only the OTHER language: it reads "English" while the UI is in Khmer and "ខ្មែរ" once in English
+    startLangToggle.textContent = '🌐 ' + (v === 'en' ? 'ខ្មែរ' : 'English');
+  };
   markActive(saved);
   applyLangPref(saved);
   langBtns.forEach(b => b.onclick = () => { markActive(b.dataset.lang); applyLangPref(b.dataset.lang); });
+  startLangToggle.onclick = () => {
+    const to = document.body.classList.contains('lang-en') ? 'kh' : 'en';
+    markActive(to); applyLangPref(to); funnel('lang_change', { to });
+  };
 })();
 
 applyTheme('wood');
 resize();
 newGame();
+funnel('start_view', { invite: pendingInviteCode ? 'yes' : 'no' });
 loop();
 </script>
 
