@@ -651,6 +651,17 @@
     transition: opacity .25s ease, transform .25s ease;
   }
   #aiNotice.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  /* quick computer-level menu: opened by the Computer scorecard, the level chip or the toast */
+  #levelMenu {
+    position: fixed; z-index: 31; display: none; width: 290px; max-width: 92vw; padding: 12px;
+    background: var(--panel-bg); color: var(--panel-fg); border: 1px solid var(--accent); border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  }
+  #levelMenu .lmTitle { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  #levelMenu .lmGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  #levelMenu .lmGrid button { padding: 8px 2px; font-size: 12px; line-height: 1.35; min-height: 0; }
+  #levelMenu .lmGrid button.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+  #levelMenu .lmNote { font-size: 11px; color: var(--text-faint); margin-top: 8px; line-height: 1.4; }
   /* mode cards with a leading icon, and the quiet Options switch under them */
   #modeAcc .bigpick button .cardIcon { font-size: 26px; line-height: 1; }
   #playOptionsBtn { margin-top: 10px; width: 100%; padding: 8px 10px; font-size: 14px; background: none; border: 1px dashed var(--accent-dim); color: var(--text-faint); }
@@ -2411,6 +2422,11 @@
 </div>
 
 <div id="aiNotice" aria-live="polite"></div>
+<div id="levelMenu" role="dialog" aria-label="Computer level">
+  <div class="lmTitle">🤖 កម្រិតកុំព្យូទ័រ Computer level</div>
+  <div class="lmGrid" id="levelMenuBtns"></div>
+  <div class="lmNote">ប្រើពីជំហានបន្ទាប់របស់កុំព្យូទ័រ · Applies from the computer's next move</div>
+</div>
 
 <div id="loginScreen" class="fullOverlay" style="display:none">
   <div class="box">
@@ -14092,7 +14108,7 @@ function updateScoreboard() {
     const enemy = 1 - side;
     const score = Math.max(0, multisetMaterial(baselineCounts[enemy]) - multisetMaterial(cur[enemy]));
     const name = playerDisplayName(side);
-    card.querySelector('.pname').textContent = name;
+    card.querySelector('.pname').textContent = name + (/^ai\d$/.test(mode) && side !== humanSide ? ' ▾' : '');
     card.querySelector('.pscore').textContent = score;
     const isOwnCard = mode !== 'hotseat' && side === humanSide && !!currentProfile;
     const hex = side === E.WHITE ? MAT_W.color.getHex() : MAT_B.color.getHex();
@@ -14100,8 +14116,9 @@ function updateScoreboard() {
     const img = card.querySelector('.avatar');
     if (img.src !== url) img.src = url;
     card.classList.toggle('turn', !gameOver && !reviewMode && state.turn === side);
-    card.classList.toggle('clickable', isOwnCard);
-    card.onclick = isOwnCard ? openProfileScreen : null;
+    const isAiCard = /^ai\d$/.test(mode) && side !== humanSide;
+    card.classList.toggle('clickable', isOwnCard || isAiCard);
+    card.onclick = isOwnCard ? openProfileScreen : isAiCard ? () => openLevelMenu(card) : null;
     // Guest/Account status on the local player's own card too, not just
     // the mode-selection profile chip -- visible the whole time they're
     // actually playing, without having to back out to check.
@@ -14115,7 +14132,7 @@ function updateScoreboard() {
     const isOpponentCard = mode === 'online' && side !== humanSide;
     const offline = isOpponentCard && onlineOpponentPresence != null && (Date.now() - onlineOpponentPresence) > ONLINE_OFFLINE_MS;
     card.classList.toggle('offline', offline);
-    card.title = offline ? (name + ' គ្មានអ៊ីនធឺណិត — ' + name + ' is offline') : '';
+    card.title = offline ? (name + ' គ្មានអ៊ីនធឺណិត — ' + name + ' is offline') : (isAiCard ? 'ប៉ះដើម្បីប្តូរកម្រិត — Tap to change the level' : '');
   }
 }
 function refreshAll() {
@@ -15471,8 +15488,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.46';
+const APP_VERSION = '1.6.47';
 const WHATS_NEW = [
+  {
+    version: '1.6.47',
+    date: '2026-10-19',
+    title: { kh: 'ប៉ះ «Computer» ដើម្បីប្តូរកម្រិតកុំព្យូទ័រ', en: 'Tap "Computer" to change the computer level' },
+    items: [
+      { kh: 'ប៉ះលើកាតកុំព្យូទ័រ (ឧ. Computer L2) ស្លាកកម្រិតក្រោមចំណងជើង ឬសារជូនដំណឹង នឹងបើកម៉ឺនុយតូចមួយ ដើម្បីជ្រើសកម្រិត ១ ដល់ ៥។ ហ្គេមបន្តដដែល ហើយកុំព្យូទ័រប្រើកម្រិតថ្មីពីជំហានបន្ទាប់។',
+        en: 'Tapping the Computer card (e.g. Computer L2), the level chip under the title or the notice opens a small menu to pick level 1 to 5. The game carries on and the computer uses the new level from its next move.' }
+    ]
+  },
   {
     version: '1.6.46',
     date: '2026-10-19',
@@ -16293,6 +16319,7 @@ function startGameWithMode(modeStr, side) {
   // Must run before mode/humanSide below get overwritten -- it looks at
   // the *current* (about-to-be-replaced) game to decide whether the one
   // being left behind counts as abandoned.
+  closeLevelMenu();
   recordGameAbandonIfInProgress();
   // Change Mode can be opened from Training as well as from an ongoing
   // game, so starting a new Play-mode game here must force uiMode back to
@@ -16547,17 +16574,63 @@ function showAiNotice(level, prefixHtml) {
   aiNoticeTimer = setTimeout(hideAiNotice, 8000);
 }
 function hideAiNotice() { document.getElementById('aiNotice').classList.remove('show'); if (aiNoticeTimer) { clearTimeout(aiNoticeTimer); aiNoticeTimer = null; } }
-function openLevelPicker() {
-  hideAiNotice();
-  modeScreenOrigin = 'game';
-  openModeScreen();
-  if (/^ai\d$/.test(mode)) pendingAiLevel = +mode.slice(2);
-  setPlayOptions(true);
-  selectPlayMode('ai');
-  markLevelButtons();
+// ---- quick computer-level menu ----
+// Tapping the Computer scorecard, the level chip or the toast opens a small menu with the five levels; picking one
+// changes the computer's strength from its next move on (the game itself carries on), and a new game keeps it too.
+let levelMenuAnchor = null;
+function buildLevelMenu() {
+  const holder = document.getElementById('levelMenuBtns');
+  holder.innerHTML = '';
+  Object.keys(AI_LEVEL_NAMES).forEach((k) => {
+    const lvl = +k, n = AI_LEVEL_NAMES[k];
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.level = lvl;
+    b.innerHTML = '<b>' + lvl + '</b><br><span class="t-kh">' + n[0] + '</span><span class="t-en">' + n[1] + '</span>';
+    b.onclick = (e) => { e.stopPropagation(); setAiLevel(lvl); };
+    holder.appendChild(b);
+  });
 }
-document.getElementById('aiNotice').onclick = openLevelPicker;
-document.getElementById('aiChip').onclick = () => { funnel('ai_chip_click'); openLevelPicker(); };
+function closeLevelMenu() { document.getElementById('levelMenu').style.display = 'none'; levelMenuAnchor = null; }
+function openLevelMenu(anchor) {
+  hideAiNotice();
+  const menu = document.getElementById('levelMenu');
+  if (menu.style.display === 'block' && levelMenuAnchor === anchor) { closeLevelMenu(); return; }
+  if (!/^ai\d$/.test(mode)) return;
+  if (!menu.dataset.built) { buildLevelMenu(); menu.dataset.built = '1'; }
+  const cur = +mode.slice(2);
+  menu.querySelectorAll('.lmGrid button').forEach((b) => b.classList.toggle('active', +b.dataset.level === cur));
+  menu.style.display = 'block';
+  levelMenuAnchor = anchor;
+  // place it beside the thing that was tapped: above a bottom-corner card, below a top chip, kept on screen
+  const r = anchor.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
+  let left = Math.min(Math.max(8, r.left + r.width / 2 - mw / 2), window.innerWidth - mw - 8);
+  let top = (r.top + r.bottom) / 2 > window.innerHeight / 2 ? r.top - mh - 8 : r.bottom + 8;
+  top = Math.min(Math.max(8, top), window.innerHeight - mh - 8);
+  menu.style.left = left + 'px'; menu.style.top = top + 'px';
+  funnel('level_menu_open');
+}
+function setAiLevel(level) {
+  closeLevelMenu();
+  if (!/^ai\d$/.test(mode)) return;
+  const from = +mode.slice(2);
+  pendingAiLevel = level;
+  if (level === from) return;
+  mode = 'ai' + level;
+  trackEvent('ai_level_change', { from, to: level });
+  refreshModeReadout();
+  updateScoreboard();
+  updateAiChip();
+  showAiNotice(level);
+}
+document.addEventListener('pointerdown', (e) => {
+  const menu = document.getElementById('levelMenu');
+  if (menu.style.display !== 'block') return;
+  if (menu.contains(e.target) || (levelMenuAnchor && levelMenuAnchor.contains(e.target))) return;
+  closeLevelMenu();
+}, true);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLevelMenu(); });
+document.getElementById('aiNotice').onclick = () => openLevelMenu(document.getElementById('aiChip').style.display === 'block' ? document.getElementById('aiChip') : document.getElementById('aiNotice'));
+document.getElementById('aiChip').onclick = () => { funnel('ai_chip_click'); openLevelMenu(document.getElementById('aiChip')); };
 function updateAiChip() {
   const chip = document.getElementById('aiChip');
   const show = uiMode === 'play' && /^ai\d$/.test(mode) && !overlayOpen && !!gameStartTs;
@@ -18722,6 +18795,7 @@ function applyLangPref(v) {
   wrapLangRuns(document.getElementById('panel'));
   wrapLangRuns(document.getElementById('startScreen'));
   wrapLangRuns(document.getElementById('loginScreen'));
+  wrapLangRuns(document.getElementById('levelMenu'));
   wrapLangRuns(document.getElementById('reviewBar'));
   const langBtns = document.querySelectorAll('#langBtns button');
   const startLangToggle = document.getElementById('startLangToggle');
