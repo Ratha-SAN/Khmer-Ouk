@@ -6,7 +6,7 @@
 // Everything else (Firebase auth/Firestore API traffic) passes straight
 // through to the network untouched.
 const CACHE = 'ouk-chatrang-v1';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
+const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './data/ok-khmer.js?v=1'];
 // hosts that only ever serve immutable static assets for this app --
 // safe to cache-first without risking stale API responses
 const STATIC_HOSTS = ['cdn.jsdelivr.net', 'www.gstatic.com'];
