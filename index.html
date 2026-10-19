@@ -15488,8 +15488,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.47';
+const APP_VERSION = '1.6.48';
 const WHATS_NEW = [
+  {
+    version: '1.6.48',
+    date: '2026-10-19',
+    title: { kh: 'ភ្ញៀវលេងបានដល់កម្រិត ៣', en: 'Guests can play the computer up to level 3' },
+    items: [
+      { kh: 'ម៉ឺនុយកម្រិតកុំព្យូទ័របង្ហាញទាំង ៥ កម្រិត។ ភ្ញៀវអាចប្រើបានដល់កម្រិត ៣ ហើយកម្រិត ៤ និង ៥ មានសញ្ញាសោ 🔒 រហូតដល់អ្នកចូលគណនី។',
+        en: 'The computer-level menu shows all five levels. Guests can use up to level 3; levels 4 and 5 carry a 🔒 until you sign in.' }
+    ]
+  },
   {
     version: '1.6.47',
     date: '2026-10-19',
@@ -16360,12 +16369,12 @@ function buildLevelButtons() {
   labels.forEach(([n, kh, en]) => {
     const lvl = +n;
     const b = document.createElement('button');
-    b.innerHTML = n + '<br>' + kh + '<br>' + en;
+    b.innerHTML = n + '<span class="lockMark"></span><br>' + kh + '<br>' + en;
     b.dataset.level = lvl;
-    b.onclick = () => { pendingAiLevel = lvl; markLevelButtons(); };
+    b.onclick = () => { if (isAiLevelLocked(lvl)) { showLockPopup(); return; } pendingAiLevel = lvl; markLevelButtons(); };
     holder.appendChild(b);
   });
-  markLevelButtons();
+  markLevelButtons(); // the lock marks are drawn by applyAccessTier() once the sign-in state is known
 }
 function markLevelButtons() {
   document.querySelectorAll('#levelBtns button').forEach(b => b.classList.toggle('active', +b.dataset.level === pendingAiLevel));
@@ -16585,10 +16594,11 @@ function buildLevelMenu() {
     const lvl = +k, n = AI_LEVEL_NAMES[k];
     const b = document.createElement('button');
     b.type = 'button'; b.dataset.level = lvl;
-    b.innerHTML = '<b>' + lvl + '</b><br><span class="t-kh">' + n[0] + '</span><span class="t-en">' + n[1] + '</span>';
+    b.innerHTML = '<b>' + lvl + '</b><span class="lockMark"></span><br><span class="t-kh">' + n[0] + '</span><span class="t-en">' + n[1] + '</span>';
     b.onclick = (e) => { e.stopPropagation(); setAiLevel(lvl); };
     holder.appendChild(b);
   });
+  refreshAiLevelLocks();
 }
 function closeLevelMenu() { document.getElementById('levelMenu').style.display = 'none'; levelMenuAnchor = null; }
 function openLevelMenu(anchor) {
@@ -16599,6 +16609,7 @@ function openLevelMenu(anchor) {
   if (!menu.dataset.built) { buildLevelMenu(); menu.dataset.built = '1'; }
   const cur = +mode.slice(2);
   menu.querySelectorAll('.lmGrid button').forEach((b) => b.classList.toggle('active', +b.dataset.level === cur));
+  refreshAiLevelLocks();
   menu.style.display = 'block';
   levelMenuAnchor = anchor;
   // place it beside the thing that was tapped: above a bottom-corner card, below a top chip, kept on screen
@@ -16612,6 +16623,7 @@ function openLevelMenu(anchor) {
 function setAiLevel(level) {
   closeLevelMenu();
   if (!/^ai\d$/.test(mode)) return;
+  if (isAiLevelLocked(level)) { showLockPopup(); return; }
   const from = +mode.slice(2);
   pendingAiLevel = level;
   if (level === from) return;
@@ -16641,6 +16653,7 @@ function updateAiChip() {
 }
 // Starting a computer game without the config screen (Play now, the vs Computer card, the online fallback)
 function startAiNow(level, prefixHtml) {
+  if (isAiLevelLocked(level)) level = GUEST_MAX_AI_LEVEL; // e.g. signed out after playing a higher level
   pendingClock = null; pendingSide = E.WHITE; pendingAiLevel = level;
   trackEvent('mode_access', { mode: 'computer', level });
   startGameWithMode('ai' + level, E.WHITE);
@@ -16708,6 +16721,7 @@ document.getElementById('pick2p').onclick = () => (playOptionsOpen ? selectPlayM
 document.getElementById('pickAi').onclick = () => (playOptionsOpen ? selectPlayMode('ai') : quickStartMode('ai'));
 document.getElementById('confirmPlay').onclick = () => {
   if (!pendingPlayMode) return;
+  if (pendingPlayMode === 'ai' && isAiLevelLocked(pendingAiLevel)) pendingAiLevel = GUEST_MAX_AI_LEVEL;
   trackEvent('mode_access', pendingPlayMode === 'hotseat'
     ? { mode: '2player' }
     : { mode: 'computer', level: pendingAiLevel });
@@ -17899,6 +17913,18 @@ const GUEST_SELECT_LIMITS = {
   musicSel: { free: ['none'], allowed: 2 }
 };
 const GUEST_LOCKED_BUTTONS = ['lightEvening', 'lightStudio', 'saveBtn'];
+// Guests can play the computer up to level 3; levels 4 and 5 are listed but locked until they sign in.
+const GUEST_MAX_AI_LEVEL = 3;
+function isAiLevelLocked(level) { return accessTier === 'guest' && level > GUEST_MAX_AI_LEVEL; }
+function refreshAiLevelLocks() {
+  document.querySelectorAll('#levelBtns button, #levelMenuBtns button').forEach((b) => {
+    const locked = isAiLevelLocked(+b.dataset.level);
+    b.classList.toggle('locked', locked);
+    const mark = b.querySelector('.lockMark');
+    if (mark) mark.textContent = locked ? ' 🔒' : '';
+    b.title = locked ? 'ចូលគណនីដើម្បីដោះសោ — Sign in to unlock' : '';
+  });
+}
 
 function isSelectValueLocked(selId, value) {
   if (accessTier !== 'guest') return false;
@@ -17945,6 +17971,7 @@ function applyAccessTier() {
   });
   reorderThemeSelForTier();
   GUEST_LOCKED_BUTTONS.forEach(id => decorateButtonLabel(document.getElementById(id), accessTier === 'guest'));
+  refreshAiLevelLocks();
   refreshTierBadge();
   updateScoreboard();
   refreshThemeCategoryUI();
