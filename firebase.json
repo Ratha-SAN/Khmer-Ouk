@@ -9,7 +9,10 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "README.md"
+      "README.md",
+      "_headers",
+      "build-cloudflare.sh",
+      "dist/**"
     ],
     "headers": [
       {
