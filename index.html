@@ -15496,8 +15496,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.50';
+const APP_VERSION = '1.6.51';
 const WHATS_NEW = [
+  {
+    version: '1.6.51',
+    date: '2026-10-20',
+    title: { kh: 'ផ្ទាំងចាប់ផ្ដើមរង់ចាំអ្នកចុច «លេងឥឡូវ»', en: 'The Start pop-up now waits for you to tap Play now' },
+    items: [
+      { kh: 'អ្នកលេងដែលត្រឡប់មកវិញ លែងចូលហ្គេមដោយខ្លួនឯងទៀតហើយ។ ផ្ទាំងចាប់ផ្ដើមតែមួយបង្ហាញឡើង ហើយហ្គេមចាប់ផ្ដើមពេលអ្នកចុច «លេងឥឡូវ»។ គណនីរបស់អ្នក (ឈ្មោះ ស្ថិតិ ស្បែក) នៅតែត្រូវបានចងចាំ។',
+        en: 'Returning players are no longer dropped straight into a game. A single Start pop-up appears and the game begins when you tap Play now. Your account (name, stats, theme) is still remembered.' }
+    ]
+  },
   {
     version: '1.6.50',
     date: '2026-10-20',
@@ -17487,8 +17496,9 @@ function rememberedUsername() {
   try { return localStorage.getItem(REMEMBERED_USERNAME_KEY) || ''; } catch (e) { return ''; }
 }
 // "Remember me" defaults to on (unset reads as enabled) so returning
-// visitors skip Start+Login and land straight in the mode screen; the
-// checkbox lets someone on a shared device opt out of that auto-resume.
+// visitors are signed back in quietly and skip the login screen (they still
+// see the Start pop-up and tap Play now); the checkbox lets someone on a
+// shared device opt out of that auto-resume.
 const REMEMBER_ME_KEY = 'oukRememberMe';
 function rememberMeEnabled() {
   try { const v = localStorage.getItem(REMEMBER_ME_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
@@ -18249,7 +18259,9 @@ function tryAutoResume() {
     completeSignIn(s.uid, {
       displayName: rememberedUsername() || nextGuestUsername(),
       provider: s.method === 'guest' ? 'anonymous' : s.method
-    }).then(() => { applyProfileDefaultTheme(); landAfterSignIn(); }).catch(() => {});
+    // the session is restored quietly (name, stats, default theme) but the Start pop-up stays up: the player taps
+    // Play now themselves, which then starts at once since they are already signed in
+    }).then(() => { applyProfileDefaultTheme(); refreshGuestGamesNote(); }).catch(() => {});
   });
 }
 if (LOGIN_ENABLED) tryAutoResume();
