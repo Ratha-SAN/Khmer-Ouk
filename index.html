@@ -3,18 +3,15 @@
 <head>
 <meta charset="utf-8">
 <script>
-  // Bridge redirect: this same index.html is served from GitHub Pages
-  // AND Firebase Hosting (oukkhmer.web.app, the actively-deployed site --
-  // see firebase.json). GitHub Pages is kept as a working mirror, not
-  // retired, but new visitors landing there should end up on the
-  // actively-maintained Firebase URL instead. Placed as the very first
-  // thing in <head>, before any other tag, so a GitHub Pages visit
-  // redirects immediately instead of loading the whole game first.
-  // Every other host (oukkhmer.web.app, a Firebase PR-preview channel,
-  // a local file:// open, the old frozen khmer-ouk-datacollection.web.app
-  // mirror) is left alone.
-  if (location.hostname === 'ratha-san.github.io') {
-    location.replace('https://oukkhmer.web.app' + location.pathname.replace(/^\/Khmer-Ouk\/?/, '/') + location.search + location.hash);
+  // Moved-address redirect: the game now lives at https://oukkhmer.com. This same index.html is still served from the
+  // old Firebase address (oukkhmer.web.app, and the older khmer-ouk-datacollection.web.app mirror) and from GitHub
+  // Pages, so a visit there is sent on to the new address, keeping the path, query string (invite links: ?join=CODE)
+  // and hash. Placed first in <head>, before any other tag, so it happens before the game loads. Anywhere else
+  // (the new address, a Firebase preview channel, a local file:// open) is left alone.
+  var oukOldHosts = { 'oukkhmer.web.app': '', 'khmer-ouk-datacollection.web.app': '', 'ratha-san.github.io': '/Khmer-Ouk' };
+  if (Object.prototype.hasOwnProperty.call(oukOldHosts, location.hostname)) {
+    var oukPath = location.pathname.indexOf(oukOldHosts[location.hostname]) === 0 ? location.pathname.slice(oukOldHosts[location.hostname].length) : location.pathname;
+    location.replace('https://oukkhmer.com' + (oukPath.replace(/\/index\.html$/, '/') || '/') + location.search + location.hash);
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -620,6 +617,8 @@
   #startScreen .box #playNowBtn { display: block; width: 100%; font-size: 22px; padding: 18px 20px; margin-bottom: 12px; }
   #playNowBtn small { display: block; font-size: 12px; font-weight: 500; opacity: .8; margin-top: 4px; }
   #startScreen .box #startBtn { font-size: 14px; padding: 8px 12px; background: none; color: var(--accent); box-shadow: none; text-decoration: underline; }
+  #startScreen .box p.guestGamesNote { margin: -4px 0 12px; font-size: 12px; color: var(--text-faint); }
+  #guestGamesPanelNote { font-size: 12px; margin: -4px 0 8px; color: var(--accent); }
   #startLangRow { display: flex; justify-content: flex-end; margin-bottom: 10px; }
   #startScreen .box #startLangToggle {
     font-size: 13px; padding: 6px 14px; border-radius: 999px; background: var(--surface-2); color: var(--panel-fg);
@@ -644,6 +643,9 @@
     background: color-mix(in srgb, var(--panel-bg) 82%, transparent); color: var(--accent); border: 1px solid var(--accent-dim);
   }
   #aiChip:hover { border-color: var(--accent); }
+  #aiChip.attn { animation: aiChipPulse 1s ease-in-out 3; }
+  @keyframes aiChipPulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px var(--accent-dim), 0 0 14px var(--accent); } }
+  #playNowBtn.busy { opacity: .75; cursor: progress; }
   #aiNotice {
     position: fixed; top: 96px; left: 50%; z-index: 30; max-width: 86vw; text-align: center; cursor: pointer;
     background: var(--accent); color: var(--on-accent); padding: 10px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
@@ -2500,6 +2502,7 @@
       <button type="button" class="iabCopyBtn">ចម្លងតំណ — Copy link</button>
     </div>
     <button id="playNowBtn" type="button">លេងឥឡូវ ▸ PLAY NOW<small>ជាមួយកុំព្យូទ័រ កម្រិត ២ — vs Computer, level 2</small></button>
+    <p id="guestGamesNote" class="guestGamesNote" style="display:none"></p>
     <button id="startLearnBtn" type="button">📖 រៀនលេង Learn to Play</button>
     <button id="startBtn" type="button">ចូលគណនី ▸ Sign in / Create account</button>
   </div>
@@ -2510,6 +2513,7 @@
   <span id="appVersionTag" class="appVersionTag" title="អ្វីថ្មី — What's New"></span>
 
   <div id="currentModeReadout" style="font-size:13px;margin:2px 0 8px;color:var(--text-muted)">Current mode: <b id="currentModeReadoutText">—</b></div>
+  <div id="guestGamesPanelNote" class="guestGamesNote" style="display:none"></div>
   <details class="acc" id="modeAcc">
     <summary id="changeModeBtn">ប្ដូររបៀបលេង Change Mode</summary>
     <div class="acc-body">
@@ -2810,7 +2814,7 @@
 
 <div id="lockPopup" class="fullOverlay" style="display:none;z-index:25">
   <div class="box" style="max-width:320px">
-    <p>🔒 Sign in to unlock all features</p>
+    <p id="lockPopupText">🔒 Sign in to unlock all features</p>
     <div class="btnrow" style="margin-top:14px;justify-content:center">
       <button id="lockPopupSignIn">ចូល Sign In</button>
       <button id="lockPopupClose">បិទ Close</button>
@@ -13837,7 +13841,7 @@ function refreshStatus() {
       '<button id="bannerChangeMode">ប្ដូររបៀប Change Mode</button>' +
       '</div>';
     bannerEl.style.display = 'block';
-    if (mode !== 'online') document.getElementById('bannerRematch').onclick = () => { bannerEl.style.display = 'none'; recordGameAbandonIfInProgress(); resetGame(); };
+    if (mode !== 'online') document.getElementById('bannerRematch').onclick = () => { if (!guestGameAllowed()) return; bannerEl.style.display = 'none'; recordGameAbandonIfInProgress(); resetGame(); };
     document.getElementById('bannerReview').onclick = () => enterReview();
     document.getElementById('bannerChangeMode').onclick = () => { bannerEl.style.display = 'none'; modeScreenOrigin = 'game'; openModeScreen(); };
     wrapLangRuns(bannerEl); // keep the banner's bilingual labels honoring the language toggle
@@ -14167,7 +14171,10 @@ function applyMove(m) {
   // pieceGroup out from under them.
   const modernCaptureCue = (theme().modernFx && captured !== E.EMPTY && !fxPrefersReducedMotion())
     ? grabModernCaptureCue(m.from, m.to) : null;
-  if (uiMode === 'play' && moveEntries.length === 0 && gameStartTs) funnel('first_move', { mode, secs: Math.round((Date.now() - gameStartTs) / 1000) });
+  if (uiMode === 'play' && moveEntries.length === 0 && gameStartTs) {
+    funnel('first_move', { mode, secs: Math.round((Date.now() - gameStartTs) / 1000) });
+    if (accessTier === 'guest') bumpGuestGames();
+  }
   E.makeMove(state, m);
   const promoted = wasPawn && E.isProm(state.board[m.to]);
   moveEntries.push(notation(m, mover, captured, promoted));
@@ -15404,7 +15411,7 @@ function setUiMode(m) {
   }
 }
 // ---------- controls ----------
-document.getElementById('newBtn').onclick = newGame;
+document.getElementById('newBtn').onclick = () => { if (moveEntries.length > 0 && !guestGameAllowed()) return; newGame(); };
 undoBtn.onclick = () => {
   if (uiMode === 'train' || mode === 'online' || aiBusy || history.length === 0 || reviewMode) return;
   let steps = 1;
@@ -15488,8 +15495,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.48';
+const APP_VERSION = '1.6.49';
 const WHATS_NEW = [
+  {
+    version: '1.6.49',
+    date: '2026-10-20',
+    title: { kh: 'ហ្គេមឥតគិតថ្លៃ ៥ ក្នុងមួយថ្ងៃសម្រាប់ភ្ញៀវ និងអាសយដ្ឋានថ្មី oukkhmer.com', en: '5 free games a day for guests, and the new address oukkhmer.com' },
+    items: [
+      { kh: 'ភ្ញៀវអាចលេងបាន ៥ ហ្គេមក្នុងមួយថ្ងៃ (ហ្គេមមួយរាប់ពេលដើរជំហានដំបូង)។ មានសារប្រាប់ចំនួនដែលនៅសល់ ហើយការចូលគណនីដោយឥតគិតថ្លៃនឹងលេងបានមិនកំណត់។ ហ្គេមដែលកំពុងលេងអាចបន្តបាន ហើយ «រៀនលេង» នៅតែឥតគិតថ្លៃ។',
+        en: 'Guests can play 5 games a day (a game counts once its first move is made). A note shows how many are left, and signing in (free) removes the limit. A game in progress can always be finished, and Learn to Play stays free.' },
+      { kh: 'ពេលចាប់ផ្ដើមលេងជាមួយកុំព្យូទ័រ លែងមានសារលោតឡើងទីពីរទៀតហើយ។ ស្លាកកម្រិតកុំព្យូទ័រក្រោមចំណងជើងបញ្ចេញពន្លឺមួយភ្លែតជំនួសវិញ។',
+        en: 'Starting a game against the computer no longer shows a second pop-up. The level chip under the title pulses briefly instead.' },
+      { kh: 'ហ្គេមឥឡូវនៅ oukkhmer.com ។ អាសយដ្ឋានចាស់ (oukkhmer.web.app) នាំអ្នកមកអាសយដ្ឋានថ្មីដោយស្វ័យប្រវត្តិ រួមទាំងតំណអញ្ជើញមិត្តភក្ដិ។',
+        en: 'The game now lives at oukkhmer.com. The old address (oukkhmer.web.app) sends you on to the new one automatically, invite links included.' }
+    ]
+  },
   {
     version: '1.6.48',
     date: '2026-10-19',
@@ -16516,6 +16536,45 @@ document.getElementById('startBtn').onclick = () => {
   if (currentProfile) { landAfterSignIn(); return; }
   showLoginScreen();
 };
+// ---------- guest daily game limit ----------
+// A guest (not signed in) can play GUEST_GAMES_PER_DAY games a day; a game counts once its first move is made
+// (any mode but Learn to Play). Signing in lifts the limit. The count lives in this browser (local date), so it is a
+// nudge towards signing in, not a hard lock.
+const GUEST_GAMES_PER_DAY = 5;
+const GUEST_GAMES_KEY = 'oukGuestGames';
+function localDayKey() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function guestGamesUsed() {
+  try { const o = JSON.parse(localStorage.getItem(GUEST_GAMES_KEY) || 'null'); return o && o.d === localDayKey() ? (o.n | 0) : 0; } catch (e) { return 0; }
+}
+function bumpGuestGames() {
+  try { localStorage.setItem(GUEST_GAMES_KEY, JSON.stringify({ d: localDayKey(), n: guestGamesUsed() + 1 })); } catch (e) {}
+  refreshGuestGamesNote();
+}
+function guestGamesLeft() { return accessTier === 'guest' ? Math.max(0, GUEST_GAMES_PER_DAY - guestGamesUsed()) : Infinity; }
+function refreshGuestGamesNote() {
+  const guest = accessTier === 'guest';
+  const left = guestGamesLeft();
+  const html = '<span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ ' + left + ' / ' + GUEST_GAMES_PER_DAY + ' · ចូលគណនីដើម្បីលេងមិនកំណត់</span>'
+    + '<span class="t-en">Free games today: ' + left + ' of ' + GUEST_GAMES_PER_DAY + ' left · sign in for unlimited</span>';
+  for (const id of ['guestGamesNote', 'guestGamesPanelNote']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.style.display = guest ? 'block' : 'none';
+    if (guest) el.innerHTML = html;
+  }
+}
+function showGuestLimit() {
+  funnel('guest_limit_hit', { used: guestGamesUsed() });
+  document.getElementById('lockPopupText').innerHTML = '🔒 <span class="t-kh">អ្នកបានលេងគ្រប់ ' + GUEST_GAMES_PER_DAY + ' ហ្គេមឥតគិតថ្លៃថ្ងៃនេះហើយ។ ចូលគណនីដោយឥតគិតថ្លៃ ដើម្បីលេងមិនកំណត់ ឬត្រឡប់មកវិញថ្ងៃស្អែក។</span>'
+    + '<span class="t-en">You have used your ' + GUEST_GAMES_PER_DAY + ' free games for today. Sign in (it is free) to play without limit, or come back tomorrow.</span>';
+  openPopup('lockPopup');
+}
+// true when a new game may start; otherwise explains why not
+function guestGameAllowed() {
+  if (guestGamesLeft() > 0) return true;
+  showGuestLimit();
+  return false;
+}
 // ---------- funnel analytics (where do new players drop out?) ----------
 // Every event carries the UI language, a coarse device class and whether the page runs inside a social app's
 // own browser (where Google sign-in is blocked), so the funnel can be split by those.
@@ -16582,6 +16641,12 @@ function showAiNotice(level, prefixHtml) {
   if (aiNoticeTimer) clearTimeout(aiNoticeTimer);
   aiNoticeTimer = setTimeout(hideAiNotice, 8000);
 }
+// A normal computer-game start shows no pop-up: the level chip under the title is the standing reminder, and it
+// pulses a few times so it gets noticed. The toast is kept for real events (e.g. no online opponent was found).
+function flashAiChip() {
+  const chip = document.getElementById('aiChip');
+  chip.classList.remove('attn'); void chip.offsetWidth; chip.classList.add('attn');
+}
 function hideAiNotice() { document.getElementById('aiNotice').classList.remove('show'); if (aiNoticeTimer) { clearTimeout(aiNoticeTimer); aiNoticeTimer = null; } }
 // ---- quick computer-level menu ----
 // Tapping the Computer scorecard, the level chip or the toast opens a small menu with the five levels; picking one
@@ -16632,7 +16697,7 @@ function setAiLevel(level) {
   refreshModeReadout();
   updateScoreboard();
   updateAiChip();
-  showAiNotice(level);
+  flashAiChip();
 }
 document.addEventListener('pointerdown', (e) => {
   const menu = document.getElementById('levelMenu');
@@ -16653,22 +16718,24 @@ function updateAiChip() {
 }
 // Starting a computer game without the config screen (Play now, the vs Computer card, the online fallback)
 function startAiNow(level, prefixHtml) {
+  if (!guestGameAllowed()) return;
   if (isAiLevelLocked(level)) level = GUEST_MAX_AI_LEVEL; // e.g. signed out after playing a higher level
   pendingClock = null; pendingSide = E.WHITE; pendingAiLevel = level;
   trackEvent('mode_access', { mode: 'computer', level });
   startGameWithMode('ai' + level, E.WHITE);
   hideOverlays();
-  showAiNotice(level, prefixHtml);
+  if (prefixHtml) showAiNotice(level, prefixHtml); else flashAiChip();
 }
 document.getElementById('playNowBtn').onclick = () => {
   funnel('play_now_click', { invite: pendingInviteCode ? 'yes' : 'no' });
+  if (!pendingInviteCode && !guestGameAllowed()) return;
   const btn = document.getElementById('playNowBtn');
-  btn.disabled = true;
+  btn.disabled = true; btn.classList.add('busy'); // may wait a moment for Firebase on a slow connection
   ensureGuest().then(() => {
     modeScreenOrigin = 'start';
     if (pendingInviteCode) landAfterSignIn(); // a friend's invite link: on to the Join screen
     else startAiNow(2);
-  }).finally(() => { btn.disabled = false; });
+  }).finally(() => { btn.disabled = false; btn.classList.remove('busy'); });
 };
 document.getElementById('startLearnBtn').onclick = () => {
   funnel('start_learn_click');
@@ -16712,6 +16779,7 @@ function setPlayOptions(open) {
 document.getElementById('playOptionsBtn').onclick = () => setPlayOptions(!playOptionsOpen);
 function quickStartMode(m) {
   if (m === 'ai') { startAiNow(pendingAiLevel); return; }
+  if (!guestGameAllowed()) return;
   pendingClock = null; pendingSide = E.WHITE;
   trackEvent('mode_access', { mode: '2player' });
   startGameWithMode('hotseat', E.WHITE);
@@ -16721,6 +16789,7 @@ document.getElementById('pick2p').onclick = () => (playOptionsOpen ? selectPlayM
 document.getElementById('pickAi').onclick = () => (playOptionsOpen ? selectPlayMode('ai') : quickStartMode('ai'));
 document.getElementById('confirmPlay').onclick = () => {
   if (!pendingPlayMode) return;
+  if (!guestGameAllowed()) return;
   if (pendingPlayMode === 'ai' && isAiLevelLocked(pendingAiLevel)) pendingAiLevel = GUEST_MAX_AI_LEVEL;
   trackEvent('mode_access', pendingPlayMode === 'hotseat'
     ? { mode: '2player' }
@@ -16777,6 +16846,7 @@ function onlineCleanupSearch() {
 }
 document.getElementById('pickOnline').onclick = () => {
   if (!currentProfile) return;
+  if (!guestGameAllowed()) return;
   openOnlineScreen();
 };
 document.getElementById('onlineBackBtn').onclick = () => {
@@ -16926,6 +16996,7 @@ function openOnlineScreen() {
   tickHud();
 }
 document.getElementById('pickInvite').onclick = () => {
+  if (!guestGameAllowed()) return;
   if (!currentProfile) return;
   openOnlineScreen();
   document.getElementById('onlineHostCodeBtn').click();
@@ -17972,6 +18043,7 @@ function applyAccessTier() {
   reorderThemeSelForTier();
   GUEST_LOCKED_BUTTONS.forEach(id => decorateButtonLabel(document.getElementById(id), accessTier === 'guest'));
   refreshAiLevelLocks();
+  refreshGuestGamesNote();
   refreshTierBadge();
   updateScoreboard();
   refreshThemeCategoryUI();
@@ -18096,7 +18168,7 @@ function refreshThemeCategoryUI() {
     });
   });
 }
-function showLockPopup() { openPopup('lockPopup'); }
+function showLockPopup() { document.getElementById('lockPopupText').textContent = '🔒 Sign in to unlock all features'; openPopup('lockPopup'); }
 document.getElementById('lockPopupClose').onclick = () => { document.getElementById('lockPopup').style.display = 'none'; };
 // Opens the login screen without disturbing whatever's currently on
 // screen (mode selection, an in-progress game, etc.) -- finishLogin()
