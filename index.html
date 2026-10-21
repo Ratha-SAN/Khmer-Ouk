@@ -519,7 +519,7 @@
     background: var(--surface-2); color: var(--panel-fg); padding: 6px 10px; box-sizing: border-box;
   }
   #loginUsername:focus, #loginPassword:focus, #loginEmail:focus, #loginEmailPassword:focus { border-color: var(--accent); outline: none; }
-  #loginSwitchUserBtn, #loginEmailToggleModeBtn, #loginEmailBackBtn {
+  #loginSwitchUserBtn, #loginEmailToggleModeBtn, #loginEmailBackBtn, #loginAccountBackBtn {
     background: none; border: none; color: var(--text-faint); font-size: 12px;
     text-decoration: underline; padding: 4px; cursor: pointer;
   }
@@ -527,14 +527,18 @@
     display: flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 11px; color: var(--text-muted);
   }
   .loginDivider::before, .loginDivider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
-  .signupRow { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
-  .signupIconBtn {
-    width: 44px; height: 44px; border-radius: 10px; background: var(--surface-2);
-    border: 1px solid var(--accent-dim); display: flex; align-items: center; justify-content: center;
-    cursor: pointer; color: var(--panel-fg);
+  .loginAccountTitle { font-size: 18px; font-weight: 700; color: var(--accent); margin: 4px 0 2px; }
+  .loginAccountSub { margin: 0 0 14px; }
+  .accountBtns { display: flex; flex-direction: column; gap: 10px; }
+  #loginAccountBackBtn { margin-top: 12px; }
+  .accountBtn {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 8px 14px;
+    border-radius: 10px; background: var(--surface-2); border: 1px solid var(--accent-dim); color: var(--panel-fg);
+    font: inherit; font-size: 15px; text-align: left; cursor: pointer;
   }
-  .signupIconBtn:hover:not(:disabled) { border-color: var(--accent); }
-  .signupIconBtn:disabled { opacity: .35; cursor: not-allowed; }
+  .accountBtn svg { flex: none; }
+  .accountBtn:hover:not(:disabled) { border-color: var(--accent); }
+  .accountBtn:disabled { opacity: .5; cursor: wait; }
   #profileAvatarInitial {
     font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4);
   }
@@ -2446,7 +2450,18 @@
       <span>ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។ — Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
       <button type="button" class="iabCopyBtn">ចម្លងតំណ — Copy link</button>
     </div>
-    <div id="loginGuestPanel">
+    <div id="loginAccountPanel">
+      <p class="loginAccountTitle"><span class="t-kh">ចុះឈ្មោះ / ចូលគណនី</span><span class="t-sep"> — </span><span class="t-en">Sign up / Sign in</span></p>
+      <p class="loginHint loginAccountSub"><span class="t-kh">ឥតគិតថ្លៃ · លេងមិនកំណត់ · រក្សាទុកស្ថិតិរបស់អ្នក</span><span class="t-sep"> — </span><span class="t-en">Free · unlimited games · your stats are kept</span></p>
+      <div class="accountBtns">
+        <button id="signupGoogleBtn" class="accountBtn" type="button"><svg viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.7 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.5 13.2l7.8 6.1C12.3 13.1 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 2.9-2.2 5.4-4.7 7l7.4 5.7c4.3-4 6.8-9.9 6.8-17.2z"/><path fill="#FBBC05" d="M10.3 19.3a14.5 14.5 0 0 0 0 9.4l-7.8 6.1a24 24 0 0 1 0-21.6z"/><path fill="#34A853" d="M24 48c6.2 0 11.7-2 15.6-5.6l-7.4-5.7c-2.1 1.4-4.8 2.2-8.2 2.2-6.4 0-11.7-3.6-13.7-8.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg><span><span class="t-kh">បន្តជាមួយ Google</span><span class="t-sep"> — </span><span class="t-en">Continue with Google</span></span></button>
+        <button id="signupFacebookBtn" class="accountBtn" type="button"><svg viewBox="0 0 48 48" width="20" height="20"><path fill="#1877F2" d="M48 24C48 10.7 37.3 0 24 0S0 10.7 0 24c0 12 8.8 22 20.25 23.8V30.9h-6.1V24h6.1v-5.3c0-6 3.6-9.3 9-9.3 2.6 0 5.3.5 5.3.5v5.9h-3c-3 0-3.9 1.9-3.9 3.7V24h6.6l-1.1 6.9h-5.5v16.9C39.2 46 48 36 48 24z"/></svg><span><span class="t-kh">បន្តជាមួយ Facebook</span><span class="t-sep"> — </span><span class="t-en">Continue with Facebook</span></span></button>
+        <button id="signupEmailBtn" class="accountBtn" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span><span class="t-kh">ចុះឈ្មោះដោយអ៊ីមែល</span><span class="t-sep"> — </span><span class="t-en">Sign up with email</span></span></button>
+        <button id="signinEmailBtn" class="accountBtn" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg><span><span class="t-kh">ចូលដោយអ៊ីមែល</span><span class="t-sep"> — </span><span class="t-en">Sign in with email</span></span></button>
+      </div>
+      <button id="loginAccountBackBtn" type="button">← <span class="t-kh">ត្រឡប់</span><span class="t-sep"> — </span><span class="t-en">Back</span></button>
+    </div>
+    <div id="loginGuestPanel" style="display:none">
       <p>ចូលជាភ្ញៀវ — Continue as a guest</p>
       <div style="text-align:left;margin-top:6px">
         <label style="display:block">ឈ្មោះអ្នកប្រើ Username
@@ -2465,18 +2480,6 @@
       <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
         <button id="loginSubmitBtn">ចូល ▸ Log In</button>
         <button id="loginSwitchUserBtn" type="button">មិនមែនអ្នកទេ? ចូលជាអ្នកប្រើផ្សេង — Not you? Log in as a different user</button>
-      </div>
-      <div class="loginDivider"><span>ឬ ចុះឈ្មោះជាមួយ — or sign up with</span></div>
-      <div class="signupRow">
-        <button id="signupEmailBtn" class="signupIconBtn" type="button" title="ចុះឈ្មោះជាមួយអ៊ីមែល — Sign up with Email">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-        </button>
-        <button id="signupGoogleBtn" class="signupIconBtn" type="button" title="ចូលដោយ Google — Log in with Google">
-          <svg viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.7 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.5 13.2l7.8 6.1C12.3 13.1 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 2.9-2.2 5.4-4.7 7l7.4 5.7c4.3-4 6.8-9.9 6.8-17.2z"/><path fill="#FBBC05" d="M10.3 19.3a14.5 14.5 0 0 0 0 9.4l-7.8 6.1a24 24 0 0 1 0-21.6z"/><path fill="#34A853" d="M24 48c6.2 0 11.7-2 15.6-5.6l-7.4-5.7c-2.1 1.4-4.8 2.2-8.2 2.2-6.4 0-11.7-3.6-13.7-8.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
-        </button>
-        <button id="signupFacebookBtn" class="signupIconBtn" type="button" title="ចូលដោយ Facebook — Log in with Facebook">
-          <svg viewBox="0 0 48 48" width="20" height="20"><path fill="#1877F2" d="M48 24C48 10.7 37.3 0 24 0S0 10.7 0 24c0 12 8.8 22 20.25 23.8V30.9h-6.1V24h6.1v-5.3c0-6 3.6-9.3 9-9.3 2.6 0 5.3.5 5.3.5v5.9h-3c-3 0-3.9 1.9-3.9 3.7V24h6.6l-1.1 6.9h-5.5v16.9C39.2 46 48 36 48 24z"/></svg>
-        </button>
       </div>
     </div>
     <div id="loginEmailPanel" style="display:none">
@@ -2511,19 +2514,19 @@
       <button type="button" class="iabCopyBtn"><span class="t-kh">ចម្លងតំណ</span><span class="t-sep"> — </span><span class="t-en">Copy link</span></button>
     </div>
     <button id="playNowBtn" type="button"><span class="t-kh">លេងឥឡូវ</span><span class="t-sep"> ▸ </span><span class="t-en">PLAY NOW</span><small><span class="t-kh">ជាមួយកុំព្យូទ័រ កម្រិត ២</span><span class="t-sep"> — </span><span class="t-en">vs Computer, level 2</span></small></button>
-    <p id="guestGamesNote" class="guestGamesNote"><span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ <b class="ggLeft">5</b> / 5 · ចូលគណនីដើម្បីលេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free games today: <b class="ggLeft">5</b> of 5 left · sign in for unlimited</span></p>
+    <p id="guestGamesNote" class="guestGamesNote"><span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ <b class="ggLeft">3</b> / 3 · ចូលគណនីដើម្បីលេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free games today: <b class="ggLeft">3</b> of 3 left · sign in for unlimited</span></p>
     <button id="startLearnBtn" type="button">📖 <span class="t-kh">រៀនលេង</span><span class="t-sep"> — </span><span class="t-en">Learn to Play</span></button>
-    <button id="startBtn" type="button"><span class="t-kh">ចូលគណនី</span><span class="t-sep"> ▸ </span><span class="t-en">Sign in / Create account</span></button>
+    <button id="startBtn" type="button"><span class="t-kh">ចុះឈ្មោះ / ចូលគណនី</span><span class="t-sep"> ▸ </span><span class="t-en">Sign in / Create account</span></button>
   </div>
 </div>
 <script>
   // first-paint values for the Start pop-up (the game script keeps them up to date later): the free games left
   // today, read from the same counter the game uses
   (function () {
-    var left = 5;
+    var left = 3;
     try { var o = JSON.parse(localStorage.getItem('oukGuestGames') || 'null'); var d = new Date();
       var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      if (o && o.d === k) left = Math.max(0, 5 - (o.n | 0)); } catch (e) {}
+      if (o && o.d === k) left = Math.max(0, 3 - (o.n | 0)); } catch (e) {}
     var els = document.querySelectorAll('#guestGamesNote .ggLeft'); for (var i = 0; i < els.length; i++) els[i].textContent = left;
     // a friend's invite link, and a social app's own browser, each add a line: show it from the first frame too
     if (/[?#&]join=[A-Za-z0-9]{6}\b/.test(location.search + location.hash)) document.getElementById('startInviteNote').style.display = 'block';
@@ -15518,8 +15521,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.52';
+const APP_VERSION = '1.6.53';
 const WHATS_NEW = [
+  {
+    version: '1.6.53',
+    date: '2026-10-21',
+    title: { kh: 'ទំព័រចុះឈ្មោះ / ចូលគណនីថ្មី និងហ្គេមឥតគិតថ្លៃ ៣ ក្នុងមួយថ្ងៃ', en: 'New Sign up / Sign in page, and 3 free games a day for guests' },
+    items: [
+      { kh: 'ភ្ញៀវអាចលេងបាន ៣ ហ្គេមក្នុងមួយថ្ងៃ។ ការចុះឈ្មោះ ឬចូលគណនីដោយឥតគិតថ្លៃ នឹងលេងបានមិនកំណត់។',
+        en: 'Guests can now play 3 games a day. Signing up or signing in (free) removes the limit.' },
+      { kh: 'តំណនៅផ្ទាំងចាប់ផ្ដើមឥឡូវសរសេរថា «ចុះឈ្មោះ / ចូលគណនី» ហើយបើកទំព័រចុះឈ្មោះ និងចូលគណនីផ្ទាល់ ដែលមានប៊ូតុងធំៗ៖ បន្តជាមួយ Google, បន្តជាមួយ Facebook, ចុះឈ្មោះដោយអ៊ីមែល និងចូលដោយអ៊ីមែល។ ទម្រង់ឈ្មោះភ្ញៀវចាស់លែងបង្ហាញទៀតហើយ (ចុច «លេងឥឡូវ» ដើម្បីលេងជាភ្ញៀវ)។',
+        en: 'The link on the Start pop-up now reads "Sign up / Sign in" and opens a proper sign-up and sign-in page with large buttons: Continue with Google, Continue with Facebook, Sign up with email and Sign in with email. The old guest-name form is gone (Play now plays as a guest).' }
+    ]
+  },
   {
     version: '1.6.52',
     date: '2026-10-21',
@@ -16590,7 +16604,7 @@ document.getElementById('startBtn').onclick = () => {
 // A guest (not signed in) can play GUEST_GAMES_PER_DAY games a day; a game counts once its first move is made
 // (any mode but Learn to Play). Signing in lifts the limit. The count lives in this browser (local date), so it is a
 // nudge towards signing in, not a hard lock.
-const GUEST_GAMES_PER_DAY = 5;
+const GUEST_GAMES_PER_DAY = 3;
 const GUEST_GAMES_KEY = 'oukGuestGames';
 function localDayKey() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function guestGamesUsed() {
@@ -17551,7 +17565,7 @@ function clearLoginError() { document.getElementById('loginError').style.display
 // if this device has never logged in before.
 function resetLoginFields() {
   clearLoginError();
-  showGuestPanel();
+  showAccountPanel();
   document.getElementById('loginUsername').value = rememberedUsername() || nextGuestUsername();
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginRememberMe').checked = rememberMeEnabled();
@@ -17699,34 +17713,47 @@ function friendlyAuthError(err) {
   };
   return (code && map[code]) || 'មានបញ្ហា សូមព្យាយាមម្ដងទៀត។ — Something went wrong. Please try again.';
 }
-function showGuestPanel() {
+// The login screen opens on the Sign up / Sign in choices (Google, Facebook, email); guests need no form at all,
+// Play now on the Start pop-up makes one.
+function showAccountPanel() {
   clearLoginError();
   document.getElementById('loginEmailPanel').style.display = 'none';
-  document.getElementById('loginGuestPanel').style.display = 'block';
+  document.getElementById('loginGuestPanel').style.display = 'none';
+  document.getElementById('loginAccountPanel').style.display = 'block';
 }
+// Back from the Sign up / Sign in page: to the Start pop-up, or straight back to the game it was opened from
+function closeLoginScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+  if (loginMidSession) { loginMidSession = false; return; }
+  showStartScreen();
+}
+document.getElementById('loginAccountBackBtn').onclick = closeLoginScreen;
 let emailAuthMode = 'signup'; // 'signup' | 'signin'
 function applyEmailAuthMode() {
   const isSignup = emailAuthMode === 'signup';
-  document.getElementById('loginEmailTitle').textContent = isSignup
-    ? 'បង្កើតគណនីអ៊ីមែល — Create an email account'
-    : 'ចូលដោយអ៊ីមែល — Sign in with email';
-  document.getElementById('loginEmailSubmitBtn').textContent = isSignup ? 'បង្កើតគណនី ▸ Create Account' : 'ចូល ▸ Sign In';
-  document.getElementById('loginEmailToggleModeBtn').textContent = isSignup
-    ? 'មានគណនីរួចហើយ? ចូល — Already have an account? Sign in'
-    : 'មិនទាន់មានគណនី? បង្កើតថ្មី — Need an account? Create one';
+  const L = (kh, en, sep) => '<span class="t-kh">' + kh + '</span><span class="t-sep">' + (sep || ' — ') + '</span><span class="t-en">' + en + '</span>';
+  document.getElementById('loginEmailTitle').innerHTML = isSignup
+    ? L('បង្កើតគណនីអ៊ីមែល', 'Create an email account')
+    : L('ចូលដោយអ៊ីមែល', 'Sign in with email');
+  document.getElementById('loginEmailSubmitBtn').innerHTML = isSignup ? L('បង្កើតគណនី ▸', 'Create Account', ' ') : L('ចូល ▸', 'Sign In', ' ');
+  document.getElementById('loginEmailToggleModeBtn').innerHTML = isSignup
+    ? L('មានគណនីរួចហើយ? ចូល', 'Already have an account? Sign in')
+    : L('មិនទាន់មានគណនី? បង្កើតថ្មី', 'Need an account? Create one');
 }
-function showEmailPanel() {
+function showEmailPanel(mode) {
   clearLoginError();
   document.getElementById('loginGuestPanel').style.display = 'none';
+  document.getElementById('loginAccountPanel').style.display = 'none';
   document.getElementById('loginEmailPanel').style.display = 'block';
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginEmailPassword').value = '';
-  emailAuthMode = 'signup';
+  emailAuthMode = mode === 'signin' ? 'signin' : 'signup';
   applyEmailAuthMode();
   document.getElementById('loginEmail').focus();
 }
-document.getElementById('signupEmailBtn').onclick = showEmailPanel;
-document.getElementById('loginEmailBackBtn').onclick = showGuestPanel;
+document.getElementById('signupEmailBtn').onclick = () => showEmailPanel('signup');
+document.getElementById('signinEmailBtn').onclick = () => showEmailPanel('signin');
+document.getElementById('loginEmailBackBtn').onclick = showAccountPanel;
 document.getElementById('loginEmailToggleModeBtn').onclick = () => {
   emailAuthMode = emailAuthMode === 'signup' ? 'signin' : 'signup';
   clearLoginError();
