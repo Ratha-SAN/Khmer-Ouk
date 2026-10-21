@@ -2383,6 +2383,14 @@
 </script>
 </head>
 <body>
+<script>
+  // Paint the first frame in the player's language: the full language setup runs much later (with the game
+  // script), and until then the Start pop-up would show both languages and then jump.
+  (function () { var l = 'kh'; try { l = localStorage.getItem('oukLangPref') || 'kh'; } catch (e) {} if (l === 'kh' || l === 'en') document.body.classList.add('lang-' + l); })();
+  // On a phone the settings panel is a slide-up sheet that starts closed; the touch-UI script closes it, but only
+  // once it runs, so without this the sheet is open behind the Start pop-up for a moment and then slides away.
+  if (window.innerWidth <= 820 || window.innerHeight <= 560) document.body.classList.add('panel-hidden');
+</script>
 
 <div id="scene">
   <div id="bgFade"></div>
@@ -2494,20 +2502,34 @@
 
 <div id="startScreen" class="fullOverlay">
   <div class="box">
-    <div id="startLangRow"><button id="startLangToggle" type="button" title="Language ភាសា"></button></div>
+    <div id="startLangRow"><button id="startLangToggle" type="button" title="Language ភាសា">🌐 <span class="t-kh">English</span><span class="t-sep"> / </span><span class="t-en">ខ្មែរ</span></button></div>
     <h1><span class="t-kh">អុកចត្រង្គ</span><br class="titleBr"><span class="t-en">Ouk Chatrang</span></h1>
-    <p>ល្បែងអុកខ្មែរបែបប្រពៃណី — Traditional Cambodian chess</p>
-    <p id="startInviteNote" style="display:none">🎉 មិត្តភក្ដិបានអញ្ជើញអ្នកលេង! ចុចលេងឥឡូវ ដើម្បីចូលរួម។<br>A friend invited you to play! Tap Play now to join.</p>
+    <p><span class="t-kh">ល្បែងអុកខ្មែរបែបប្រពៃណី</span><span class="t-sep"> — </span><span class="t-en">Traditional Cambodian chess</span></p>
+    <p id="startInviteNote" style="display:none">🎉 <span class="t-kh">មិត្តភក្ដិបានអញ្ជើញអ្នកលេង! ចុចលេងឥឡូវ ដើម្បីចូលរួម។</span><span class="t-sep"> </span><span class="t-en">A friend invited you to play! Tap Play now to join.</span></p>
     <div class="iabHint" id="startIabHint">
-      <span>ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។ — Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
-      <button type="button" class="iabCopyBtn">ចម្លងតំណ — Copy link</button>
+      <span class="t-kh">ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។</span><span class="t-sep"> — </span><span class="t-en">Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
+      <button type="button" class="iabCopyBtn"><span class="t-kh">ចម្លងតំណ</span><span class="t-sep"> — </span><span class="t-en">Copy link</span></button>
     </div>
-    <button id="playNowBtn" type="button">លេងឥឡូវ ▸ PLAY NOW<small>ជាមួយកុំព្យូទ័រ កម្រិត ២ — vs Computer, level 2</small></button>
-    <p id="guestGamesNote" class="guestGamesNote" style="display:none"></p>
-    <button id="startLearnBtn" type="button">📖 រៀនលេង Learn to Play</button>
-    <button id="startBtn" type="button">ចូលគណនី ▸ Sign in / Create account</button>
+    <button id="playNowBtn" type="button"><span class="t-kh">លេងឥឡូវ</span><span class="t-sep"> ▸ </span><span class="t-en">PLAY NOW</span><small><span class="t-kh">ជាមួយកុំព្យូទ័រ កម្រិត ២</span><span class="t-sep"> — </span><span class="t-en">vs Computer, level 2</span></small></button>
+    <p id="guestGamesNote" class="guestGamesNote"><span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ <b class="ggLeft">5</b> / 5 · ចូលគណនីដើម្បីលេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free games today: <b class="ggLeft">5</b> of 5 left · sign in for unlimited</span></p>
+    <button id="startLearnBtn" type="button">📖 <span class="t-kh">រៀនលេង</span><span class="t-sep"> — </span><span class="t-en">Learn to Play</span></button>
+    <button id="startBtn" type="button"><span class="t-kh">ចូលគណនី</span><span class="t-sep"> ▸ </span><span class="t-en">Sign in / Create account</span></button>
   </div>
 </div>
+<script>
+  // first-paint values for the Start pop-up (the game script keeps them up to date later): the free games left
+  // today, read from the same counter the game uses
+  (function () {
+    var left = 5;
+    try { var o = JSON.parse(localStorage.getItem('oukGuestGames') || 'null'); var d = new Date();
+      var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      if (o && o.d === k) left = Math.max(0, 5 - (o.n | 0)); } catch (e) {}
+    var els = document.querySelectorAll('#guestGamesNote .ggLeft'); for (var i = 0; i < els.length; i++) els[i].textContent = left;
+    // a friend's invite link, and a social app's own browser, each add a line: show it from the first frame too
+    if (/[?#&]join=[A-Za-z0-9]{6}\b/.test(location.search + location.hash)) document.getElementById('startInviteNote').style.display = 'block';
+    if (/FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '')) document.getElementById('startIabHint').style.display = 'block';
+  })();
+</script>
 
 <div id="panel">
   <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
@@ -15496,8 +15518,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.51';
+const APP_VERSION = '1.6.52';
 const WHATS_NEW = [
+  {
+    version: '1.6.52',
+    date: '2026-10-21',
+    title: { kh: 'ផ្ទាំងចាប់ផ្ដើមលែងព្រិចភ្នែកពេលបើក', en: 'No more flicker when the Start pop-up opens' },
+    items: [
+      { kh: 'ផ្ទាំងចាប់ផ្ដើមបង្ហាញជាភាសារបស់អ្នកតាំងពីដំបូង ជំនួសឲ្យការបង្ហាញភាសាទាំងពីរមួយភ្លែតសិន ហើយលោតប្ដូរ។ នៅលើទូរស័ព្ទ ផ្ទាំងការកំណត់លែងបើកឡើងមួយភ្លែតនៅខាងក្រោយទៀតហើយ។',
+        en: 'The Start pop-up appears in your language from the very first moment, instead of briefly showing both languages and then jumping. On phones the settings sheet no longer flashes open behind it.' }
+    ]
+  },
   {
     version: '1.6.51',
     date: '2026-10-20',
@@ -16575,12 +16606,13 @@ function refreshGuestGamesNote() {
   const left = guestGamesLeft();
   const html = '<span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ ' + left + ' / ' + GUEST_GAMES_PER_DAY + ' · ចូលគណនីដើម្បីលេងមិនកំណត់</span>'
     + '<span class="t-en">Free games today: ' + left + ' of ' + GUEST_GAMES_PER_DAY + ' left · sign in for unlimited</span>';
-  for (const id of ['guestGamesNote', 'guestGamesPanelNote']) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    el.style.display = guest ? 'block' : 'none';
-    if (guest) el.innerHTML = html;
-  }
+  const start = document.getElementById('guestGamesNote');
+  // the Start pop-up keeps the line's space either way, so it never changes height after it first appears
+  start.style.visibility = guest ? 'visible' : 'hidden';
+  start.querySelectorAll('.ggLeft').forEach((b) => { b.textContent = left === Infinity ? GUEST_GAMES_PER_DAY : left; });
+  const panel = document.getElementById('guestGamesPanelNote');
+  panel.style.display = guest ? 'block' : 'none';
+  if (guest) panel.innerHTML = html;
 }
 function showGuestLimit() {
   funnel('guest_limit_hit', { used: guestGamesUsed() });
@@ -18926,7 +18958,7 @@ function applyLangPref(v) {
   const markActive = (v) => {
     langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === v));
     // one button showing only the OTHER language: it reads "English" while the UI is in Khmer and "ខ្មែរ" once in English
-    startLangToggle.textContent = '🌐 ' + (v === 'en' ? 'ខ្មែរ' : 'English');
+    startLangToggle.innerHTML = '🌐 ' + (v === 'en' ? 'ខ្មែរ' : 'English');
   };
   markActive(saved);
   applyLangPref(saved);
