@@ -5363,34 +5363,38 @@ function makeLabelMesh(kh, latin) {
   return mesh;
 }
 
-// Coordinates are marked on one side only (near edge for files, left edge
-// for ranks) — as on a real chess/Ouk board, not duplicated on all sides.
-// They follow the current viewer's seat: when the camera faces the board
-// from Black's side (e.g. playing Black online), the labels mirror across
-// the board to that viewer's own near/left edges and spin 180° so they
-// read upright from there instead of upside-down on the opponent's edge.
-let labelsFlipped = false;
+// Coordinates are marked on two edges only, as on a real board, and follow the viewer so they sit on the edges
+// nearest them and read upright from there. labelAz is the camera's azimuth around the board (0 = White's seat,
+// PI = Black's, -PI/2 / +PI/2 = the sideways views from the a-file / h-file side). From a seat the files run along
+// the near edge and the ranks up the left edge; sideways the ranks run along the near (bottom) edge and the files
+// up the left edge.
+let labelAz = 0;
 function buildLabels() {
   labelGroup.clear();
-  const flip = labelsFlipped;
+  const dx = Math.round(Math.sin(labelAz)), dz = Math.round(Math.cos(labelAz)); // board -> camera
+  const rx = dz, rz = -dx;                                                       // the viewer's right
+  const sideways = dx !== 0;
   for (let f = 0; f < 8; f++) {
-    const near = makeLabelMesh(KH_FILES[f], LAT_FILES[f]);
-    near.position.x = f - 3.5; near.position.z = flip ? -4.32 : 4.32;
-    if (flip) near.rotation.z = Math.PI;
-    labelGroup.add(near);
+    const m = makeLabelMesh(KH_FILES[f], LAT_FILES[f]);
+    m.position.x = f - 3.5;
+    m.position.z = sideways ? -rz * 4.34 : dz * 4.32;
+    m.rotation.z = labelAz;
+    labelGroup.add(m);
   }
   for (let r = 0; r < 8; r++) {
-    const left = makeLabelMesh(KH_RANKS[r], String(r + 1));
-    left.position.x = flip ? 4.34 : -4.34; left.position.z = 3.5 - r;
-    if (flip) left.rotation.z = Math.PI;
-    labelGroup.add(left);
+    const m = makeLabelMesh(KH_RANKS[r], String(r + 1));
+    m.position.z = 3.5 - r;
+    m.position.x = sideways ? dx * 4.32 : -rx * 4.34;
+    m.rotation.z = labelAz;
+    labelGroup.add(m);
   }
 }
-function setLabelOrientation(flip) {
-  if (flip === labelsFlipped) return;
-  labelsFlipped = flip;
+function setLabelAz(az) {
+  if (Math.abs(az - labelAz) < 1e-6) return;
+  labelAz = az;
   buildLabels();
 }
+function setLabelOrientation(flip) { setLabelAz(flip ? Math.PI : 0); }
 
 // ---------- pieces ----------
 const MAT_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
@@ -9911,16 +9915,19 @@ for (const x of [5.57, -5.57]) { // two columns wide, level with the middle of t
 const TRAY_SIDE_ASPECT = 1.15; // side columns need a landscape-ish viewport
 const CAP_SIDE_SCALE = 0.595; // captured pieces in the side columns (0.85 of a board piece, then the panel cut by 30%)
 let capSideLayout = false;
-// Side view (the floating ⇆ button): the wooden board turns 90 degrees so the two trays stand left and right of it
-// -- the pieces captured by White on White's right, those captured by Black on Black's right -- while the sets stay
-// at the top and bottom and the coordinates are unchanged. Not offered in the plan-view (Flat 2D) themes.
-let sideViewOn = false;
+// Side views (the floating ⇆ button steps through them): 0 the normal view; 1 the wooden board turned 90 degrees, so
+// the two trays stand left and right of it (the pieces captured by White on White's right, those captured by Black on
+// Black's right) while the sets stay at the top and bottom; 2 the whole board seen sideways, the sets left and right
+// (from the a-file side for White, the h-file side for Black). The pieces always face each other and the coordinates
+// sit on the bottom and left edges. Not offered in the plan-view (Flat 2D) themes.
+let sideViewMode = 0;
 function applySideTrays() {
-  frame.rotation.y = sideViewOn ? Math.PI / 2 : 0;
+  const turned = sideViewMode === 1;
+  frame.rotation.y = turned ? Math.PI / 2 : 0;
   trayEnds.forEach((t, k) => {
     const s = k === 0 ? 1 : -1; // trayEnds[0] is White's tray (near White's seat, or on White's right)
-    t.rotation.y = sideViewOn ? Math.PI / 2 : 0;
-    t.position.set(sideViewOn ? s * 5.25 : 0, -0.05, sideViewOn ? 0 : s * 5.25);
+    t.rotation.y = turned ? Math.PI / 2 : 0;
+    t.position.set(turned ? s * 5.25 : 0, -0.05, turned ? 0 : s * 5.25);
   });
   if (state) rebuildCaptured();
 }
@@ -9982,7 +9989,7 @@ function rebuildCaptured() {
         const rowN = Math.floor(i / 2), rowOff = rowN === 0 ? 0 : (rowN % 2 === 1 ? (rowN + 1) / 2 : -rowN / 2);
         g.position.set(sgn * (5.2375 + (i % 2) * 0.665), -0.02, rowOff * 0.665);
         if (g.userData.flat2dPlane) g.userData.flat2dShift = flat2dInkShift(t, false); // centred in its cell
-      } else if (sideViewOn) {
+      } else if (sideViewMode === 1) {
         g.position.set(row.z, -0.02, (i - (row.list.length - 1) / 2) * 0.5); // trays left and right (row.z is the x), centred
       } else {
         g.position.set(-3.75 + i * 0.5, -0.02, row.z);
@@ -10741,7 +10748,7 @@ function applyTheme(key) {
   // so the board never shows perspective; leaving it restores the usual tilt
   controls.enableRotate = !t.topDown;
   document.getElementById('sideViewBtn').style.display = t.topDown ? 'none' : '';
-  if (t.topDown && sideViewOn) { sideViewOn = false; document.getElementById('sideViewBtn').classList.remove('active'); applySideTrays(); }
+  if (t.topDown && sideViewMode) { sideViewMode = 0; document.getElementById('sideViewBtn').classList.remove('active'); applySideTrays(); setLabelAz(viewAz()); }
   if (t.topDown) topView();
   else if (themeWasTopDown) tiltedView();
   themeWasTopDown = !!t.topDown;
@@ -15537,8 +15544,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.57';
+const APP_VERSION = '1.6.58';
 const WHATS_NEW = [
+  {
+    version: '1.6.58',
+    date: '2026-10-21',
+    title: { kh: 'ប៊ូតុង ⇆ មានទិដ្ឋភាពពីរ', en: 'Both side views on the ⇆ button' },
+    items: [
+      { kh: 'ចុចប៊ូតុង ⇆ ម្ដងៗដើម្បីប្ដូរ៖ ក្ដារបង្វិល ៩០ ដឺក្រេ (ប្រអប់ដាក់កូនអុកនៅខាងឆ្វេង និងខាងស្ដាំ) → មើលពីចំហៀង (កូនអុកនៅខាងឆ្វេង និងខាងស្ដាំ) → ទិដ្ឋភាពធម្មតា។',
+        en: 'Each tap of ⇆ moves to the next view: the board turned 90° (trays on the left and right) → seen from the side (the sets on the left and right) → the normal view.' }
+    ]
+  },
   {
     version: '1.6.57',
     date: '2026-10-21',
@@ -18867,8 +18883,11 @@ function tiltedView() {
 // a disorienting teleport.
 let viewSide = E.WHITE;       // which side the camera currently faces the board as
 let viewAnimRaf = null;
-function viewAz() { return viewSide === E.WHITE ? 0 : Math.PI; }
-// camera distance that keeps the turned board (its long side now across the screen, with the trays) in view
+function viewAz() {
+  if (sideViewMode === 2) return viewSide === E.WHITE ? -Math.PI / 2 : Math.PI / 2;
+  return viewSide === E.WHITE ? 0 : Math.PI;
+}
+// camera distance that keeps the board's long side (frame and trays) across the screen in either side view
 function sideViewDist() {
   const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
   const tanH = Math.tan(camera.fov * Math.PI / 360) * (w / Math.max(1, h));
@@ -18904,20 +18923,21 @@ function setViewSide(side, animate) {
   // keep the coordinate labels on this viewer's own edge, reading upright
   // (before the camera moves: a new game can change sides while the
   // camera is already at the target azimuth)
-  setLabelOrientation(side === E.BLACK);
+  setLabelAz(viewAz());
   tweenCamera(viewAz(), animate);
 }
-function setSideView(on, animate) {
-  if (theme().topDown) on = false;
-  sideViewOn = on;
-  document.getElementById('sideViewBtn').classList.toggle('active', on);
+function setSideView(m, animate) {
+  if (theme().topDown) m = 0;
+  sideViewMode = m;
+  document.getElementById('sideViewBtn').classList.toggle('active', m > 0);
   applySideTrays();
+  setLabelAz(viewAz());
   controls.target.set(0, 0, 0);
   const elev = Math.atan2(DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z);
-  const dist = on ? sideViewDist() : DEFAULT_CAM_POS.length();
+  const dist = m ? sideViewDist() : DEFAULT_CAM_POS.length();
   tweenCamera(viewAz(), animate, dist * Math.cos(elev), dist * Math.sin(elev));
-  if (!on && document.body.classList.contains('is-mobile')) setTimeout(() => fitCameraToBoard(), animate ? 520 : 0);
-  trackEvent('side_view', { on });
+  if (!m && document.body.classList.contains('is-mobile')) setTimeout(() => fitCameraToBoard(), animate ? 520 : 0);
+  trackEvent('side_view', { mode: m });
 }
 let autoFlipEnabled = false;
 document.getElementById('autoFlipChk').onchange = (e) => {
@@ -18927,11 +18947,11 @@ document.getElementById('autoFlipChk').onchange = (e) => {
   if (autoFlipEnabled && uiMode === 'play' && mode === 'hotseat' && !gameOver) setViewSide(state.turn, true);
 };
 document.getElementById('flipViewBtn').onclick = () => setViewSide(viewSide === E.WHITE ? E.BLACK : E.WHITE, true);
-document.getElementById('sideViewBtn').onclick = () => setSideView(!sideViewOn, true);
+document.getElementById('sideViewBtn').onclick = () => setSideView((sideViewMode + 1) % 3, true);
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
-document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; if (sideViewOn) setSideView(false, false); resetView(); setLabelOrientation(false); };
-document.getElementById('topViewBtn').onclick = () => { if (sideViewOn) setSideView(false, false); topView(); };
+document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; if (sideViewMode) setSideView(0, false); resetView(); setLabelOrientation(false); };
+document.getElementById('topViewBtn').onclick = () => { if (sideViewMode) setSideView(0, false); topView(); };
 
 // ---------- hide/show the settings panel ----------
 // One entry point for opening/closing the panel (the desktop button and the phone toolbar's gear both use it).
