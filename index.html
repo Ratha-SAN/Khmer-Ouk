@@ -221,6 +221,7 @@
     background: color-mix(in srgb, var(--panel-bg) 82%, transparent); color: var(--panel-fg); cursor: pointer;
   }
   #camControls button:hover { background: color-mix(in srgb, var(--surface-3) 90%, transparent); border-color: var(--accent); }
+  #camControls button.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   /* enlarged title above the board */
   #boardTitle {
     position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2;
@@ -754,10 +755,7 @@
       gap: 6px; width: calc(44px * 2 + 6px * 1);
     }
     #camControls button { width: auto; }
-    /* 5th button's natural row-major placement lands it in the empty
-       row's left cell -- push it to the right cell instead so it sits
-       under topViewBtn/zoomOutBtn rather than leaving a lopsided gap. */
-    #flipViewBtn { grid-column: 2; }
+    /* six buttons fill the 3 x 2 grid exactly (side view sits beside flip) */
     #boardTitle { font-size: 20px; top: 14px; }
     /* no room under the title on a phone (HUD and camera buttons flank it): the level chip and its toast sit above the bottom scorecards */
     #aiChip { top: auto; bottom: 76px; }
@@ -2432,6 +2430,7 @@
     <button id="zoomOutBtn" title="Zoom Out">－</button>
     <button id="zoomResetBtn" title="Reset View">⟲</button>
     <button id="topViewBtn" title="Top View">⬒</button>
+    <button id="sideViewBtn" title="ទិដ្ឋភាពចំហៀង — Side view">▱</button>
     <button id="flipViewBtn" title="Flip Board View">⇅</button>
   </div>
 </div>
@@ -10726,6 +10725,8 @@ function applyTheme(key) {
   // a topDown theme (Flat 2D) is a plan view: the camera looks straight down and can't be tilted,
   // so the board never shows perspective; leaving it restores the usual tilt
   controls.enableRotate = !t.topDown;
+  document.getElementById('sideViewBtn').style.display = t.topDown ? 'none' : '';
+  if (t.topDown && sideViewOn) { sideViewOn = false; document.getElementById('sideViewBtn').classList.remove('active'); }
   if (t.topDown) topView();
   else if (themeWasTopDown) tiltedView();
   themeWasTopDown = !!t.topDown;
@@ -15521,8 +15522,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.53';
+const APP_VERSION = '1.6.54';
 const WHATS_NEW = [
+  {
+    version: '1.6.54',
+    date: '2026-10-21',
+    title: { kh: 'ប៊ូតុងទិដ្ឋភាពចំហៀង', en: 'New side-view button' },
+    items: [
+      { kh: 'ប៊ូតុង ▱ ថ្មីនៅជាប់ប៊ូតុងកាមេរ៉ា បន្ទាបមុំមើលមកត្រឹមកម្ពស់ភ្នែក ដូចអង្គុយលេងនៅតុ។ កូនអុកនៅតែតម្រៀបខាងលើ និងខាងក្រោមទល់មុខគ្នា ហើយសញ្ញាក្ដារនៅតែនៅខាងក្រោម និងខាងឆ្វេង។ ចុចម្ដងទៀតដើម្បីត្រឡប់ទៅទិដ្ឋភាពធម្មតា។',
+        en: 'A new ▱ button beside the camera buttons lowers the view to eye level, as if you were sitting at the table. The sets stay at the top and bottom facing each other, and the board markers stay on the bottom and left edges. Tap it again to return to the normal view.' }
+    ]
+  },
   {
     version: '1.6.53',
     date: '2026-10-21',
@@ -18814,39 +18824,61 @@ function tiltedView() {
 // a disorienting teleport.
 let viewSide = E.WHITE;       // which side the camera currently faces the board as
 let viewAnimRaf = null;
-function setViewSide(side, animate) {
-  viewSide = side;
-  // keep the coordinate labels on this viewer's own edge, reading upright
-  // (must run before the small-delta early return below: a new game can
-  // change sides while the camera is already at the target azimuth)
-  setLabelOrientation(side === E.BLACK);
+// Side view (the floating ▱ button): a low camera from the player's own seat, as if sitting at the table -- the
+// sets stay at the top and bottom facing each other, and the coordinates stay on the near and left edges. Not
+// offered in the plan-view (Flat 2D) themes.
+let sideViewOn = false;
+const SIDE_VIEW_ELEV = 25 * Math.PI / 180; // camera height above the board plane (the normal view is ~47 deg)
+function viewAz() { return viewSide === E.WHITE ? 0 : Math.PI; }
+// camera distance that keeps the near edge (the widest part on screen, with its labels) across the screen
+function sideViewDist() {
+  const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
+  const tanH = Math.tan(camera.fov * Math.PI / 360) * (w / Math.max(1, h));
+  const d = Math.max(DEFAULT_CAM_POS.length(), 5.9 / tanH + 5 * Math.cos(SIDE_VIEW_ELEV));
+  controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
+  return d;
+}
+// tween the camera around the board centre to an azimuth (and optionally a new distance / height)
+function tweenCamera(targetAz, animate, targetRadius, targetY) {
   const dir = camera.position.clone().sub(controls.target);
-  const radius = Math.hypot(dir.x, dir.z);
-  const y = dir.y;
-  const targetAz = side === E.WHITE ? 0 : Math.PI; // azimuth: 0 = White's seat, PI = Black's
+  const r0 = Math.hypot(dir.x, dir.z), y0 = dir.y;
+  const r1 = targetRadius != null ? targetRadius : r0, y1 = targetY != null ? targetY : y0;
   const startAz = Math.atan2(dir.x, dir.z);
   let delta = targetAz - startAz;
   while (delta > Math.PI) delta -= 2 * Math.PI;
   while (delta < -Math.PI) delta += 2 * Math.PI;
-  if (Math.abs(delta) < 0.01) return;
+  if (Math.abs(delta) < 0.01 && Math.abs(r1 - r0) < 0.01 && Math.abs(y1 - y0) < 0.01) return;
   if (viewAnimRaf) cancelAnimationFrame(viewAnimRaf);
-  if (!animate || fxPrefersReducedMotion()) {
-    const az = targetAz;
-    camera.position.set(controls.target.x + radius * Math.sin(az), controls.target.y + y, controls.target.z + radius * Math.cos(az));
-    controls.update();
-    return;
-  }
+  const put = (az, r, y) => { camera.position.set(controls.target.x + r * Math.sin(az), controls.target.y + y, controls.target.z + r * Math.cos(az)); controls.update(); };
+  if (!animate || fxPrefersReducedMotion()) { put(targetAz, r1, y1); return; }
   const t0 = performance.now(), dur = 450;
   const step = (now) => {
     const t = Math.min(1, (now - t0) / dur);
     const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOutQuad
-    const az = startAz + delta * ease;
-    camera.position.set(controls.target.x + radius * Math.sin(az), controls.target.y + y, controls.target.z + radius * Math.cos(az));
-    controls.update();
+    put(startAz + delta * ease, r0 + (r1 - r0) * ease, y0 + (y1 - y0) * ease);
     if (t < 1) viewAnimRaf = requestAnimationFrame(step);
     else viewAnimRaf = null;
   };
   viewAnimRaf = requestAnimationFrame(step);
+}
+function setViewSide(side, animate) {
+  viewSide = side;
+  // keep the coordinate labels on this viewer's own edge, reading upright
+  // (before the camera moves: a new game can change sides while the
+  // camera is already at the target azimuth)
+  setLabelOrientation(side === E.BLACK);
+  tweenCamera(viewAz(), animate);
+}
+function setSideView(on, animate) {
+  if (theme().topDown) on = false;
+  sideViewOn = on;
+  document.getElementById('sideViewBtn').classList.toggle('active', on);
+  controls.target.set(0, 0, 0);
+  const elev = on ? SIDE_VIEW_ELEV : Math.atan2(DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z);
+  const dist = on ? sideViewDist() : DEFAULT_CAM_POS.length();
+  tweenCamera(viewAz(), animate, dist * Math.cos(elev), dist * Math.sin(elev));
+  if (!on && document.body.classList.contains('is-mobile')) setTimeout(() => fitCameraToBoard(), animate ? 480 : 0);
+  trackEvent('side_view', { on });
 }
 let autoFlipEnabled = false;
 document.getElementById('autoFlipChk').onchange = (e) => {
@@ -18856,10 +18888,11 @@ document.getElementById('autoFlipChk').onchange = (e) => {
   if (autoFlipEnabled && uiMode === 'play' && mode === 'hotseat' && !gameOver) setViewSide(state.turn, true);
 };
 document.getElementById('flipViewBtn').onclick = () => setViewSide(viewSide === E.WHITE ? E.BLACK : E.WHITE, true);
+document.getElementById('sideViewBtn').onclick = () => setSideView(!sideViewOn, true);
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
-document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; resetView(); setLabelOrientation(false); };
-document.getElementById('topViewBtn').onclick = topView;
+document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; if (sideViewOn) setSideView(false, false); resetView(); setLabelOrientation(false); };
+document.getElementById('topViewBtn').onclick = () => { if (sideViewOn) setSideView(false, false); topView(); };
 
 // ---------- hide/show the settings panel ----------
 // One entry point for opening/closing the panel (the desktop button and the phone toolbar's gear both use it).
