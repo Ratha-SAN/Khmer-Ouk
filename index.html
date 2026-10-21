@@ -15522,8 +15522,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.54';
+const APP_VERSION = '1.6.55';
 const WHATS_NEW = [
+  {
+    version: '1.6.55',
+    date: '2026-10-21',
+    title: { kh: 'តំណ «ចុះឈ្មោះ / ចូលគណនី» បើកទំព័រចុះឈ្មោះគ្រប់ពេល', en: '"Sign up / Sign in" always opens the sign-up page' },
+    items: [
+      { kh: 'អ្នកដែលធ្លាប់លេងជាភ្ញៀវរួចហើយ ពេលចុច «ចុះឈ្មោះ / ចូលគណនី» ឥឡូវឃើញទំព័រចុះឈ្មោះ និងចូលគណនី ជំនួសឲ្យការត្រឡប់ទៅហ្គេមវិញ។',
+        en: 'Players who have already played as a guest now get the Sign up / Sign in page from "Sign up / Sign in", instead of being sent back into a game.' }
+    ]
+  },
   {
     version: '1.6.54',
     date: '2026-10-21',
@@ -16607,7 +16616,8 @@ function landAfterSignIn() {
 document.getElementById('startBtn').onclick = () => {
   funnel('start_signin_click');
   modeScreenOrigin = 'start';
-  if (currentProfile) { landAfterSignIn(); return; }
+  // a returning guest also has a (guest) profile: they still get the Sign up / Sign in page; only a real account skips it
+  if (currentProfile && accessTier !== 'guest') { landAfterSignIn(); return; }
   showLoginScreen();
 };
 // ---------- guest daily game limit ----------
