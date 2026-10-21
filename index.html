@@ -2430,7 +2430,7 @@
     <button id="zoomOutBtn" title="Zoom Out">－</button>
     <button id="zoomResetBtn" title="Reset View">⟲</button>
     <button id="topViewBtn" title="Top View">⬒</button>
-    <button id="sideViewBtn" title="ទិដ្ឋភាពចំហៀង — Side view">▱</button>
+    <button id="sideViewBtn" title="ទិដ្ឋភាពចំហៀង — Side view">⇆</button>
     <button id="flipViewBtn" title="Flip Board View">⇅</button>
   </div>
 </div>
@@ -5363,34 +5363,38 @@ function makeLabelMesh(kh, latin) {
   return mesh;
 }
 
-// Coordinates are marked on one side only (near edge for files, left edge
-// for ranks) — as on a real chess/Ouk board, not duplicated on all sides.
-// They follow the current viewer's seat: when the camera faces the board
-// from Black's side (e.g. playing Black online), the labels mirror across
-// the board to that viewer's own near/left edges and spin 180° so they
-// read upright from there instead of upside-down on the opponent's edge.
-let labelsFlipped = false;
+// Coordinates are marked on two edges only, as on a real board, and follow the viewer so they sit on the edges
+// nearest them and read upright from there. labelAz is the camera's azimuth around the board (0 = White's seat,
+// PI = Black's, -PI/2 / +PI/2 = the sideways views from the a-file / h-file side). From a seat the files run along
+// the near edge and the ranks up the left edge; sideways the ranks run along the near (bottom) edge and the files
+// up the left edge.
+let labelAz = 0;
 function buildLabels() {
   labelGroup.clear();
-  const flip = labelsFlipped;
+  const dx = Math.round(Math.sin(labelAz)), dz = Math.round(Math.cos(labelAz)); // board -> camera
+  const rx = dz, rz = -dx;                                                       // the viewer's right
+  const sideways = dx !== 0;
   for (let f = 0; f < 8; f++) {
-    const near = makeLabelMesh(KH_FILES[f], LAT_FILES[f]);
-    near.position.x = f - 3.5; near.position.z = flip ? -4.32 : 4.32;
-    if (flip) near.rotation.z = Math.PI;
-    labelGroup.add(near);
+    const m = makeLabelMesh(KH_FILES[f], LAT_FILES[f]);
+    m.position.x = f - 3.5;
+    m.position.z = sideways ? -rz * 4.34 : dz * 4.32;
+    m.rotation.z = labelAz;
+    labelGroup.add(m);
   }
   for (let r = 0; r < 8; r++) {
-    const left = makeLabelMesh(KH_RANKS[r], String(r + 1));
-    left.position.x = flip ? 4.34 : -4.34; left.position.z = 3.5 - r;
-    if (flip) left.rotation.z = Math.PI;
-    labelGroup.add(left);
+    const m = makeLabelMesh(KH_RANKS[r], String(r + 1));
+    m.position.z = 3.5 - r;
+    m.position.x = sideways ? dx * 4.32 : -rx * 4.34;
+    m.rotation.z = labelAz;
+    labelGroup.add(m);
   }
 }
-function setLabelOrientation(flip) {
-  if (flip === labelsFlipped) return;
-  labelsFlipped = flip;
+function setLabelAz(az) {
+  if (Math.abs(az - labelAz) < 1e-6) return;
+  labelAz = az;
   buildLabels();
 }
+function setLabelOrientation(flip) { setLabelAz(flip ? Math.PI : 0); }
 
 // ---------- pieces ----------
 const MAT_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
@@ -10726,7 +10730,7 @@ function applyTheme(key) {
   // so the board never shows perspective; leaving it restores the usual tilt
   controls.enableRotate = !t.topDown;
   document.getElementById('sideViewBtn').style.display = t.topDown ? 'none' : '';
-  if (t.topDown && sideViewOn) { sideViewOn = false; document.getElementById('sideViewBtn').classList.remove('active'); }
+  if (t.topDown && sideViewOn) { sideViewOn = false; document.getElementById('sideViewBtn').classList.remove('active'); setLabelAz(viewAz()); }
   if (t.topDown) topView();
   else if (themeWasTopDown) tiltedView();
   themeWasTopDown = !!t.topDown;
@@ -15522,8 +15526,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.55';
+const APP_VERSION = '1.6.56';
 const WHATS_NEW = [
+  {
+    version: '1.6.56',
+    date: '2026-10-21',
+    title: { kh: 'ប៊ូតុង ⇆ បង្វិលក្ដារទៅចំហៀង', en: 'The ⇆ button turns the board sideways' },
+    items: [
+      { kh: 'ប៊ូតុង ⇆ នៅជាប់ប៊ូតុងកាមេរ៉ា ប្ដូររវាងការតម្រៀបពីរ៖ កូនអុកនៅខាងលើ និងខាងក្រោម (ធម្មតា) ឬនៅខាងឆ្វេង និងខាងស្ដាំ (ក្ដារបង្វិលទៅចំហៀង)។ កូនអុកនៅតែទល់មុខគ្នា ហើយសញ្ញាក្ដារនៅខាងក្រោម និងខាងឆ្វេងជានិច្ច។ ប៊ូតុង ⇅ នៅតែប្ដូរទៅម្ខាងទៀតនៃក្ដារ។',
+        en: 'The ⇆ button beside the camera buttons switches between two layouts: the sets at the top and bottom (the normal view) or on the left and right (the board turned sideways). The pieces always face each other, and the board markers stay on the bottom and left edges. ⇅ still turns to the other side of the board.' }
+    ]
+  },
   {
     version: '1.6.55',
     date: '2026-10-21',
@@ -18834,17 +18847,20 @@ function tiltedView() {
 // a disorienting teleport.
 let viewSide = E.WHITE;       // which side the camera currently faces the board as
 let viewAnimRaf = null;
-// Side view (the floating ▱ button): a low camera from the player's own seat, as if sitting at the table -- the
-// sets stay at the top and bottom facing each other, and the coordinates stay on the near and left edges. Not
-// offered in the plan-view (Flat 2D) themes.
+// Side view (the floating ▱ button) toggles between the two layouts: the sets top and bottom (the normal view from
+// a player's seat) and the sets left and right -- the board turned sideways, seen from the a-file side for White
+// (White on the right) or the h-file side for Black. The pieces always face each other, and the coordinates sit on
+// the bottom and left edges. Not offered in the plan-view (Flat 2D) themes.
 let sideViewOn = false;
-const SIDE_VIEW_ELEV = 25 * Math.PI / 180; // camera height above the board plane (the normal view is ~47 deg)
-function viewAz() { return viewSide === E.WHITE ? 0 : Math.PI; }
-// camera distance that keeps the near edge (the widest part on screen, with its labels) across the screen
+function viewAz() {
+  if (sideViewOn) return viewSide === E.WHITE ? -Math.PI / 2 : Math.PI / 2;
+  return viewSide === E.WHITE ? 0 : Math.PI;
+}
+// camera distance that keeps the whole board (its long side across the screen, the trays and labels) in view sideways
 function sideViewDist() {
   const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
   const tanH = Math.tan(camera.fov * Math.PI / 360) * (w / Math.max(1, h));
-  const d = Math.max(DEFAULT_CAM_POS.length(), 5.9 / tanH + 5 * Math.cos(SIDE_VIEW_ELEV));
+  const d = Math.max(DEFAULT_CAM_POS.length(), 7.4 / tanH);
   controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
   return d;
 }
@@ -18876,18 +18892,19 @@ function setViewSide(side, animate) {
   // keep the coordinate labels on this viewer's own edge, reading upright
   // (before the camera moves: a new game can change sides while the
   // camera is already at the target azimuth)
-  setLabelOrientation(side === E.BLACK);
+  setLabelAz(viewAz());
   tweenCamera(viewAz(), animate);
 }
 function setSideView(on, animate) {
   if (theme().topDown) on = false;
   sideViewOn = on;
   document.getElementById('sideViewBtn').classList.toggle('active', on);
+  setLabelAz(viewAz());
   controls.target.set(0, 0, 0);
-  const elev = on ? SIDE_VIEW_ELEV : Math.atan2(DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z);
+  const elev = Math.atan2(DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z);
   const dist = on ? sideViewDist() : DEFAULT_CAM_POS.length();
   tweenCamera(viewAz(), animate, dist * Math.cos(elev), dist * Math.sin(elev));
-  if (!on && document.body.classList.contains('is-mobile')) setTimeout(() => fitCameraToBoard(), animate ? 480 : 0);
+  if (!on && document.body.classList.contains('is-mobile')) setTimeout(() => fitCameraToBoard(), animate ? 520 : 0);
   trackEvent('side_view', { on });
 }
 let autoFlipEnabled = false;
