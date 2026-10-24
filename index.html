@@ -229,6 +229,11 @@
   #camControls button:hover { background: color-mix(in srgb, var(--surface-3) 90%, transparent); border-color: var(--accent); }
   #camControls button.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   #camControls #settingsBtn { display: none; } /* phones only: the desktop has the ◧ panel toggle */
+  /* the step-by-step Add to Home Screen guide (iPhone / iPad), each step with its own screenshot */
+  .homeSteps { text-align: left; margin: 10px 0 0; padding-left: 22px; }
+  .homeSteps li { margin: 0 0 16px; }
+  .homeSteps li p { margin: 0 0 6px; font-size: 14px; line-height: 1.45; }
+  .homeSteps img { display: block; width: auto; max-width: 100%; height: auto; margin: 0 auto; border-radius: 10px; border: 1px solid var(--line); }
   #panelCloseBtn {
     display: none; position: sticky; top: 0; align-self: flex-end; z-index: 2; margin-bottom: -44px;
     width: 40px; height: 40px; min-height: 0 !important; padding: 0 !important; align-items: center; justify-content: center;
@@ -2828,9 +2833,16 @@
 </div>
 
 <div id="homeScreenPopup" class="fullOverlay" style="display:none;z-index:25">
-  <div class="box" style="max-width:340px">
-    <p style="font-size:20px;margin:0 0 8px">⛶</p>
-    <p><span class="t-kh">iPhone មិនអនុញ្ញាតឲ្យគេហទំព័របើកពេញអេក្រង់ទេ។ ដើម្បីលេងពេញអេក្រង់ ចុចប៊ូតុងចែករំលែក <b>□↑</b> រួចជ្រើស <b>«បន្ថែមទៅអេក្រង់ដើម» (Add to Home Screen)</b>។ បន្ទាប់មកបើក អុកចត្រង្គ ពីអេក្រង់ដើមរបស់អ្នក។</span><span class="t-sep"> — </span><span class="t-en">iPhone does not let web pages go full screen. To play full screen, tap the Share button <b>□↑</b>, then choose <b>Add to Home Screen</b>. Then open Ouk Chatrang from your home screen.</span></p>
+  <div class="box" style="max-width:380px">
+    <p style="font-size:20px;margin:0 0 6px">⛶</p>
+    <p><span class="t-kh">iPhone និង iPad មិនអនុញ្ញាតឲ្យគេហទំព័របើកពេញអេក្រង់ទេ។ ដើម្បីលេងពេញអេក្រង់ សូមបន្ថែម អុកចត្រង្គ ទៅអេក្រង់ដើម៖</span><span class="t-sep"> — </span><span class="t-en">iPhone and iPad do not let web pages go full screen. To play full screen, add Ouk Chatrang to your home screen:</span></p>
+    <ol class="homeSteps">
+      <li><p><span class="t-kh">ចុចប៊ូតុងចែករំលែក <b>□↑</b> (Chrome៖ ខាងស្ដាំរបារអាសយដ្ឋាន · Safari៖ ខាងក្រោម)</span><span class="t-sep"> — </span><span class="t-en">Tap the Share button <b>□↑</b> (Chrome: right of the address bar · Safari: at the bottom)</span></p><img src="help/home-screen-1.jpg" width="550" height="523" loading="lazy" alt=""></li>
+      <li><p><span class="t-kh">ចុច <b>«View More»</b> ដើម្បីមើលជម្រើសបន្ថែម</span><span class="t-sep"> — </span><span class="t-en">Tap <b>View More</b> to see more options</span></p><img src="help/home-screen-2.jpg" width="560" height="313" loading="lazy" alt=""></li>
+      <li><p><span class="t-kh">ជ្រើស <b>«Add to Home Screen»</b> (បន្ថែមទៅអេក្រង់ដើម)</span><span class="t-sep"> — </span><span class="t-en">Choose <b>Add to Home Screen</b></span></p><img src="help/home-screen-3.jpg" width="560" height="873" loading="lazy" alt=""></li>
+      <li><p><span class="t-kh">ទុកឈ្មោះ ឬវាយឈ្មោះថ្មី ទុក <b>«Open as Web App»</b> ឲ្យបើក ហើយចុច <b>«Add»</b></span><span class="t-sep"> — </span><span class="t-en">Keep the name or type your own, leave <b>Open as Web App</b> on, then tap <b>Add</b></span></p><img src="help/home-screen-4.jpg" width="560" height="637" loading="lazy" alt=""></li>
+      <li><p><span class="t-kh">បើក អុកចត្រង្គ ពីរូបតំណាងថ្មីនៅលើអេក្រង់ដើម — វាបើកពេញអេក្រង់</span><span class="t-sep"> — </span><span class="t-en">Open Ouk Chatrang from the new icon on your home screen: it opens full screen</span></p><img src="help/home-screen-5.jpg" width="368" height="478" loading="lazy" alt=""></li>
+    </ol>
     <div class="btnrow" style="margin-top:14px;justify-content:center">
       <button id="homeScreenPopupClose" type="button"><span class="t-kh">យល់ព្រម</span><span class="t-sep"> </span><span class="t-en">OK</span></button>
     </div>
@@ -15546,8 +15558,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.67';
+const APP_VERSION = '1.6.68';
 const WHATS_NEW = [
+  {
+    version: '1.6.68',
+    date: '2026-10-24',
+    title: { kh: 'ការណែនាំជារូបភាព៖ បន្ថែមទៅអេក្រង់ដើម (iPhone / iPad)', en: 'Picture guide: Add to Home Screen (iPhone / iPad)' },
+    items: [
+      { kh: 'លើ iPhone និង iPad ប៊ូតុង ⛶ ឥឡូវបង្ហាញជំហាន ៥ ជាមួយរូបភាព៖ ចុចចែករំលែក → View More → Add to Home Screen → Add → បើកពីរូបតំណាងថ្មី ដើម្បីលេងពេញអេក្រង់។',
+        en: 'On iPhone and iPad the ⛶ button now shows 5 steps with pictures: Share → View More → Add to Home Screen → Add → open from the new icon to play full screen.' }
+    ]
+  },
   {
     version: '1.6.67',
     date: '2026-10-24',
