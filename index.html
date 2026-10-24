@@ -799,8 +799,13 @@
        old single-column layout instead of the portrait rule's top:60px */
     #camControls { top: 12px; right: 68px; }
     #boardTitle { top: 12px; font-size: 15px; }
-    #aiChip { top: 42px; font-size: 11px; padding: 3px 10px; }
-    #aiNotice { top: 72px; font-size: 12px; }
+    /* the level chip and its toast move off the board into the free left-hand column, above the player's
+       scorecard (bottom: auto undoes the phone rule's bottom anchor, which with a top one stretched the chip
+       into a tall oval over the board) */
+    #aiChip { top: auto; bottom: 74px; left: 8px; transform: none; max-width: 140px; white-space: normal;
+      text-align: left; border-radius: 12px; font-size: 11px; padding: 3px 10px; }
+    #aiNotice { top: auto; bottom: 126px; left: 8px; max-width: 200px; font-size: 12px; text-align: left; transform: translateY(10px); }
+    #aiNotice.show { transform: translateY(0); }
     #boardTitle small { font-size: 9px; }
   }
   /* ============ Magic theme: MOBA-style skill effects ============
@@ -13822,15 +13827,12 @@ document.getElementById('startBtn').addEventListener('click', () => {
   ensureAudio();
   startMusic(document.getElementById('musicSel').value);
 }, { once: true });
-// default to full screen on a mobile phone in portrait — this must happen
-// inside the same click handler as the Fullscreen API requires a live
-// user gesture, and the Start button is the first one the player makes
-document.getElementById('startBtn').addEventListener('click', () => {
-  const mobile = window.innerWidth <= 820 || window.innerHeight <= 560;
-  if (mobile && window.__oukActions.currentOrientation() === 'portrait') {
-    window.__oukActions.requestFullscreen();
-  }
-}, { once: true });
+// Full screen for everyone -- phones, tablets and computers, in either orientation: requested by each tap of a
+// Start pop-up button (Play now, Learn to Play, Sign up / Sign in), since the Fullscreen API needs a live user
+// gesture. Where a browser has no fullscreen for pages (iPhone Safari, some in-app browsers) it quietly does nothing.
+['playNowBtn', 'startLearnBtn', 'startBtn'].forEach((id) => {
+  document.getElementById(id).addEventListener('click', () => { window.__oukActions.requestFullscreen(); });
+});
 
 // ---------- UI elements ----------
 const statusEl = document.getElementById('status');
@@ -15544,8 +15546,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.58';
+const APP_VERSION = '1.6.59';
 const WHATS_NEW = [
+  {
+    version: '1.6.59',
+    date: '2026-10-24',
+    title: { kh: 'អេក្រង់ពេញសម្រាប់ទាំងអស់គ្នា និងសញ្ញាកម្រិតលែងបាំងក្ដារ', en: 'Full screen for everyone, and the level chip no longer covers the board' },
+    items: [
+      { kh: 'ការចុច «លេងឥឡូវ» «រៀនលេង» ឬ «ចុះឈ្មោះ / ចូលគណនី» បើកអេក្រង់ពេញ លើទូរស័ព្ទ ថេប្លេត និងកុំព្យូទ័រ ទាំងបញ្ឈរ និងផ្ដេក (កន្លែងដែលកម្មវិធីរុករកអនុញ្ញាត)។',
+        en: 'Tapping Play now, Learn to Play or Sign up / Sign in switches to full screen on phones, tablets and computers, upright or sideways (where the browser allows it).' },
+      { kh: 'លើទូរស័ព្ទផ្ដេក សញ្ញាកម្រិតកុំព្យូទ័រលែងលាតធំបាំងក្ដារទៀតហើយ។ វាឥឡូវនៅខាងឆ្វេង ពីលើកាតពិន្ទុរបស់អ្នក។',
+        en: 'On a phone held sideways, the computer-level chip no longer stretches over the board. It now sits on the left, above your scorecard.' }
+    ]
+  },
   {
     version: '1.6.58',
     date: '2026-10-21',
@@ -17548,14 +17561,20 @@ window.__oukActions = {
   togglePanel: () => toggleSettingsPanel(),
   isPanelOpen: () => !document.body.classList.contains('panel-hidden'),
   fitCameraToBoard: () => fitCameraToBoard(),
-  // Fullscreen is only requested once, automatically, from within the
-  // Start button's click (a real user gesture) — there is no manual
-  // toggle button, since on iOS this page can only be opened inside a
-  // third-party document-viewer app's browser (e.g. Documents by Readdle),
-  // where tapping a fullscreen toggle just flickers that app's own chrome.
+  // Fullscreen is requested automatically, from within the Start pop-up's
+  // button taps (real user gestures) — there is no manual toggle button,
+  // since on iOS this page can only be opened inside a third-party
+  // document-viewer app's browser (e.g. Documents by Readdle), where
+  // tapping a fullscreen toggle just flickers that app's own chrome.
+  // webkitRequestFullscreen covers older Safari (iPad) without the
+  // unprefixed API.
   requestFullscreen: () => {
     const el = document.documentElement;
-    if (!document.fullscreenElement && el.requestFullscreen) return el.requestFullscreen().catch(() => {});
+    if (document.fullscreenElement || document.webkitFullscreenElement) return Promise.resolve();
+    try {
+      if (el.requestFullscreen) return el.requestFullscreen().catch(() => {});
+      if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch (e) {}
     return Promise.resolve();
   },
   // Orientation lock only works in a handful of browsers (mainly Android
@@ -19116,8 +19135,8 @@ loop();
   // is opened inside a third-party document-viewer app's built-in browser
   // (the only way to open a local HTML file on iOS, e.g. Documents by
   // Readdle), tapping it just flickers that app's own chrome on/off rather
-  // than doing anything useful. The one-time automatic fullscreen request
-  // on the Start button tap (a real user gesture, not a repeated toggle)
+  // than doing anything useful. The automatic fullscreen request on the
+  // Start pop-up's button taps (real user gestures, not a repeated toggle)
   // is unaffected and still requested where supported.
   function MobileToolbar() {
     var _s = React.useState(function () { return window.__oukActions.isPanelOpen(); });
