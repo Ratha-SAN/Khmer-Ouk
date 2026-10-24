@@ -5,8 +5,8 @@
 // after one online visit the whole game works with no connectivity.
 // Everything else (Firebase auth/Firestore API traffic) passes straight
 // through to the network untouched.
-const CACHE = 'ouk-chatrang-v1';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './apple-touch-icon.png', './data/ok-khmer.js?v=1'];
+const CACHE = 'ouk-chatrang-v2'; // v2: the King icon (a new name drops the old cache, old icon included)
+const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg?v=2', './apple-touch-icon.png?v=2', './data/ok-khmer.js?v=1'];
 // hosts that only ever serve immutable static assets for this app --
 // safe to cache-first without risking stale API responses
 const STATIC_HOSTS = ['cdn.jsdelivr.net', 'www.gstatic.com'];

@@ -18,10 +18,10 @@
 <title>អុកចត្រង្គ — Ouk Chatrang (Khmer Chess)</title>
 <!-- PWA: installable + offline-capable (see manifest.webmanifest / sw.js) -->
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
 <meta name="theme-color" content="#221a12">
 <!-- opened from the home screen the game runs on its own, with no browser bars (iPhone: the only way to full screen) -->
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -15540,8 +15540,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.63';
+const APP_VERSION = '1.6.64';
 const WHATS_NEW = [
+  {
+    version: '1.6.64',
+    date: '2026-10-24',
+    title: { kh: 'រូបតំណាងថ្មី៖ ស្ដេច 2D', en: 'New app icon: the 2D King' },
+    items: [
+      { kh: 'រូបតំណាងរបស់ល្បែង (លើផ្ទាំងកម្មវិធីរុករក និងអេក្រង់ដើម) ឥឡូវជាស្ដេចពណ៌មាស តាមរូបរាង Flat 2D ដែលគូរពីកូនអុក 3D របស់ល្បែងផ្ទាល់។',
+        en: "The game's icon (on the browser tab and the home screen) is now a gold King in the Flat 2D shape, drawn from the game's own 3D piece." }
+    ]
+  },
   {
     version: '1.6.63',
     date: '2026-10-24',
