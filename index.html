@@ -15558,8 +15558,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.69';
+const APP_VERSION = '1.6.70';
 const WHATS_NEW = [
+  {
+    version: '1.6.70',
+    date: '2026-10-24',
+    title: { kh: 'ក្ដារ 2D នៅកណ្ដាល ហើយពេញទទឹងអេក្រង់ទូរស័ព្ទ', en: 'The 2D board is centred, and fills a phone screen' },
+    items: [
+      { kh: 'លើកុំព្យូទ័រ ក្ដារ Flat 2D ឥឡូវនៅចំកណ្ដាលទិដ្ឋភាព។',
+        en: 'On a computer the Flat 2D board now sits in the middle of the view.' },
+      { kh: 'លើទូរស័ព្ទបញ្ឈរ ក្ដារ Flat 2D ពេញទទឹងអេក្រង់តាមលំនាំដើម។',
+        en: 'On an upright phone the Flat 2D board fills the width of the screen by default.' }
+    ]
+  },
   {
     version: '1.6.69',
     date: '2026-10-24',
@@ -18999,13 +19010,13 @@ function planInsets(w, h, side) {
     // buttons, which reaches far down the screen); else above it
     if (side || r.height > 2 * r.width) R = Math.max(R, sr.right - r.left); else vertical(r);
   }
-  // the move list grows with every move: it is reserved at its full size from the start (its box, and its maximum
-  // height), so the board keeps one size for the whole game instead of shrinking as moves are added
+  // the move list grows with every move, so it never re-sizes the board: beside the board (a wide screen, or a
+  // narrow column at the edge, as on a desktop) it is reserved by its fixed box width; on an upright phone it is
+  // not reserved at all -- it sits over the top captured-pieces strip, so the board can fill the screen's width
   const ml = vis('movelist');
   if (ml) {
-    const r = ml.getBoundingClientRect(), maxH = parseFloat(getComputedStyle(ml).maxHeight) || r.height;
-    // beside the board on a wide screen, or when it is a narrow column at the edge (a desktop); above it on a phone
-    if (side || r.width < w * 0.25) L = Math.max(L, r.right - sr.left); else vertical({ top: r.top, bottom: r.top + maxH });
+    const r = ml.getBoundingClientRect();
+    if (side || r.width < w * 0.25) L = Math.max(L, r.right - sr.left);
   }
   for (const id of ['hud']) { // the extent of the text itself, not of the (wider) box holding it
     const e = vis(id); if (!e) continue;
@@ -19019,7 +19030,9 @@ function planInsets(w, h, side) {
     }
   }
   const m = 10; // breathing room
-  if (!side) { T = B = Math.max(T, B); } // portrait: keep the board in the middle of the screen, clear of whichever side has more UI
+  // keep the board in the middle of the view, clear of whichever side has more UI (top/bottom and left/right alike)
+  T = B = Math.max(T, B);
+  L = R = Math.max(L, R);
   return { T: T ? Math.min(T + m, h * 0.35) : m, B: B ? Math.min(B + m, h * 0.35) : m, L: L ? Math.min(L + m, w * 0.3) : 0, R: R ? Math.min(R + m, w * 0.2) : 0 };
 }
 function planLayout() {
@@ -19035,7 +19048,9 @@ function planLayout() {
 function topViewFitDist() {
   const P = planLayout();
   const tanH = Math.tan(camera.fov * Math.PI / 360);
-  const needH = P.side ? 4.95 : 6.1, needW = P.side ? 6.5 : 5.2; // half-extents (world units) that must stay visible
+  // half-extents (world units) that must stay visible: beside-the-board columns on a wide screen; on an upright screen
+  // the frame itself (4.7 wide) spans edge to edge
+  const needH = P.side ? 4.95 : 6.1, needW = P.side ? 6.5 : 4.72;
   // vertical pixels per world unit at distance d is fullH / (2 d tanH); the same on x (the aspect is set to fullW/fullH)
   const d = Math.max(needH * P.fullH / (2 * tanH * P.Ah), needW * P.fullH / (2 * tanH * P.Aw));
   controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
