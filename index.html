@@ -15546,8 +15546,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.66';
+const APP_VERSION = '1.6.67';
 const WHATS_NEW = [
+  {
+    version: '1.6.67',
+    date: '2026-10-24',
+    title: { kh: 'ក្នុង 2D ការដើរលែងកំណត់ទិដ្ឋភាពឡើងវិញ', en: 'In 2D, moving no longer resets the view' },
+    items: [
+      { kh: 'ក្នុងស្បែក Flat 2D ពេលដើរកូនអុក ការពង្រីក/បង្រួម និងការរំកិលក្ដាររបស់អ្នកនៅដដែល មិនត្រឡប់ទៅទិដ្ឋភាពដើមវិញទេ។ ប៊ូតុង ⟲ នៅតែកំណត់ទិដ្ឋភាពឡើងវិញ។',
+        en: 'In the Flat 2D themes, your zoom and board slide now stay as they are when you move, instead of snapping back to the original view. ⟲ still resets the view.' }
+    ]
+  },
   {
     version: '1.6.66',
     date: '2026-10-24',
@@ -18828,7 +18837,7 @@ function resize() {
     camera.aspect = P.fullW / P.fullH;
     setBaseViewOffset(P.fullW, P.fullH, P.offX, P.offY, w, h);
     updateTrayLayout();
-    topView();
+    topView(true); // a layout change (the move list growing, a turned phone, ...) keeps the player's own zoom
     return;
   }
   // Lens-shift the frustum vertically so the board renders about 10%
@@ -18994,8 +19003,16 @@ function topViewFitDist() {
   controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
   return Math.min(controls.maxDistance, Math.max(controls.minDistance, d));
 }
-function topView() {
-  const dist = theme().topDown ? topViewFitDist() : (camera.position.distanceTo(controls.target) || DEFAULT_CAM_POS.length());
+// keepZoom (plan view only): re-fit to the new layout but keep the player's own zoom, as the same ratio to the fit
+let planFitDist = 0; // the last plan-view fit distance
+function topView(keepZoom) {
+  const cur = camera.position.distanceTo(controls.target);
+  let dist = cur || DEFAULT_CAM_POS.length();
+  if (theme().topDown) {
+    const fit = topViewFitDist();
+    dist = keepZoom && planFitDist && cur ? Math.min(controls.maxDistance, Math.max(controls.minDistance, fit * cur / planFitDist)) : fit;
+    planFitDist = fit;
+  }
   controls.target.set(0, 0, 0);
   // x must be exactly 0 (not a matching tiny epsilon on both axes — that
   // gave atan2(x,z) a 45° azimuth, which is why the board looked rotated
