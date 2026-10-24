@@ -15540,8 +15540,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.64';
+const APP_VERSION = '1.6.65';
 const WHATS_NEW = [
+  {
+    version: '1.6.65',
+    date: '2026-10-24',
+    title: { kh: 'អូសម្រាមដៃពីរ ដើម្បីរំកិលក្ដារឡើងចុះ', en: 'Drag with two fingers to slide the board up or down' },
+    items: [
+      { kh: 'លើទូរស័ព្ទ និងថេប្លេត អូសដោយម្រាមដៃពីរ ដើម្បីរំកិលក្ដារឡើងលើ ឬចុះក្រោម (មិនទៅឆ្វេង ឬស្ដាំទេ)។ មុំមើលមិនប្ដូរ ហើយការច្របិចម្រាមដៃពីរនៅតែពង្រីក/បង្រួម។ ប៊ូតុង ⟲ ដាក់ក្ដារត្រឡប់មកកន្លែងដើមវិញ។',
+        en: 'On phones and tablets, drag with two fingers to slide the board up or down (never sideways). The viewing angle stays the same, and pinching still zooms. ⟲ puts the board back.' }
+    ]
+  },
   {
     version: '1.6.64',
     date: '2026-10-24',
@@ -18494,6 +18503,7 @@ window.__ouk = {
   },
   selectedSq: () => selected,
   cameraPos: () => camera.position.toArray(),
+  viewOffsetY: () => (camera.view ? camera.view.offsetY : 0),
   flatPlaneState: () => { for (const g of pieceGroup.children) if (g.userData.flat2dLying) return { rotX: g.userData.flat2dPlane.rotation.x, rotY: g.userData.flat2dPlane.rotation.y, groupRotY: g.rotation.y }; return null; },
   legalCount: () => legalForSelected.length,
   markerCount: () => markerGroup.children.length,
@@ -18797,8 +18807,7 @@ function resize() {
     // plan view: centre the board in the part of the viewport no HUD element covers (see planLayout)
     const P = planLayout();
     camera.aspect = P.fullW / P.fullH;
-    camera.setViewOffset(P.fullW, P.fullH, P.offX, P.offY, w, h);
-    camera.updateProjectionMatrix();
+    setBaseViewOffset(P.fullW, P.fullH, P.offX, P.offY, w, h);
     updateTrayLayout();
     topView();
     return;
@@ -18812,11 +18821,40 @@ function resize() {
   // behavior around controls.target) untouched.
   const liftFrac = 0.10;
   const fullH = h * (1 + liftFrac);
-  camera.setViewOffset(w, fullH, 0, fullH - h, w, h);
-  camera.updateProjectionMatrix();
+  setBaseViewOffset(w, fullH, 0, fullH - h, w, h);
   updateTrayLayout();
 }
 window.addEventListener('resize', resize);
+// ---------- two-finger drag: slide the board up or down on screen ----------
+// Dragging with two fingers moves the whole picture straight up or down (never sideways), as a lens shift of the
+// camera's view window: the viewing angle, zoom and orbit stay exactly as they are. Pinching still zooms (that is
+// OrbitControls' own two-finger gesture). ⟲ (reset view) puts the board back.
+let viewOffsetBase = null;   // the layout's own view window, from resize()
+let boardShiftY = 0;         // px; positive moves the board down the screen
+function setBaseViewOffset(fullW, fullH, x, y, w, h) {
+  viewOffsetBase = { fullW, fullH, x, y, w, h };
+  applyBoardShift();
+}
+function applyBoardShift() {
+  const b = viewOffsetBase; if (!b) return;
+  const lim = b.h * 0.4; // never further than 40% of the screen, so the board can't be lost off the edge
+  boardShiftY = Math.max(-lim, Math.min(lim, boardShiftY));
+  camera.setViewOffset(b.fullW, b.fullH, b.x, b.y - boardShiftY, b.w, b.h);
+  camera.updateProjectionMatrix();
+}
+function resetBoardShift() { if (boardShiftY) { boardShiftY = 0; applyBoardShift(); } }
+(function () {
+  let lastMidY = null;
+  const midY = (t) => (t[0].clientY + t[1].clientY) / 2;
+  sceneDiv.addEventListener('touchstart', (e) => { lastMidY = e.touches.length === 2 ? midY(e.touches) : null; }, { passive: true });
+  sceneDiv.addEventListener('touchmove', (e) => {
+    if (e.touches.length !== 2) { lastMidY = null; return; }
+    const y = midY(e.touches);
+    if (lastMidY !== null) { boardShiftY += y - lastMidY; applyBoardShift(); }
+    lastMidY = y;
+  }, { passive: true });
+  sceneDiv.addEventListener('touchend', (e) => { lastMidY = e.touches.length === 2 ? midY(e.touches) : null; }, { passive: true });
+})();
 
 // ---------- camera zoom (dollies toward/away from the fixed board-center
 // target, so the board always stays centered no matter the zoom level) ----------
@@ -19026,7 +19064,7 @@ document.getElementById('flipViewBtn').onclick = () => setViewSide(viewSide === 
 document.getElementById('sideViewBtn').onclick = () => setSideView((sideViewMode + 1) % 3, true);
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
-document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; if (sideViewMode) setSideView(0, false); resetView(); setLabelOrientation(false); };
+document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; resetBoardShift(); if (sideViewMode) setSideView(0, false); resetView(); setLabelOrientation(false); };
 document.getElementById('topViewBtn').onclick = () => { if (sideViewMode) setSideView(0, false); topView(); };
 
 // ---------- hide/show the settings panel ----------
