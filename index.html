@@ -7458,7 +7458,10 @@ function projectPieceShade(srcStyle, type, promoted) {
   // every standing piece's base sits on one line, slightly above the square's lower edge
   const pad = (FLAT2D_CANVAS / 2 - (0.5 - FLAT2D_BASE_LIFT)) / FLAT2D_CANVAS * fv;
   if (type === E.PAWN || promoted) {
-    // the Trey (a cowrie / flipped bia), promoted or not, is drawn from ABOVE, its footprint centred in the square
+    // the Trey (a cowrie / flipped bia), promoted or not, is drawn from ABOVE, its footprint centred in the square --
+    // 15% larger than the shared scale (a smaller view window), so it reads clearly beside the standing pieces
+    const TREY_BIG = 1.15;
+    projCam.left /= TREY_BIG; projCam.right /= TREY_BIG; projCam.top /= TREY_BIG; projCam.bottom /= TREY_BIG;
     const cxx = (box.min.x + box.max.x) / 2, czz = (box.min.z + box.max.z) / 2;
     projCam.up.set(0, 0, -1);
     projCam.position.set(cxx, 8, czz); projCam.lookAt(cxx, 0, czz);
@@ -10740,9 +10743,12 @@ function updatePieceMaterialTexture() {
 
 // ---------- theme application ----------
 let themeWasTopDown = false;
+// the last Flat 2D and the last 3D theme shown, for the ⬒ button's 2D <-> 3D steps
+let last2dThemeKey = 'flatVec', last3dThemeKey = 'wood';
 function applyTheme(key) {
   themeKey = key;
   const t = theme();
+  if (t.topDown) last2dThemeKey = key; else last3dThemeKey = key;
   // a topDown theme (Flat 2D) is a plan view: the camera looks straight down and can't be tilted,
   // so the board never shows perspective; leaving it restores the usual tilt
   controls.enableRotate = !t.topDown;
@@ -15540,8 +15546,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.65';
+const APP_VERSION = '1.6.66';
 const WHATS_NEW = [
+  {
+    version: '1.6.66',
+    date: '2026-10-24',
+    title: { kh: 'ប៊ូតុង ⬒ ប្ដូរទៅ 2D និងទិដ្ឋភាពពីលើ 3D ហើយត្រីធំជាងមុនក្នុង 2D', en: 'The ⬒ button switches to 2D and the 3D top view, and bigger Trey in 2D' },
+    items: [
+      { kh: 'ចុច ⬒ ម្ដងៗ៖ លើកទីមួយ បើកស្បែក Flat 2D → លើកទីពីរ ក្ដារ 3D មើលពីលើចំ → លើកទីបី ត្រឡប់ទៅក្ដារ 3D ធម្មតាវិញ។ វាចងចាំស្បែក 2D និង 3D ដែលអ្នកប្រើចុងក្រោយ។',
+        en: 'Each tap of ⬒ moves on: first to the Flat 2D theme, then to the 3D board seen from straight above, then back to the normal 3D board. It remembers the 2D and 3D themes you used last.' },
+      { kh: 'ក្នុងស្បែក Flat 2D ត្រី (ទាំងត្រីធម្មតា និងត្រីកំពូល) ធំជាងមុន ១៥%។',
+        en: 'In the Flat 2D themes the Trey (pawns, promoted or not) are 15% bigger.' },
+      { kh: 'ជួសជុល៖ លើកុំព្យូទ័រ ពេលបើកផ្ទាំងការកំណត់ ក្ដារ Flat 2D លែងតូចពេកទៀតហើយ។',
+        en: 'Fixed: on a computer with the settings panel open, the Flat 2D board is no longer drawn far too small.' }
+    ]
+  },
   {
     version: '1.6.65',
     date: '2026-10-24',
@@ -18937,7 +18956,9 @@ function planInsets(w, h, side) {
   for (const id of ['camControls', 'panelToggle']) {
     const e = vis(id); if (!e) continue;
     const r = e.getBoundingClientRect();
-    if (side) R = Math.max(R, sr.right - r.left); else vertical(r); // beside the board when there is room, else above it
+    // beside the board when there is room, or when it is a tall column (the desktop's single column of camera
+    // buttons, which reaches far down the screen); else above it
+    if (side || r.height > 2 * r.width) R = Math.max(R, sr.right - r.left); else vertical(r);
   }
   for (const id of ['hud', 'movelist']) { // the extent of the text itself, not of the (wider) box holding it
     const e = vis(id); if (!e) continue;
@@ -19065,7 +19086,33 @@ document.getElementById('sideViewBtn').onclick = () => setSideView((sideViewMode
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
 document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; resetBoardShift(); if (sideViewMode) setSideView(0, false); resetView(); setLabelOrientation(false); };
-document.getElementById('topViewBtn').onclick = () => { if (sideViewMode) setSideView(0, false); topView(); };
+// ⬒ steps through three views: the normal 3D board -> its Flat 2D theme -> the 3D board seen from straight above ->
+// back to the normal 3D board. The 2D and 3D themes are the ones last shown, so a player's own picks are kept.
+function pickTheme(key) {
+  const sel = document.getElementById('themeSel');
+  if (sel.value === key) return;
+  sel.value = key;
+  sel.dispatchEvent(new Event('change')); // the same path as picking it from the theme list
+  refreshThemeCategoryUI();
+}
+document.getElementById('topViewBtn').onclick = () => {
+  if (sideViewMode) setSideView(0, false);
+  if (theme().topDown) { // 2D -> the 3D board from straight above
+    pickTheme(THEMES[last3dThemeKey] && !THEMES[last3dThemeKey].topDown ? last3dThemeKey : 'wood');
+    const tanV = Math.tan(camera.fov * Math.PI / 360), tanH = tanV * sceneDiv.clientWidth / Math.max(1, sceneDiv.clientHeight);
+    const fit = Math.max(6.5 / tanV, 5.4 / tanH); // the frame's half-depth (with the trays) / half-width (with the labels)
+    controls.maxDistance = Math.max(controls.maxDistance, fit * 1.02);
+    controls.target.set(0, 0, 0);
+    camera.position.set(0, fit, viewSide === E.BLACK ? -0.001 : 0.001);
+    controls.update();
+    trackEvent('top_view_btn', { to: '3d_top' });
+    return;
+  }
+  const d = camera.position.clone().sub(controls.target);
+  if (Math.hypot(d.x, d.z) < 0.02 * d.length()) { tiltedView(); trackEvent('top_view_btn', { to: '3d' }); return; } // top -> normal
+  pickTheme(THEMES[last2dThemeKey] && THEMES[last2dThemeKey].topDown ? last2dThemeKey : 'flatVec'); // normal -> 2D
+  trackEvent('top_view_btn', { to: '2d' });
+};
 
 // ---------- hide/show the settings panel ----------
 // One entry point for opening/closing the panel (the desktop button and the phone toolbar's gear both use it).
