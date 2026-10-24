@@ -805,7 +805,9 @@
        cluster away from center, so it can safely hug the top like the
        old single-column layout instead of the portrait rule's top:60px */
     #camControls { top: 12px; right: 68px; }
-    #boardTitle { top: 12px; font-size: 15px; }
+    /* the title leaves the top edge of the board for the free left-hand column, halfway down (below the move
+       list, above the player's scorecard) */
+    #boardTitle { top: 56%; left: 16px; transform: translateY(-50%); text-align: left; font-size: 15px; }
     /* the level toast moves off the board into the free left-hand column, above the player's scorecard */
     #aiNotice { top: auto; bottom: 126px; left: 8px; max-width: 200px; font-size: 12px; text-align: left; transform: translateY(10px); }
     #aiNotice.show { transform: translateY(0); }
@@ -15549,8 +15551,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.60';
+const APP_VERSION = '1.6.61';
 const WHATS_NEW = [
+  {
+    version: '1.6.61',
+    date: '2026-10-24',
+    title: { kh: 'ចំណងជើងនៅខាងឆ្វេងលើទូរស័ព្ទផ្ដេក', en: 'The title moves to the left on a phone held sideways' },
+    items: [
+      { kh: 'លើទូរស័ព្ទផ្ដេក ចំណងជើង «អុកចត្រង្គ» ផ្លាស់ទៅខាងឆ្វេង ពាក់កណ្ដាលអេក្រង់ ដូច្នេះលែងបាំងគែមខាងលើរបស់ក្ដារទៀតហើយ។',
+        en: 'On a phone held sideways, the "Ouk Chatrang" title moves to the left side, halfway down, so it no longer covers the top edge of the board.' }
+    ]
+  },
   {
     version: '1.6.60',
     date: '2026-10-24',
@@ -18860,7 +18871,13 @@ function planInsets(w, h, side) {
   let T = 0, B = 0, L = 0, R = 0;
   // vertical rule: an element in the upper half of the viewport pushes the board down, one in the lower half pushes it up
   const vertical = (r) => { if ((r.top + r.bottom) / 2 - sr.top < h / 2) T = Math.max(T, r.bottom - sr.top); else B = Math.max(B, sr.bottom - r.top); };
-  for (const id of ['scoreW', 'scoreB', 'boardTitle', 'aiChip']) { const e = vis(id); if (e) vertical(e.getBoundingClientRect()); }
+  for (const id of ['scoreW', 'scoreB', 'boardTitle', 'aiChip']) {
+    const e = vis(id); if (!e) continue;
+    const r = e.getBoundingClientRect();
+    // the title and level chip sit in the left-hand column on a landscape phone: there they push the board right
+    if (side && (id === 'boardTitle' || id === 'aiChip') && r.right - sr.left < w * 0.35) L = Math.max(L, r.right - sr.left);
+    else vertical(r);
+  }
   for (const id of ['camControls', 'panelToggle']) {
     const e = vis(id); if (!e) continue;
     const r = e.getBoundingClientRect();
