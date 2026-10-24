@@ -5,7 +5,7 @@
 set -e
 rm -rf dist
 mkdir dist
-cp index.html sw.js manifest.webmanifest icon.svg _headers dist/
+cp index.html sw.js manifest.webmanifest icon.svg apple-touch-icon.png icon-192.png icon-512.png _headers dist/
 cp -r data dist/data
 echo "dist/ ready:"
 ls -la dist dist/data
