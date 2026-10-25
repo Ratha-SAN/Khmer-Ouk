@@ -647,7 +647,7 @@
     font-size: 13px; padding: 6px 14px; border-radius: 999px; background: var(--surface-2); color: var(--panel-fg);
     border: 1px solid var(--accent-dim); box-shadow: none; font-weight: 600;
   }
-  #startScreen .box #startLearnBtn, #startScreen .box #continueBtn, #startScreen .box #dailyPuzzleBtn {
+  #startScreen .box #startLearnBtn, #startScreen .box #continueBtn {
     display: block; width: 100%; margin-bottom: 12px; font-size: 15px; padding: 12px 8px;
     background: linear-gradient(160deg, rgba(50,30,90,.85), rgba(22,12,45,.9)); color: var(--panel-fg);
     border: 1px solid rgba(180,140,255,.35); box-shadow: none; font-weight: 600;
@@ -655,11 +655,19 @@
   /* coming back: Continue your game, the daily puzzle with the day streak, Add to Home Screen */
   #startScreen .box #continueBtn { border-color: var(--accent); }
   #continueBtn small { display: block; font-size: 12px; font-weight: 500; opacity: .8; margin-top: 3px; }
-  #dailyRow { display: flex; gap: 8px; margin-bottom: 12px; }
-  #startScreen .box #dailyPuzzleBtn { flex: 1; margin-bottom: 0; }
+  #dailyRow { margin-bottom: 12px; padding: 10px; border-radius: 12px; border: 1px solid rgba(180,140,255,.35);
+    background: linear-gradient(160deg, rgba(50,30,90,.85), rgba(22,12,45,.9)); }
+  .dailyHead { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--panel-fg); margin-bottom: 8px; }
+  .dailyBtns { display: flex; gap: 6px; }
+  #startScreen .box .dailyBtn {
+    flex: 1; min-width: 0; padding: 9px 4px; font-size: 14px; font-weight: 700; border-radius: 9px; box-shadow: none;
+    background: var(--surface-2); color: var(--panel-fg); border: 1px solid var(--accent-dim); line-height: 1.3;
+  }
+  #startScreen .box .dailyBtn.rec { border-color: var(--accent); box-shadow: 0 0 10px rgba(255,207,107,.35); }
+  .dailyBtn .dailyRec { display: block; font-size: 10px; font-weight: 600; color: var(--accent); }
   .dailyDone { color: #4fd88a; }
   .streakBadge {
-    display: flex; align-items: center; padding: 0 12px; border-radius: 10px; font-size: 17px; font-weight: 800; white-space: nowrap;
+    display: flex; align-items: center; padding: 1px 9px; border-radius: 999px; font-size: 14px; font-weight: 800; white-space: nowrap;
     background: var(--surface-2); color: var(--accent); border: 1px solid var(--accent-dim);
   }
   #startScreen .box p.streakNote { margin: -4px 0 12px; font-size: 12px; color: var(--accent); }
@@ -2564,8 +2572,12 @@
     <p id="guestGamesNote" class="guestGamesNote"><span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ <b class="ggLeft">3</b> / 3 · ចូលគណនីដើម្បីលេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free games today: <b class="ggLeft">3</b> of 3 left · sign in for unlimited</span></p>
     <button id="continueBtn" type="button" style="display:none">▶ <span class="t-kh">បន្តល្បែងមុន</span><span class="t-sep"> — </span><span class="t-en">Continue your game</span><small id="continueInfo"></small></button>
     <div id="dailyRow">
-      <button id="dailyPuzzleBtn" type="button">🧩 <span class="t-kh">ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ</span><span class="t-sep"> — </span><span class="t-en">Daily puzzle</span><span id="dailyDone" class="dailyDone" style="display:none"> ✔</span></button>
-      <span id="streakBadge" class="streakBadge" style="display:none"></span>
+      <div class="dailyHead">🧩 <span class="t-kh">ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ</span><span class="t-sep"> — </span><span class="t-en">Daily puzzles</span><span id="streakBadge" class="streakBadge" style="display:none"></span></div>
+      <div class="dailyBtns">
+        <button class="dailyBtn" type="button" data-lv="easy"><span class="t-kh">ស្រួល</span><span class="t-sep"> </span><span class="t-en">Easy</span><span class="dailyDone" style="display:none"> ✔</span><span class="dailyRec" style="display:none"><span class="t-kh">⭐ សម្រាប់អ្នក</span><span class="t-sep"> </span><span class="t-en">⭐ for you</span></span></button>
+        <button class="dailyBtn" type="button" data-lv="medium"><span class="t-kh">មធ្យម</span><span class="t-sep"> </span><span class="t-en">Medium</span><span class="dailyDone" style="display:none"> ✔</span><span class="dailyRec" style="display:none"><span class="t-kh">⭐ សម្រាប់អ្នក</span><span class="t-sep"> </span><span class="t-en">⭐ for you</span></span></button>
+        <button class="dailyBtn" type="button" data-lv="hard"><span class="t-kh">ពិបាក</span><span class="t-sep"> </span><span class="t-en">Hard</span><span class="dailyDone" style="display:none"> ✔</span><span class="dailyRec" style="display:none"><span class="t-kh">⭐ សម្រាប់អ្នក</span><span class="t-sep"> </span><span class="t-en">⭐ for you</span></span></button>
+      </div>
     </div>
     <p id="streakNote" class="streakNote" style="display:none"></p>
     <button id="startLearnBtn" type="button">📖 <span class="t-kh">រៀនលេង</span><span class="t-sep"> — </span><span class="t-en">Learn to Play</span></button>
@@ -2601,8 +2613,15 @@
         'move ' + a.moveEntries.length + ' · ' + (m ? 'vs Computer L' + m[1] : '2 players'), ' ');
       cb.style.display = 'block';
     } else cb.style.display = 'none';
-    var dp = read('oukDailyPuzzle');
-    document.getElementById('dailyDone').style.display = dp && dp.d === today && dp.solved ? 'inline' : 'none';
+    var dp = read('oukDailyPuzzle'), done = dp && dp.d === today && dp.done ? dp.done : {};
+    var rec = read('oukDailyRec'); // a signed-in player's level, from their stats (kept by the game script)
+    var btns = document.querySelectorAll('#dailyRow .dailyBtn');
+    for (var i = 0; i < btns.length; i++) {
+      var lv = btns[i].getAttribute('data-lv'), isRec = !!(rec && rec.lv === lv);
+      btns[i].querySelector('.dailyDone').style.display = done[lv] ? 'inline' : 'none';
+      btns[i].querySelector('.dailyRec').style.display = isRec ? 'block' : 'none';
+      btns[i].classList.toggle('rec', isRec);
+    }
     var s = read('oukStreak'), alive = !!(s && s.n > 0 && (s.last === today || s.last === yday));
     var badge = document.getElementById('streakBadge'), note = document.getElementById('streakNote');
     badge.style.display = alive ? 'flex' : 'none';
@@ -13936,7 +13955,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
 // Full screen for everyone -- phones, tablets and computers, in either orientation: requested by each tap of a
 // Start pop-up button (Play now, Learn to Play, Sign up / Sign in), since the Fullscreen API needs a live user
 // gesture. Where a browser has no fullscreen for pages (iPhone Safari, some in-app browsers) it quietly does nothing.
-['playNowBtn', 'startLearnBtn', 'startBtn', 'continueBtn', 'dailyPuzzleBtn'].forEach((id) => {
+['playNowBtn', 'startLearnBtn', 'startBtn', 'continueBtn'].forEach((id) => {
   document.getElementById(id).addEventListener('click', () => { window.__oukActions.requestFullscreen(); });
 });
 
@@ -14419,7 +14438,7 @@ function applyTrainingMove(m) {
     state.turn = E.WHITE;
     lastMove = m;
     flashMsg = '✔ ដោះស្រាយបានហើយ! Solved!';
-    if (activePuzzle.key === dailyPuzzle().key) dailyPuzzleSolved();
+    if (dailyLevelOf(activePuzzle.key)) dailyPuzzleSolved(dailyLevelOf(activePuzzle.key));
     selected = -1; legalForSelected = [];
     puzzleLessonText();
     clearMarkers();
@@ -15491,7 +15510,7 @@ let activePuzzle = null, puzzleSolved = false, puzzleLevel = 1;
 function puzzleLessonText() {
   const pz = activePuzzle;
   document.getElementById('lessonText').innerHTML =
-    (pz.key === dailyPuzzle().key ? '<span class="gflag">🧩 ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ Daily puzzle</span>' : '') +
+    (dailyLevelOf(pz.key) ? '<span class="gflag">🧩 ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ Daily puzzle · ' + DAILY_LEVELS.find((x) => x.k === dailyLevelOf(pz.key)).en + '</span>' : '') +
     '<span class="gterm">' + pz.title + '</span>' +
     '<span class="gwhy">' + pz.task.kh + '<span class="en">' + pz.task.en + '</span></span>' +
     (puzzleSolved ? '<span class="gresult">✔ ដោះស្រាយបានហើយ! Solved — pick another puzzle.</span>' : '<span class="gflag">ស To move: White — ដើរកូនអុកដោយខ្លួនឯង make your own move on the board.</span>');
@@ -15658,8 +15677,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.72';
+const APP_VERSION = '1.6.73';
 const WHATS_NEW = [
+  {
+    version: '1.6.73',
+    date: '2026-10-25',
+    title: { kh: 'ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ ៣ កម្រិត៖ ស្រួល មធ្យម ពិបាក', en: 'Three daily puzzles: Easy, Medium and Hard' },
+    items: [
+      { kh: 'រៀងរាល់ថ្ងៃ មានល្បែងប្រាជ្ញាថ្មីបី៖ ស្រួល មធ្យម និងពិបាក ដូចគ្នាសម្រាប់អ្នកលេងទាំងអស់។ ✔ បង្ហាញល្បែងដែលអ្នកដោះស្រាយរួច ហើយក្រោយដោះស្រាយមួយ វាណែនាំកម្រិតបន្ទាប់។',
+        en: 'Every day there are three new puzzles: Easy, Medium and Hard, the same for everyone. ✔ marks the ones you have solved, and after each one it points you to the next level.' },
+      { kh: 'អ្នកដែលមានគណនី ឃើញ ⭐ «សម្រាប់អ្នក» លើកម្រិតដែលសមនឹងស្ថិតិរបស់ខ្លួន (កម្រិតកុំព្យូទ័រដែលបានឈ្នះ អត្រាឈ្នះ និងល្បែងប្រាជ្ញាដែលបានដោះស្រាយ)។',
+        en: 'Signed-in players see ⭐ "for you" on the level that suits their stats (the computer levels they have beaten, their win rate and the puzzles they have solved).' }
+    ]
+  },
   {
     version: '1.6.72',
     date: '2026-10-25',
@@ -17177,28 +17207,74 @@ function showToast(html, ms) {
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), ms || 4500);
 }
-// Daily puzzle: one of the puzzles each day, the same for everyone (stepping through them 7 at a time, so the
-// levels mix), free for guests and not counted as a game.
-const DAILY_PUZZLE_KEY = 'oukDailyPuzzle';
-function dailyPuzzle() {
-  const d = new Date();
-  const day = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
-  return PUZZLES[(day * 7) % PUZZLES.length];
+// Daily puzzles: three a day -- Easy (puzzle levels 1-2), Medium (3), Hard (4-5) -- the same for everyone, free for
+// guests and not counted as games. A signed-in player's own level, from their stats, is marked "for you".
+const DAILY_PUZZLE_KEY = 'oukDailyPuzzle', PUZZLE_RECORD_KEY = 'oukPuzzleRecord', DAILY_REC_KEY = 'oukDailyRec';
+const DAILY_LEVELS = [
+  { k: 'easy', kh: 'ស្រួល', en: 'Easy', levels: [1, 2], step: 3 },
+  { k: 'medium', kh: 'មធ្យម', en: 'Medium', levels: [3], step: 2 },
+  { k: 'hard', kh: 'ពិបាក', en: 'Hard', levels: [4, 5], step: 3 }
+];
+function todayIndex() { const d = new Date(); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); }
+function dailyPuzzleFor(k) {
+  const L = DAILY_LEVELS.find((x) => x.k === k), pool = PUZZLES.filter((p) => L.levels.includes(p.level));
+  return pool[(todayIndex() * L.step) % pool.length];
 }
-function dailyPuzzleSolved() {
-  let dp = null;
-  try { dp = JSON.parse(localStorage.getItem(DAILY_PUZZLE_KEY) || 'null'); } catch (e) {}
-  if (dp && dp.d === localDayKey() && dp.solved) return;
-  try { localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify({ d: localDayKey(), solved: true })); } catch (e) {}
-  trackEvent('daily_puzzle_solved', { key: activePuzzle.key });
+// which of today's daily puzzles a puzzle is ('easy' / 'medium' / 'hard'), or null
+function dailyLevelOf(key) { const L = DAILY_LEVELS.find((x) => dailyPuzzleFor(x.k).key === key); return L ? L.k : null; }
+function readJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+function dailyPuzzleSolved(lv) {
+  const today = localDayKey();
+  let dp = readJSON(DAILY_PUZZLE_KEY);
+  if (!dp || dp.d !== today || !dp.done) dp = { d: today, done: {} };
+  if (dp.done[lv]) return;
+  dp.done[lv] = true;
+  const rec = readJSON(PUZZLE_RECORD_KEY) || {};
+  rec[lv] = (rec[lv] | 0) + 1;
+  try { localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify(dp)); localStorage.setItem(PUZZLE_RECORD_KEY, JSON.stringify(rec)); } catch (e) {}
+  trackEvent('daily_puzzle_solved', { key: activePuzzle.key, level: lv });
   noteActiveDay('puzzle');
-  flashMsg = '✔ ដោះស្រាយបានហើយ! ល្បែងប្រាជ្ញាថ្មីនៅថ្ងៃស្អែក Solved! A new puzzle tomorrow';
+  const next = DAILY_LEVELS.find((x) => !dp.done[x.k]);
+  flashMsg = next ? '✔ ដោះស្រាយបានហើយ! សាកល្បង ' + next.kh + ' Solved! Try ' + next.en + ' next' : '✔ ដោះស្រាយទាំងបីហើយ! Solved all three! New puzzles tomorrow';
+  refreshDailyRec();
 }
-document.getElementById('dailyPuzzleBtn').onclick = () => {
-  const pz = dailyPuzzle();
-  funnel('daily_puzzle_open', { key: pz.key });
-  ensureGuest().then(() => { hideOverlays(); setUiMode('train'); loadPuzzle(pz.key); });
-};
+document.querySelectorAll('#dailyRow .dailyBtn').forEach((b) => {
+  b.onclick = () => {
+    const lv = b.dataset.lv, pz = dailyPuzzleFor(lv);
+    funnel('daily_puzzle_open', { key: pz.key, level: lv, rec: b.classList.contains('rec') ? 'yes' : 'no' });
+    window.__oukActions.requestFullscreen();
+    ensureGuest().then(() => { hideOverlays(); setUiMode('train'); loadPuzzle(pz.key); });
+  };
+});
+// "For you": a signed-in player's level, from the computer levels they have beaten lately, their win rate and the
+// daily puzzles they have solved -- moving up a level once today's puzzle at their level is done. Guests get none.
+let dailyRecUid = null, dailyRecGames = null;
+function refreshDailyRec() {
+  const uid = accessTier === 'full' && currentProfile && currentProfile.uid;
+  if (!uid) {
+    // a guest has no pick -- but only drop the remembered one once sign-in is known (a signed-in player's session is
+    // restored a moment after the page opens, and the pick must not blink out meanwhile)
+    if (window.__oukAuth.ready) { try { localStorage.removeItem(DAILY_REC_KEY); } catch (e) {} window.__oukRetentionUI(); }
+    return;
+  }
+  const decide = (games) => {
+    const wonLv = games.filter((g) => g.result === 'win' && g.aiLevel).reduce((m, g) => Math.max(m, g.aiLevel), 0);
+    const st = (currentProfile && currentProfile.stats) || {};
+    const rate = st.games ? (st.wins || 0) / st.games : 0;
+    const pr = readJSON(PUZZLE_RECORD_KEY) || {};
+    let i = 0; // easy
+    if (wonLv >= 2 || (st.wins >= 5 && rate >= 0.5) || (pr.easy | 0) >= 3) i = 1;
+    if (wonLv >= 4 || (st.wins >= 20 && rate >= 0.6) || (pr.medium | 0) >= 3) i = 2;
+    const dp = readJSON(DAILY_PUZZLE_KEY), done = dp && dp.d === localDayKey() && dp.done ? dp.done : {};
+    while (i < 2 && done[DAILY_LEVELS[i].k]) i++; // today's is solved: the next one up
+    try { localStorage.setItem(DAILY_REC_KEY, JSON.stringify({ uid, lv: DAILY_LEVELS[i].k })); } catch (e) {}
+    window.__oukRetentionUI();
+  };
+  if (dailyRecUid === uid && dailyRecGames) { decide(dailyRecGames); return; }
+  dailyRecUid = uid;
+  Promise.resolve(window.__oukAuth.fetchGameHistory ? window.__oukAuth.fetchGameHistory(uid, 30) : []).catch(() => [])
+    .then((games) => { if (dailyRecUid !== uid) return; dailyRecGames = games || []; decide(dailyRecGames); });
+}
 // Add to Home Screen: where the browser offers its own install (Android Chrome, desktop Chrome/Edge) that prompt
 // is kept and used; on iPhone/iPad the picture guide explains it. Suggested on the Start pop-up, and once a day
 // after a finished game (until it has been turned down three times); never once installed.
@@ -17880,23 +17956,30 @@ function updateThinkTimes() {
   thinkRunning = running;
 }
 const PHONE_MQ = window.matchMedia('(max-width: 820px), (max-height: 560px)'); // the phone layout's media query
+// after a daily puzzle: point to the next level still to do today, or say all three are done
+function dailyNextLine(sp) {
+  const dp = readJSON(DAILY_PUZZLE_KEY), done = dp && dp.d === localDayKey() && dp.done ? dp.done : {};
+  const next = DAILY_LEVELS.find((x) => !done[x.k]);
+  return next ? sp('✔ ដោះស្រាយបានហើយ! សាកល្បងកម្រិត ' + next.kh, '✔ Solved! Try ' + next.en + ' next')
+    : sp('✔ ដោះស្រាយទាំងបីហើយ! ល្បែងប្រាជ្ញាថ្មីនៅថ្ងៃស្អែក', '✔ All three solved! New puzzles tomorrow');
+}
 // the puzzle card: shown while a puzzle is open in Learn to Play, refreshed from the HUD tick (only when it changes)
 let puzzleCardSig = '';
 function updatePuzzleCard() {
   const el = document.getElementById('puzzleCard');
   const pz = uiMode === 'train' && !overlayOpen ? activePuzzle : null;
   if (!pz) { if (el.style.display !== 'none') el.style.display = 'none'; puzzleCardSig = ''; return; }
-  const daily = pz.key === dailyPuzzle().key;
+  const dlv = dailyLevelOf(pz.key), daily = DAILY_LEVELS.find((x) => x.k === dlv);
   const wrong = !puzzleSolved && /^✘/.test(flashMsg || '');
   const sig = pz.key + '|' + puzzleSolved + '|' + wrong + '|' + daily;
   if (sig !== puzzleCardSig) {
     puzzleCardSig = sig;
     const sp = (kh, en, sep) => '<span class="t-kh">' + kh + '</span><span class="t-sep">' + (sep || ' — ') + '</span><span class="t-en">' + en + '</span>';
     const result = puzzleSolved
-      ? '<span class="pcResult ok">' + (daily ? sp('✔ ដោះស្រាយបានហើយ! ល្បែងប្រាជ្ញាថ្មីនៅថ្ងៃស្អែក', '✔ Solved! A new puzzle tomorrow') : sp('✔ ដោះស្រាយបានហើយ!', '✔ Solved!')) + '</span>'
+      ? '<span class="pcResult ok">' + (daily ? dailyNextLine(sp) : sp('✔ ដោះស្រាយបានហើយ!', '✔ Solved!')) + '</span>'
       : wrong ? '<span class="pcResult no">' + sp('✘ មិនមែនទេ សាកម្ដងទៀត', '✘ Not it, try again') + '</span>'
       : '<span class="pcResult hint">' + sp('ស ដើរមុន — ដើរកូនអុកនៅលើក្ដារ', 'White to move: make your move on the board') + '</span>';
-    el.innerHTML = '<span class="pcTitle">' + (daily ? '🧩 ' : '') + '<span class="pcTitleText"></span></span>' +
+    el.innerHTML = '<span class="pcTitle">' + (daily ? '🧩 ' + sp(daily.kh, daily.en, ' ') + ' · ' : '') + '<span class="pcTitleText"></span></span>' +
       '<span class="pcTask">' + sp(pz.task.kh, pz.task.en, ' ') + '</span>' + result;
     el.querySelector('.pcTitleText').textContent = pz.title;
     wrapLangRuns(el.querySelector('.pcTitle')); // the title is one bilingual string: split it for the language toggle
@@ -18614,6 +18697,7 @@ function applyAccessTier() {
   refreshTierBadge();
   updateScoreboard();
   refreshThemeCategoryUI();
+  refreshDailyRec();
 }
 // ---------- theme category buttons ----------
 // The hidden #themeSel stays the single source of truth every other piece
