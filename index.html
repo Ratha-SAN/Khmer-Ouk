@@ -671,9 +671,33 @@
     background: var(--surface-2); color: var(--accent); border: 1px solid var(--accent-dim);
   }
   #startScreen .box p.streakNote { margin: -4px 0 12px; font-size: 12px; color: var(--accent); }
-  #startScreen .box #installPill {
-    margin-top: 8px; font-size: 13px; padding: 7px 16px; border-radius: 999px; font-weight: 600; box-shadow: none;
-    background: var(--surface-2); color: var(--panel-fg); border: 1px solid var(--accent-dim);
+  /* "Add the app to your Home Screen": a notification over the Start pop-up's own free space (above the box, or
+     beside it on a short landscape screen), never on top of the box or the board; the box moves to make room */
+  #startScreen { flex-direction: column; justify-content: flex-start; overflow-y: auto; }
+  #startScreen > .box { margin: auto 0; flex-shrink: 0; }
+  #startScreen.hasAlert > .box { margin-top: 0; }
+  #installAlert {
+    display: none; align-items: center; gap: 10px; flex-shrink: 0; margin: auto 0 10px; width: min(480px, 90%); box-sizing: border-box;
+    padding: 10px 10px 10px 12px; border-radius: 14px; text-align: left; color: var(--panel-fg);
+    background: var(--surface-2); border: 1px solid var(--accent); box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    animation: installAlertIn .35s ease-out;
+  }
+  @keyframes installAlertIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  #installAlert .iaIcon { font-size: 22px; }
+  #installAlert .iaText { flex: 1; min-width: 0; font-size: 13px; line-height: 1.35; }
+  #installAlert .iaText b { display: block; color: var(--accent); }
+  #installAlert .iaText small { display: block; font-size: 11px; opacity: .85; }
+  #installAlertAdd { flex: none; padding: 8px 12px; border-radius: 9px; border: none; font-weight: 700; font-size: 13px; cursor: pointer;
+    background: linear-gradient(135deg, #ffcf6b, #ff9f43); color: var(--on-accent); }
+  #installAlertClose { flex: none; width: 30px; height: 30px; padding: 0; border-radius: 8px; cursor: pointer; font-size: 14px;
+    background: none; color: var(--text-muted); border: 1px solid var(--line); }
+  @media (max-height: 560px) and (orientation: landscape) {
+    #startScreen { flex-direction: row; justify-content: flex-start; }
+    #startScreen > .box { margin: auto; }
+    #startScreen.hasAlert > .box { margin: auto auto auto 0; }
+    #installAlert { flex-direction: column; align-items: stretch; text-align: center; width: 170px; margin: auto 10px auto auto; }
+    #installAlert .iaIcon { display: none; }
+    #installAlertClose { align-self: center; }
   }
   /* a puzzle's objective, on the board view itself (Learn to Play): title, task and result; a tap folds it to the title */
   #puzzleCard {
@@ -2486,10 +2510,10 @@
 <div id="aiNotice" aria-live="polite"></div>
 <div id="toastNotice" aria-live="polite"></div>
 <div id="installNudge" role="dialog">
-  <div>📲 <span class="t-kh">ដាក់ អុកចត្រង្គ លើអេក្រង់ដើម៖ លេងពេញអេក្រង់ ហើយត្រឡប់មកលេងវិញដោយចុចតែម្ដង។</span><span class="t-sep"> — </span><span class="t-en">Add Ouk Chatrang to your Home Screen: play full screen, and come back in one tap.</span></div>
+  <div>📲 <span class="t-kh">បង្កើត app អុកចត្រង្គ ដាក់លើអេក្រង់៖ លេងពេញអេក្រង់ ហើយត្រឡប់មកលេងវិញដោយចុចតែម្ដង។</span><span class="t-sep"> — </span><span class="t-en">Add the Ouk Chatrang app to your Home Screen: play full screen, and come back in one tap.</span></div>
   <div class="btnrow">
     <button id="installNudgeLater" type="button"><span class="t-kh">ពេលក្រោយ</span><span class="t-sep"> </span><span class="t-en">Not now</span></button>
-    <button id="installNudgeAdd" type="button"><span class="t-kh">ដាក់</span><span class="t-sep"> </span><span class="t-en">Add</span></button>
+    <button id="installNudgeAdd" type="button"><span class="t-kh">បង្កើត app</span><span class="t-sep"> </span><span class="t-en">Add</span></button>
   </div>
 </div>
 <div id="levelMenu" role="dialog" aria-label="Computer level">
@@ -2559,6 +2583,12 @@
 </div>
 
 <div id="startScreen" class="fullOverlay">
+  <div id="installAlert" role="alert" style="display:none">
+    <span class="iaIcon">📲</span>
+    <span class="iaText"><b><span class="t-kh">បង្កើត app ដាក់លើអេក្រង់</span><span class="t-sep"> — </span><span class="t-en">Add the app to your Home Screen</span></b><small><span class="t-kh">លេងពេញអេក្រង់ ហើយចុចតែម្ដងក៏ចូលលេងបាន</span><span class="t-sep"> — </span><span class="t-en">Full screen, and one tap to play</span></small></span>
+    <button id="installAlertAdd" type="button"><span class="t-kh">បង្កើត</span><span class="t-sep"> </span><span class="t-en">Add</span></button>
+    <button id="installAlertClose" type="button" aria-label="Close" title="បិទ — Close">✕</button>
+  </div>
   <div class="box">
     <div id="startLangRow"><button id="startLangToggle" type="button" title="Language ភាសា">🌐 <span class="t-kh">English</span><span class="t-sep"> / </span><span class="t-en">ខ្មែរ</span></button></div>
     <h1><span class="t-kh">អុកចត្រង្គ</span><br class="titleBr"><span class="t-en">Ouk Chatrang</span></h1>
@@ -2582,7 +2612,6 @@
     <p id="streakNote" class="streakNote" style="display:none"></p>
     <button id="startLearnBtn" type="button">📖 <span class="t-kh">រៀនលេង</span><span class="t-sep"> — </span><span class="t-en">Learn to Play</span></button>
     <button id="startBtn" type="button"><span class="t-kh">ចុះឈ្មោះ / ចូលគណនី</span><span class="t-sep"> ▸ </span><span class="t-en">Sign in / Create account</span></button>
-    <button id="installPill" type="button" style="display:none">📲 <span class="t-kh">ដាក់លើអេក្រង់ដើម</span><span class="t-sep"> — </span><span class="t-en">Add to Home Screen</span></button>
   </div>
 </div>
 <script>
@@ -2635,7 +2664,10 @@
     var installed = (window.matchMedia && matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches) || navigator.standalone === true;
     var ios = /iPhone|iPad|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var iab = /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '');
-    document.getElementById('installPill').style.display = !installed && !iab && (ios || window.__oukInstallReady) ? 'inline-block' : 'none';
+    window.__oukCanInstall = !installed && !iab && !!(ios || window.__oukInstallReady);
+    var off = +(localStorage.getItem('oukInstallAlertOff') || 0), showAlert = window.__oukCanInstall && Date.now() - off > 3 * 86400000;
+    document.getElementById('installAlert').style.display = showAlert ? 'flex' : 'none';
+    document.getElementById('startScreen').classList.toggle('hasAlert', showAlert);
   };
   window.__oukRetentionUI();
 </script>
@@ -15677,8 +15709,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.73';
+const APP_VERSION = '1.6.74';
 const WHATS_NEW = [
+  {
+    version: '1.6.74',
+    date: '2026-10-25',
+    title: { kh: '«បង្កើត app ដាក់លើអេក្រង់» ជាការជូនដំណឹងពេលបើក', en: '"Add the app to your Home Screen" as a notification at the start' },
+    items: [
+      { kh: 'ពេលបើកល្បែង ការជូនដំណឹងតូចមួយ «បង្កើត app ដាក់លើអេក្រង់» បង្ហាញនៅខាងលើផ្ទាំងចាប់ផ្ដើម (ឬខាងឆ្វេង លើទូរស័ព្ទផ្ដេក) ដោយមិនបាំងអ្វីទាំងអស់។ ចុច «បង្កើត» ដើម្បីដាក់ ឬ ✕ ដើម្បីបិទ (វាមិនបង្ហាញម្ដងទៀតរយៈពេល ៣ ថ្ងៃ)។',
+        en: 'When the game opens, a small "Add the app to your Home Screen" notification shows above the Start pop-up (or beside it on a phone held sideways), without covering anything. Tap Add to install it, or ✕ to close it (it stays away for 3 days).' }
+    ]
+  },
   {
     version: '1.6.73',
     date: '2026-10-25',
@@ -17290,7 +17331,7 @@ window.addEventListener('appinstalled', () => {
   trackEvent('app_installed', {});
   window.__oukRetentionUI();
 });
-function canSuggestInstall() { return document.getElementById('installPill').style.display !== 'none'; }
+function canSuggestInstall() { return !!window.__oukCanInstall; }
 function openInstall(source) {
   trackEvent('install_click', { source, native: !!deferredInstall });
   if (!deferredInstall) { openPopup('homeScreenPopup'); return; }
@@ -17299,7 +17340,13 @@ function openInstall(source) {
   deferredInstall = null; window.__oukInstallReady = false;
   window.__oukRetentionUI();
 }
-document.getElementById('installPill').onclick = () => openInstall('start');
+function hideInstallAlert() { document.getElementById('installAlert').style.display = 'none'; document.getElementById('startScreen').classList.remove('hasAlert'); }
+document.getElementById('installAlertAdd').onclick = () => { hideInstallAlert(); openInstall('start'); };
+document.getElementById('installAlertClose').onclick = () => {
+  hideInstallAlert();
+  try { localStorage.setItem('oukInstallAlertOff', String(Date.now())); } catch (e) {} // not again for 3 days
+  trackEvent('install_alert_close', {});
+};
 const INSTALL_NUDGE_KEY = 'oukInstallNudge';
 function maybeInstallNudge() {
   if (!canSuggestInstall() || overlayOpen) return;
