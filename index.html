@@ -332,8 +332,15 @@
   details.acc { background: color-mix(in srgb, var(--panel-fg) 4%, var(--surface-0)); }
   /* the marks that used to be an accent stroke are an accent tint now */
   .themeCatBtn.hasSelection { background: color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
-  #startScreen .box #continueBtn { background: linear-gradient(160deg, rgba(96,66,40,.9), rgba(52,32,26,.92)) !important; } /* a warmer tone: the game waiting for you */
-  #startScreen .box .dailyBtn.rec { background: color-mix(in srgb, var(--accent) 24%, var(--surface-2)); box-shadow: none; }
+  /* the Start pop-up's secondary buttons: clearly lighter than the dark box, with bright labels */
+  #startScreen .box #startLearnBtn { background: linear-gradient(160deg, #4b3b8f, #33276a) !important; color: #fff; }
+  #startScreen .box #continueBtn { background: linear-gradient(160deg, #8a6234, #5c3f22) !important; color: #fff3d6; } /* a warmer tone: the game waiting for you */
+  #dailyRow { background: rgba(255,255,255,.05) !important; }
+  #startScreen .box .dailyBtn { background: #4b3b8f !important; color: #fff; }
+  #startScreen .box .dailyBtn:hover { background: #5a48a6 !important; }
+  #startScreen .box #startLangToggle { background: #4b3b8f !important; color: #fff; }
+  .streakBadge { background: rgba(255,207,107,.16) !important; }
+  #startScreen .box .dailyBtn.rec { background: color-mix(in srgb, var(--accent) 38%, #4b3b8f) !important; box-shadow: none; }
   #puzzleCard .pcLv.cur { background: color-mix(in srgb, var(--accent) 24%, var(--surface-2)); }
   /* guest-tier locked controls: dimmed but still clickable (a real
      disabled attribute would swallow the click, so a popup could never be
@@ -14448,14 +14455,21 @@ function applyTrainingMove(m) {
   // reverted so they can retry; a mate-goal puzzle accepts any move that
   // actually checkmates (engine-verified), a move-goal one matches the
   // single best move
+  if (puzzleReplying) return; // a multi-move puzzle: wait for Black's answer
   const puzzleSnap = (activePuzzle && !puzzleSolved) ? E.toJSON(state) : null;
   const mover = state.board[m.from];
   const wasPawn = E.typeOf(mover) === E.PAWN;
   const captured = state.board[m.to];
   E.makeMove(state, m);
   if (puzzleSnap) {
-    let ok;
-    if (activePuzzle.goal === 'mate') {
+    let ok, final = true;
+    if (activePuzzle.goal === 'line') {
+      // mate in 2 / 3: each move must be the solution's (the only one that still forces mate in time, see the
+      // generator); the last one may be any checkmate
+      final = 2 * puzzleStep === activePuzzle.line.length - 1;
+      if (final) { const st = E.gameStatus(state); ok = !!(st && st.type === 'checkmate' && st.winner === E.WHITE); }
+      else ok = E.sqName(m.from) + E.sqName(m.to) === activePuzzle.line[2 * puzzleStep];
+    } else if (activePuzzle.goal === 'mate') {
       const st = E.gameStatus(state); // Black to move here, before the training turn-reset
       ok = !!(st && st.type === 'checkmate' && st.winner === E.WHITE);
     } else {
@@ -14468,6 +14482,26 @@ function applyTrainingMove(m) {
       clearMarkers();
       refreshAll();
       playMoveSound('move');
+      return;
+    }
+    if (!final) { // a right move with more to come: Black answers with its best defence, then it is White's turn again
+      puzzleStep++;
+      lastMove = m; flashMsg = ''; selected = -1; legalForSelected = [];
+      clearMarkers(); refreshAll();
+      playMoveSound(captured !== E.EMPTY ? 'capture' : (E.inCheck(state, E.BLACK) ? 'check' : 'move'));
+      puzzleReplying = true;
+      const key = activePuzzle.key, reply = activePuzzle.line[2 * puzzleStep - 1];
+      setTimeout(() => {
+        puzzleReplying = false;
+        if (!activePuzzle || activePuzzle.key !== key || uiMode !== 'train') return;
+        const r = E.genLegal(state, E.BLACK).find((x) => E.sqName(x.from) + E.sqName(x.to) === reply);
+        if (!r) return;
+        const cap = state.board[r.to] !== E.EMPTY;
+        E.makeMove(state, r);
+        lastMove = r;
+        puzzleLessonText(); refreshAll();
+        playMoveSound(cap ? 'capture' : 'move');
+      }, 750);
       return;
     }
     puzzleSolved = true;
@@ -15542,7 +15576,68 @@ const PUZZLES = [
     setup: (add) => { add('h8', E.KING, E.BLACK); add('h7', E.ROOK, E.BLACK); add('g6', E.KING, E.WHITE); add('h6', E.BISHOP, E.WHITE); }
   },
 ];
-let activePuzzle = null, puzzleSolved = false, puzzleLevel = 1;
+// ---- levels 6 and 7: mate in 2 and mate in 3 (the daily Medium and Hard puzzles) ----
+// Each was generated and then proven with the game's own engine: no quicker mate exists, and at every one of White's
+// moves but the last the solution's move is the only one that still forces mate in time (so the line is the answer
+// whatever White tries; Black's replies are its best defence). Rows: [moves, the line, the pieces as
+// <square><K Q B N R P = Sdach Neang Koul Ses Tuuk Trey><w|b>[+ promoted]].
+const LINE_PUZZLES = [
+  [2, 'd8c6 d5d4 e6c7', 'a5Kw b5Qw d5Pb d6Nw e6Nw a8Kb d8Nw'],
+  [2, 'g2g5 d6e6 c4c6', 'a2Kw g2Rw c4Rw g5Bb h5Pw d6Kb b7Rw'],
+  [2, 'e1b1 d6e7 g4a4', 'a1Kw e1Rw h3Qw g4Rw g5Pb d6Bb a7Kb'],
+  [2, 'h4g4 a7a8 g4a4', 'b1Rw f2Kw g4Pb h4Rw f5Pw+ a7Kb e8Qb'],
+  [2, 'c5c6 a4b3 d8a8', 'g2Bw b3Rw a4Pb c5Kw b6Nw a7Kb f7Qb d8Rw'],
+  [2, 'd7f6 b6b5 b7h7', 'g2Bw a3Kw b4Qw b6Pb b7Rw d7Nw h8Kb'],
+  [2, 'h8a8 e4f5 a2a7', 'a2Rw e4Qb c5Kw b7Kb h8Rw'],
+  [2, 'b6b7 d7d8 g6g8', 'e4Pw h4Kw b5Pb e5Pb b6Rw g6Rw d7Kb c8Nb'],
+  [2, 'e2g2 c8d7 a5h5', 'h1Kw e2Rw h2Nw f4Qw a5Rw c8Qb e8Qb h8Kb'],
+  [2, 'd2d7 g8f8 h4h8', 'd2Rw a4Qw b4Kw h4Rw e5Pw+ e6Pb g8Kb'],
+  [2, 'd5c6 h5h4 f6f8', 'e2Rw f4Pw+ d5Kw h5Pb b6Qb f6Rw d8Kb'],
+  [2, 'e5f6 c4d5 d6f7', 'g3Pw+ c4Qb e5Kw g5Pb d6Nw g7Rw h8Kb'],
+  [2, 'e7f6 f4f3 e5e8', 'c4Kw f4Pb e5Rw f5Qw h6Rw b7Qb c7Qb e7Bw g8Kb'],
+  [2, 'd2d7 h7h8 e6e8', 'd2Rw c4Kw e4Nb e6Rw h7Kb'],
+  [2, 'f4f5 a4a3 e7h7', 'a4Pb f4Kw f6Nw h6Kb e7Rw'],
+  [2, 'e2e7 d4e5 h4h8', 'c1Kw e2Rw d4Bb h4Rw g5Pw+ a8Kb'],
+  [3, 'g2g7 a4a3 a1h1 a3b4 h1h8', 'a1Rw g2Rw e3Qw f3Kw a4Pb c4Pb b8Kb'],
+  [3, 'b6d6 g7f7 c1c7 f7g8 d6d8', 'c1Rw h3Rw a4Kw g5Pw b6Rw d6Qb g7Kb'],
+  [3, 'd1a1 a8b8 a1b1 b8a7 c2a2', 'd1Rw h1Kw c2Rw f3Pw+ g5Pw+ a8Kb e8Rb'],
+  [3, 'e4c4 f4f3 e1b1 b8a7 c4a4', 'e1Rw c3Kw e4Rw f4Pb e5Pb b8Kb g8Nb'],
+  [3, 'f1f7 a7a8 b1e1 c5d6 e1e8', 'b1Rw f1Rw g3Kw h4Pw c5Qb a6Pb a7Kb'],
+  [3, 'h1f1 g4g3 f1f7 f8g8 a6a8', 'h1Rw g4Pb e5Nw h5Kw a6Rw f7Nb f8Kb'],
+  [3, 'h8f8 h4g3 h2g3 g7h7 f1f7', 'f1Rw h2Kw h4Qb b5Qw h5Pw+ h6Pb g7Kb h8Rw'],
+  [3, 'c2f2 g8f6 c3d4 f7f8 f2f6', 'e1Nw c2Rw c3Kw e3Rw g4Rw d5Pb f7Kb g8Nb'],
+  [3, 'g5g6 h8g8 g3f3 g8h8 f3f8', 'e3Pw+ g3Rw g5Kw c6Qw g6Pb h8Kb'],
+  [3, 'g8g6 a6a7 h5h7 a7a8 g6g8', 'f2Kw b4Pw+ h4Pw h5Rw a6Kb h7Rb g8Rw'],
+  [3, 'd1c1 h6h5 f4b4 b8a7 c1a1', 'd1Rw b3Kw f4Rw f5Pb h6Pb b8Kb'],
+  [3, 'f4e5 e4e3 e5e6 e3f4 g6g8', 'f2Rw e4Pb f4Kw d5Nw g5Pw+ g6Rw e8Kb'],
+  [3, 'h3h7 d6d5 b6a7 b8c8 b1b8', 'b1Rw e1Kw g2Bw h3Rw b6Qw d6Pb b8Kb'],
+  [3, 'b2b7 f4f3 h3f3 g8h8 f3f8', 'a1Kw d1Nw b2Rw h3Rw f4Pb g8Kb'],
+  [3, 'g3g7 d7c6 b4c4 c6d6 f6e5', 'c2Kw g3Rw a4Pb b4Rw c4Pb a5Rw b6Pb f6Bw d7Kb'],
+  [3, 'h6b6 a8a7 b8c6 a7a8 b6b8', 'c4Kw a5Pw g5Pw+ h6Rw a8Kb b8Nw h8Bb'],
+  [3, 'c3c4 a5a4 f3a3 a6a7 a3a4', 'c3Kw f3Rw f4Pw+ a5Pb b5Rw a6Kb g6Nw'],
+  [3, 'h3h7 d4d3 f1a1 d3e4 a1a8', 'f1Rw b2Kw h3Rw d4Pb g4Bb b6Pb h7Rb e8Kb f8Nw'],
+  [3, 'f1f4 a7b8 f4b4 b8a7 c5a5', 'a1Kw f1Rw b3Nw c5Rw a7Kb h7Nb'],
+  [3, 'e2b2 g6g5 a5c6 a7a8 b2b8', 'e1Nw e2Rw f2Kw a5Nw g6Pb a7Kb a8Qw'],
+  [3, 'b2g2 c5c4 e3e5 c4c3 e5h5', 'b2Rw e3Rw h4Kw c5Pb h7Kb'],
+  [3, 'd8c6 a7a6 c4c5 g4h6 b1b6', 'b1Rw c4Kw g4Nb a5Pb d5Pw a7Kb d8Nw'],
+  [3, 'h6h7 h4g5 g4g5 a8b8 g8d8', 'h1Rw c3Pw g4Kw h4Bb h6Rw a8Kb d8Nb g8Rw'],
+  [3, 'c4c7 f8e8 g2d2 e8f8 d2d8', 'b1Bw g2Rw c4Rw g4Kw g5Pb f8Kb'],
+];
+(function () {
+  const T = { K: E.KING, Q: E.QUEEN, B: E.BISHOP, N: E.KNIGHT, R: E.ROOK, P: E.PAWN };
+  const KHD = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'], kh = (n) => String(n).split('').map((d) => KHD[+d]).join('');
+  const count = { 2: 0, 3: 0 };
+  LINE_PUZZLES.forEach(([n, line, pos]) => {
+    const i = ++count[n];
+    PUZZLES.push({
+      key: 'm' + n + 'p' + i, level: n === 2 ? 6 : 7, btn: kh(i) + '<br>Mate in ' + n,
+      title: 'អុកងាប់ក្នុង' + kh(n) + 'ជើង Mate in ' + n, goal: 'line', line: line.split(' '),
+      task: { kh: '', en: '' }, // the hint names the piece to move (puzzleHintText)
+      setup: (add) => pos.split(' ').forEach((c) => add(c.slice(0, 2), T[c[2]], c[3] === 'w' ? E.WHITE : E.BLACK, c[4] === '+'))
+    });
+  });
+})();
+let activePuzzle = null, puzzleSolved = false, puzzleLevel = 1, puzzleStep = 0, puzzleReplying = false;
 function puzzleLessonText() {
   const pz = activePuzzle, ob = puzzleObjective(pz);
   document.getElementById('lessonText').innerHTML =
@@ -15550,7 +15645,7 @@ function puzzleLessonText() {
     '<span class="gterm">' + ob.kh + ' ' + ob.en + '</span>' +
     '<span class="gwhy">' + ob.okh + '<span class="en">' + ob.oen + '</span></span>' +
     // the task itself would give the answer away: behind a tap
-    '<details class="puzzleHint"><summary>💡 ជំនួយ Hint</summary><span class="gwhy">' + pz.task.kh + '<span class="en">' + pz.task.en + '</span></span></details>' +
+    '<details class="puzzleHint"><summary>💡 ជំនួយ Hint</summary><span class="gwhy">' + puzzleHintText(pz).kh + '<span class="en">' + puzzleHintText(pz).en + '</span></span></details>' +
     (puzzleSolved ? '<span class="gresult">✔ ដោះស្រាយបានហើយ! Solved — pick another puzzle.</span>' : '<span class="gflag">ស To move: White — ដើរកូនអុកដោយខ្លួនឯង make your own move on the board.</span>');
 }
 function loadPuzzle(key) {
@@ -15560,6 +15655,7 @@ function loadPuzzle(key) {
   puzzleLevel = activePuzzle.level;
   puzzleSolved = false;
   puzzleHintOpen = false;
+  puzzleStep = 0; puzzleReplying = false;
   guideKey = null;
   state = E.emptyState(currentVariant());
   activePuzzle.setup((name, t, c, prom) => { state.board[E.sqIndex(name)] = E.mk(t, c, prom || false); });
@@ -15716,8 +15812,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.79';
+const APP_VERSION = '1.6.80';
 const WHATS_NEW = [
+  {
+    version: '1.6.80',
+    date: '2026-10-25',
+    title: { kh: 'ល្បែងប្រាជ្ញាមធ្យម និងពិបាក ពិបាកជាងមុន៖ អុកងាប់ក្នុង ២ និង ៣ ជើង', en: 'Harder Medium and Hard puzzles: mate in 2 and mate in 3' },
+    items: [
+      { kh: 'ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ មធ្យម ឥឡូវជាអុកងាប់ក្នុង ២ ជើង ហើយ ពិបាក ជាអុកងាប់ក្នុង ៣ ជើង៖ អ្នកដើរ ខ្មៅការពារយ៉ាងល្អបំផុត ហើយអ្នកបន្តរហូតដល់អុកងាប់។ មានល្បែងប្រាជ្ញាថ្មី ៤០ ដែលបានផ្ទៀងផ្ទាត់ថាមានចម្លើយតែមួយ។ ជំនួយប្រាប់កូនអុកដែលត្រូវដើរ (មិនប្រាប់កន្លែងទេ)។',
+        en: 'The daily Medium puzzle is now mate in 2 and Hard is mate in 3: you move, Black defends as well as it can, and you carry on until checkmate. 40 new puzzles, each checked to have exactly one solution. The hint names the piece to move (not where).' },
+      { kh: 'ប៊ូតុងនៅលើផ្ទាំងចាប់ផ្ដើមមើលឃើញច្បាស់ជាងមុន។',
+        en: 'The buttons on the Start pop-up are easier to see.' },
+      { kh: 'របារ «បង្កើត app ដាក់លើអេក្រង់» ពេលចូលលេង មិនត្រូវបានបិទដោយការជូនដំណឹងចាស់ទៀតទេ។',
+        en: 'The "Add the app" bar when you start playing is no longer silenced by the old Start pop-up notification.' }
+    ]
+  },
   {
     version: '1.6.79',
     date: '2026-10-25',
@@ -17307,14 +17416,16 @@ function showToast(html, ms) {
 // guests and not counted as games. A signed-in player's own level, from their stats, is marked "for you".
 const DAILY_PUZZLE_KEY = 'oukDailyPuzzle', PUZZLE_RECORD_KEY = 'oukPuzzleRecord', DAILY_REC_KEY = 'oukDailyRec';
 const DAILY_LEVELS = [
-  { k: 'easy', kh: 'ស្រួល', en: 'Easy', levels: [1, 2], step: 3 },
-  { k: 'medium', kh: 'មធ្យម', en: 'Medium', levels: [3], step: 2 },
-  { k: 'hard', kh: 'ពិបាក', en: 'Hard', levels: [4, 5], step: 3 }
+  { k: 'easy', kh: 'ស្រួល', en: 'Easy', levels: [1, 2, 3, 4, 5], step: 7 }, // one move: mate in 1 or the best move
+  { k: 'medium', kh: 'មធ្យម', en: 'Medium', levels: [6], step: 5 },         // mate in 2
+  { k: 'hard', kh: 'ពិបាក', en: 'Hard', levels: [7], step: 7 }              // mate in 3
 ];
 function todayIndex() { const d = new Date(); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); }
 function dailyPuzzleFor(k) {
   const L = DAILY_LEVELS.find((x) => x.k === k), pool = PUZZLES.filter((p) => L.levels.includes(p.level));
-  return pool[(todayIndex() * L.step) % pool.length];
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  let step = L.step; while (gcd(step, pool.length) !== 1) step++; // so every puzzle of the pool comes round in turn
+  return pool[(todayIndex() * step) % pool.length];
 }
 // which of today's daily puzzles a puzzle is ('easy' / 'medium' / 'hard'), or null
 function dailyLevelOf(key) { const L = DAILY_LEVELS.find((x) => dailyPuzzleFor(x.k).key === key); return L ? L.k : null; }
@@ -17401,12 +17512,13 @@ function openInstall(source) {
 }
 // The in-game banner: when a game or a puzzle is entered (once per visit) and after a finished game (once a day). It
 // leaves by itself after 8 s; ✕ hides every install suggestion for 3 days, and after three ✕ the in-game banner stops.
-const INSTALL_NUDGE_KEY = 'oukInstallNudge';
+const INSTALL_NUDGE_KEY = 'oukInstallBanner';
 let installBannerShownThisVisit = false, installBannerTimer = null;
 function hideInstallBanner() { document.getElementById('installNudge').style.display = 'none'; if (installBannerTimer) { clearTimeout(installBannerTimer); installBannerTimer = null; } }
 function showInstallBanner(source) {
   if (!canSuggestInstall() || overlayOpen) return;
-  if (Date.now() - (+(localStorage.getItem('oukInstallAlertOff') || 0)) < 3 * 86400000) return;
+  // its own 3-day pause (a ✕ on the old Start pop-up notification, since removed, no longer silences it)
+  if (Date.now() - (+(localStorage.getItem('oukInstallBannerOff') || 0)) < 3 * 86400000) return;
   const r = readJSON(INSTALL_NUDGE_KEY) || { last: '', no: 0 };
   if ((r.no | 0) >= 3) return;
   if (source === 'enter') { if (installBannerShownThisVisit) return; }
@@ -17423,7 +17535,7 @@ document.getElementById('installNudgeLater').onclick = () => {
   hideInstallBanner();
   const r = readJSON(INSTALL_NUDGE_KEY) || { last: localDayKey(), no: 0 };
   r.no = (r.no | 0) + 1;
-  try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); localStorage.setItem('oukInstallAlertOff', String(Date.now())); } catch (e) {}
+  try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); localStorage.setItem('oukInstallBannerOff', String(Date.now())); } catch (e) {}
   trackEvent('install_banner_close', { no: r.no });
 };
 document.getElementById('startLearnBtn').onclick = () => {
@@ -18073,12 +18185,23 @@ function dailyNextLine(sp) {
 // task text and the title's subtitle ("smothered", "Ses fork", ...) give the answer away, so they are a hint,
 // shown only when asked for.
 let puzzleCardSig = '', puzzleHintOpen = false;
+function puzzleMoves(pz) { return pz.goal === 'line' ? (pz.line.length + 1) / 2 : 1; }
 function puzzleObjective(pz) {
+  const n = puzzleMoves(pz);
+  if (n > 1) return { kh: 'អុកងាប់ក្នុង ' + n + ' ជើង', en: 'Mate in ' + n,
+    okh: 'ស ដើរមុន៖ អុកងាប់ក្នុង ' + n + ' ជើង ទោះខ្មៅការពារយ៉ាងណាក៏ដោយ', oen: 'White to move: checkmate in ' + n + ' moves, whatever Black does' };
   return pz.goal === 'mate'
     ? { kh: 'អុកងាប់ក្នុង ១ ជើង', en: 'Mate in 1', okh: 'ស ដើរមុន៖ រកជើងមួយដែលអុកងាប់ភ្លាម', oen: 'White to move: find the move that checkmates at once' }
     : { kh: 'រកជើងល្អបំផុត', en: 'Best move', okh: 'ស ដើរមុន៖ រកជើងល្អបំផុតមួយ', oen: 'White to move: find the best move' };
 }
 function puzzleSubtitle(pz) { const k = pz.title.indexOf(' — '); return k < 0 ? '' : pz.title.slice(k + 3); }
+// the hint: a one-move puzzle's own task text; a mate-in-2/3 names the piece to move next (not where it goes)
+function puzzleHintText(pz) {
+  if (pz.goal !== 'line') return pz.task;
+  const mv = pz.line[2 * puzzleStep], p = state.board[E.sqIndex(mv.slice(0, 2))];
+  const nmP = NAMES[E.isProm(p) ? E.QUEEN : E.typeOf(p)] || NAMES[E.PAWN];
+  return { kh: 'ដើរ' + nmP.kh + 'របស់អ្នក', en: 'Move your ' + nmP.tr + ' (' + nmP.en + ')' };
+}
 // the puzzle card: shown while a puzzle is open in Learn to Play, refreshed from the HUD tick (only when it changes).
 // A daily puzzle's card also carries today's three levels (pick another) and a way back to the Start pop-up.
 function updatePuzzleCard() {
@@ -18089,16 +18212,20 @@ function updatePuzzleCard() {
   const dlv = dailyLevelOf(pz.key), daily = DAILY_LEVELS.find((x) => x.k === dlv);
   const wrong = !puzzleSolved && /^✘/.test(flashMsg || '');
   const dp = readJSON(DAILY_PUZZLE_KEY), done = dp && dp.d === localDayKey() && dp.done ? dp.done : {};
-  const sig = [pz.key, puzzleSolved, wrong, dlv, puzzleHintOpen, JSON.stringify(done)].join('|');
+  const sig = [pz.key, puzzleSolved, wrong, dlv, puzzleHintOpen, JSON.stringify(done), puzzleStep, puzzleReplying].join('|');
   if (sig !== puzzleCardSig) {
     puzzleCardSig = sig;
     const sp = (kh, en, sep) => '<span class="t-kh">' + kh + '</span><span class="t-sep">' + (sep || ' — ') + '</span><span class="t-en">' + en + '</span>';
     const ob = puzzleObjective(pz);
     const result = puzzleSolved
       ? '<span class="pcResult ok">' + (daily ? dailyNextLine(sp) : sp('✔ ដោះស្រាយបានហើយ!', '✔ Solved!')) + '</span>'
-      : wrong ? '<span class="pcResult no">' + sp('✘ មិនមែនទេ សាកម្ដងទៀត', '✘ Not it, try again') + '</span>' : '';
+      : wrong ? '<span class="pcResult no">' + sp('✘ មិនមែនទេ សាកម្ដងទៀត', '✘ Not it, try again') + '</span>'
+      : puzzleReplying ? '<span class="pcResult ok">' + sp('✔ ល្អណាស់! ខ្មៅកំពុងការពារ…', '✔ Good! Black is defending…') + '</span>'
+      : puzzleStep > 0 ? '<span class="pcResult ok">' + sp('✔ ល្អណាស់! បន្តទៀត — ជើងទី ' + (puzzleStep + 1) + ' / ' + puzzleMoves(pz),
+        '✔ Good! Keep going: move ' + (puzzleStep + 1) + ' of ' + puzzleMoves(pz)) + '</span>' : '';
+    const ht = puzzleHintText(pz);
     const hint = puzzleSolved ? '' : puzzleHintOpen
-      ? '<span class="pcHint">💡 ' + sp(pz.task.kh, pz.task.en, ' ') + '<span class="pcHintSub t-en"></span></span>'
+      ? '<span class="pcHint">💡 ' + sp(ht.kh, ht.en, ' ') + '<span class="pcHintSub t-en"></span></span>'
       : '<button class="pcBtn" type="button" data-act="hint">💡 ' + sp('ជំនួយ', 'Hint', ' ') + '</button>';
     let dailyRow = '';
     if (daily) {
@@ -19076,6 +19203,7 @@ window.__ouk = {
   debugFlat2DSize: (setStyle, type) => (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type],
   debugApplyMove: (m) => applyMove(m),
   debugTrainMove: (m) => applyTrainingMove(m), // Test-only: a move made in Learn to Play (puzzles check it)
+  debugLoadPuzzle: (key) => { if (!PUZZLES.some((p) => p.key === key)) throw new Error('no such puzzle'); loadPuzzle(key); }, // Test-only
   debugFxLog: () => window.__oukFxLog.slice(),
   debugSfxLog: () => window.__oukSfxLog.slice(),
   debugFireModernNuke: (mate) => { if (mate) fxModernCheckmate(E.kingSq(state, state.turn)); else fxModernCheck(E.kingSq(state, state.turn)); },
@@ -19240,7 +19368,7 @@ window.__ouk = {
   hintMove: () => hintMove ? { from: hintMove.from, to: hintMove.to } : null,
   reviewState: () => ({ reviewMode, reviewIndex, historyLen: history.length }),
   clockState: () => ({ clockCfg, remaining: clockCfg ? [clockRemaining(E.WHITE), clockRemaining(E.BLACK)] : null, timeoutResult }),
-  puzzleState: () => ({ key: activePuzzle ? activePuzzle.key : null, solved: puzzleSolved }),
+  puzzleState: () => ({ key: activePuzzle ? activePuzzle.key : null, solved: puzzleSolved, step: puzzleStep, replying: puzzleReplying }),
   viewSide: () => viewSide,
   matAccentBColor: () => MAT_ACCENT_B.color.getHex().toString(16),
   matBaseBColor: () => MAT_BASE_B.color.getHex().toString(16),

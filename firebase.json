@@ -12,7 +12,8 @@
       "README.md",
       "_headers",
       "build-cloudflare.sh",
-      "dist/**"
+      "dist/**",
+      "tools/**"
     ],
     "headers": [
       {
