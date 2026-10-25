@@ -711,7 +711,17 @@
   #puzzleCard .pcResult { display: block; margin-top: 4px; font-weight: 700; }
   #puzzleCard .pcResult.ok { color: #4fd88a; }
   #puzzleCard .pcResult.no { color: #ff7a6b; }
-  #puzzleCard.folded .pcTask, #puzzleCard.folded .pcResult.hint { display: none; }
+  #puzzleCard.folded > :not(.pcTitle) { display: none; }
+  #puzzleCard .pcHint { display: block; margin-top: 4px; color: var(--accent); }
+  #puzzleCard .pcBtn {
+    font: inherit; font-size: 12px; font-weight: 600; padding: 4px 10px; margin-top: 6px; border-radius: 8px; cursor: pointer;
+    background: var(--surface-2); color: var(--panel-fg); border: 1px solid var(--accent-dim);
+  }
+  #puzzleCard .pcDaily { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  #puzzleCard .pcLv.cur { border-color: var(--accent); color: var(--accent); }
+  #puzzleCard .pcLv.done { color: #4fd88a; }
+  #puzzleCard .pcBack { margin-left: auto; }
+  details.puzzleHint summary { cursor: pointer; color: var(--accent); margin-top: 6px; }
   #toastNotice {
     position: fixed; left: 50%; bottom: 96px; z-index: 30; max-width: 86vw; text-align: center; pointer-events: none;
     background: var(--accent); color: var(--on-accent); padding: 10px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
@@ -15540,11 +15550,13 @@ const PUZZLES = [
 ];
 let activePuzzle = null, puzzleSolved = false, puzzleLevel = 1;
 function puzzleLessonText() {
-  const pz = activePuzzle;
+  const pz = activePuzzle, ob = puzzleObjective(pz);
   document.getElementById('lessonText').innerHTML =
     (dailyLevelOf(pz.key) ? '<span class="gflag">🧩 ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ Daily puzzle · ' + DAILY_LEVELS.find((x) => x.k === dailyLevelOf(pz.key)).en + '</span>' : '') +
-    '<span class="gterm">' + pz.title + '</span>' +
-    '<span class="gwhy">' + pz.task.kh + '<span class="en">' + pz.task.en + '</span></span>' +
+    '<span class="gterm">' + ob.kh + ' ' + ob.en + '</span>' +
+    '<span class="gwhy">' + ob.okh + '<span class="en">' + ob.oen + '</span></span>' +
+    // the task itself would give the answer away: behind a tap
+    '<details class="puzzleHint"><summary>💡 ជំនួយ Hint</summary><span class="gwhy">' + pz.task.kh + '<span class="en">' + pz.task.en + '</span></span></details>' +
     (puzzleSolved ? '<span class="gresult">✔ ដោះស្រាយបានហើយ! Solved — pick another puzzle.</span>' : '<span class="gflag">ស To move: White — ដើរកូនអុកដោយខ្លួនឯង make your own move on the board.</span>');
 }
 function loadPuzzle(key) {
@@ -15553,6 +15565,7 @@ function loadPuzzle(key) {
   activePuzzle = PUZZLES.find(p => p.key === key);
   puzzleLevel = activePuzzle.level;
   puzzleSolved = false;
+  puzzleHintOpen = false;
   guideKey = null;
   state = E.emptyState(currentVariant());
   activePuzzle.setup((name, t, c, prom) => { state.board[E.sqIndex(name)] = E.mk(t, c, prom || false); });
@@ -15709,8 +15722,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.74';
+const APP_VERSION = '1.6.75';
 const WHATS_NEW = [
+  {
+    version: '1.6.75',
+    date: '2026-10-25',
+    title: { kh: 'ល្បែងប្រាជ្ញា៖ ជំនួយលាក់ ប្ដូរកម្រិត និងត្រឡប់', en: 'Puzzles: a hidden hint, switch level, and go back' },
+    items: [
+      { kh: 'ល្បែងប្រាជ្ញាលែងបង្ហាញចម្លើយទៀតហើយ៖ កាតបង្ហាញតែគោលដៅ (អុកងាប់ក្នុង ១ ជើង ឬ រកជើងល្អបំផុត)។ ចុច 💡 ជំនួយ ប្រសិនបើអ្នកចង់បានជំនួយ។',
+        en: 'Puzzles no longer give the answer away: the card shows only the objective (Mate in 1 or Best move). Tap 💡 Hint if you want help.' },
+      { kh: 'ក្នុងល្បែងប្រាជ្ញាប្រចាំថ្ងៃ កាតមានប៊ូតុង ស្រួល មធ្យម ពិបាក ដើម្បីប្ដូរ និង ↩ ត្រឡប់ ទៅផ្ទាំងចាប់ផ្ដើម។ ក្រោយដោះស្រាយមួយ វាបង្ហាញកម្រិតដែលនៅសល់ ហើយពេលដោះស្រាយទាំងបី វាត្រឡប់ទៅផ្ទាំងចាប់ផ្ដើមដោយខ្លួនឯង។',
+        en: 'In the daily puzzles the card has Easy, Medium and Hard buttons to switch, and ↩ Back to the Start pop-up. After one is solved it shows the ones left, and once all three are solved it goes back to the Start pop-up by itself.' }
+    ]
+  },
   {
     version: '1.6.74',
     date: '2026-10-25',
@@ -17278,6 +17302,10 @@ function dailyPuzzleSolved(lv) {
   const next = DAILY_LEVELS.find((x) => !dp.done[x.k]);
   flashMsg = next ? '✔ ដោះស្រាយបានហើយ! សាកល្បង ' + next.kh + ' Solved! Try ' + next.en + ' next' : '✔ ដោះស្រាយទាំងបីហើយ! Solved all three! New puzzles tomorrow';
   refreshDailyRec();
+  if (!next) { // all three done today: back to the Start pop-up after a moment to enjoy it
+    const key = activePuzzle.key;
+    setTimeout(() => { if (uiMode === 'train' && activePuzzle && activePuzzle.key === key && !overlayOpen) showStartScreen(); }, 3000);
+  }
 }
 document.querySelectorAll('#dailyRow .dailyBtn').forEach((b) => {
   b.onclick = () => {
@@ -18011,29 +18039,57 @@ function dailyNextLine(sp) {
     : sp('✔ ដោះស្រាយទាំងបីហើយ! ល្បែងប្រាជ្ញាថ្មីនៅថ្ងៃស្អែក', '✔ All three solved! New puzzles tomorrow');
 }
 // the puzzle card: shown while a puzzle is open in Learn to Play, refreshed from the HUD tick (only when it changes)
-let puzzleCardSig = '';
+// A puzzle's objective without its answer: what kind of puzzle it is ("Mate in 1" / "Best move") and who moves. The
+// task text and the title's subtitle ("smothered", "Ses fork", ...) give the answer away, so they are a hint,
+// shown only when asked for.
+let puzzleCardSig = '', puzzleHintOpen = false;
+function puzzleObjective(pz) {
+  return pz.goal === 'mate'
+    ? { kh: 'អុកងាប់ក្នុង ១ ជើង', en: 'Mate in 1', okh: 'ស ដើរមុន៖ រកជើងមួយដែលអុកងាប់ភ្លាម', oen: 'White to move: find the move that checkmates at once' }
+    : { kh: 'រកជើងល្អបំផុត', en: 'Best move', okh: 'ស ដើរមុន៖ រកជើងល្អបំផុតមួយ', oen: 'White to move: find the best move' };
+}
+function puzzleSubtitle(pz) { const k = pz.title.indexOf(' — '); return k < 0 ? '' : pz.title.slice(k + 3); }
+// the puzzle card: shown while a puzzle is open in Learn to Play, refreshed from the HUD tick (only when it changes).
+// A daily puzzle's card also carries today's three levels (pick another) and a way back to the Start pop-up.
 function updatePuzzleCard() {
   const el = document.getElementById('puzzleCard');
   const pz = uiMode === 'train' && !overlayOpen ? activePuzzle : null;
   if (!pz) { if (el.style.display !== 'none') el.style.display = 'none'; puzzleCardSig = ''; return; }
   const dlv = dailyLevelOf(pz.key), daily = DAILY_LEVELS.find((x) => x.k === dlv);
   const wrong = !puzzleSolved && /^✘/.test(flashMsg || '');
-  const sig = pz.key + '|' + puzzleSolved + '|' + wrong + '|' + daily;
+  const dp = readJSON(DAILY_PUZZLE_KEY), done = dp && dp.d === localDayKey() && dp.done ? dp.done : {};
+  const sig = [pz.key, puzzleSolved, wrong, dlv, puzzleHintOpen, JSON.stringify(done)].join('|');
   if (sig !== puzzleCardSig) {
     puzzleCardSig = sig;
     const sp = (kh, en, sep) => '<span class="t-kh">' + kh + '</span><span class="t-sep">' + (sep || ' — ') + '</span><span class="t-en">' + en + '</span>';
+    const ob = puzzleObjective(pz);
     const result = puzzleSolved
       ? '<span class="pcResult ok">' + (daily ? dailyNextLine(sp) : sp('✔ ដោះស្រាយបានហើយ!', '✔ Solved!')) + '</span>'
-      : wrong ? '<span class="pcResult no">' + sp('✘ មិនមែនទេ សាកម្ដងទៀត', '✘ Not it, try again') + '</span>'
-      : '<span class="pcResult hint">' + sp('ស ដើរមុន — ដើរកូនអុកនៅលើក្ដារ', 'White to move: make your move on the board') + '</span>';
-    el.innerHTML = '<span class="pcTitle">' + (daily ? '🧩 ' + sp(daily.kh, daily.en, ' ') + ' · ' : '') + '<span class="pcTitleText"></span></span>' +
-      '<span class="pcTask">' + sp(pz.task.kh, pz.task.en, ' ') + '</span>' + result;
-    el.querySelector('.pcTitleText').textContent = pz.title;
-    wrapLangRuns(el.querySelector('.pcTitle')); // the title is one bilingual string: split it for the language toggle
+      : wrong ? '<span class="pcResult no">' + sp('✘ មិនមែនទេ សាកម្ដងទៀត', '✘ Not it, try again') + '</span>' : '';
+    const hint = puzzleSolved ? '' : puzzleHintOpen
+      ? '<span class="pcHint">💡 ' + sp(pz.task.kh, pz.task.en, ' ') + '<span class="pcHintSub t-en"></span></span>'
+      : '<button class="pcBtn" type="button" data-act="hint">💡 ' + sp('ជំនួយ', 'Hint', ' ') + '</button>';
+    let dailyRow = '';
+    if (daily) {
+      dailyRow = '<span class="pcDaily">' + DAILY_LEVELS.map((x) => '<button class="pcBtn pcLv' + (x.k === dlv ? ' cur' : '') + (done[x.k] ? ' done' : '') +
+        '" type="button" data-act="lv" data-lv="' + x.k + '">' + sp(x.kh, x.en, ' ') + (done[x.k] ? ' ✔' : '') + '</button>').join('') +
+        '<button class="pcBtn pcBack" type="button" data-act="back" title="ត្រឡប់ — Back">↩ ' + sp('ត្រឡប់', 'Back', ' ') + '</button></span>';
+    }
+    el.innerHTML = '<span class="pcTitle" data-act="fold">' + (daily ? '🧩 ' + sp(daily.kh, daily.en, ' ') + ' · ' : '') + sp(ob.kh, ob.en, ' ') + '</span>' +
+      '<span class="pcTask">' + sp(ob.okh, ob.oen, ' ') + '</span>' + result + hint + dailyRow;
+    const sub = el.querySelector('.pcHintSub');
+    if (sub && puzzleSubtitle(pz)) sub.textContent = ' (' + puzzleSubtitle(pz) + ')';
   }
   if (el.style.display !== 'block') el.style.display = 'block';
 }
-document.getElementById('puzzleCard').onclick = () => document.getElementById('puzzleCard').classList.toggle('folded');
+document.getElementById('puzzleCard').onclick = (e) => {
+  const t = e.target.closest('[data-act]'), act = t ? t.dataset.act : 'fold';
+  const card = document.getElementById('puzzleCard');
+  if (act === 'fold') { card.classList.toggle('folded'); return; }
+  if (act === 'hint') { puzzleHintOpen = true; trackEvent('puzzle_hint', { key: activePuzzle && activePuzzle.key }); updatePuzzleCard(); return; }
+  if (act === 'lv') { const k = dailyPuzzleFor(t.dataset.lv).key; if (!activePuzzle || activePuzzle.key !== k) loadPuzzle(k); return; }
+  if (act === 'back') { showStartScreen(); }
+};
 function tickHud() {
   updateAiChip();
   updatePuzzleCard();
