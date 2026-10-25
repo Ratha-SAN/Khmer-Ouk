@@ -684,34 +684,10 @@
     background: var(--surface-2); color: var(--accent); border: 1px solid var(--accent-dim);
   }
   #startScreen .box p.streakNote { margin: -4px 0 12px; font-size: 12px; color: var(--accent); }
-  /* "Add the app to your Home Screen": a notification over the Start pop-up's own free space (above the box, or
-     beside it on a short landscape screen), never on top of the box or the board; the box moves to make room */
+  /* the Start pop-up scrolls when it is taller than a short screen */
   #startScreen { flex-direction: column; justify-content: flex-start; overflow-y: auto; }
   #startScreen > .box { margin: auto 0; flex-shrink: 0; }
-  #startScreen.hasAlert > .box { margin-top: 0; }
-  #installAlert {
-    display: none; align-items: center; gap: 10px; flex-shrink: 0; margin: auto 0 10px; width: min(480px, 90%); box-sizing: border-box;
-    padding: 10px 10px 10px 12px; border-radius: 14px; text-align: left; color: var(--panel-fg);
-    background: var(--surface-2); border: 1px solid var(--accent); box-shadow: 0 6px 20px rgba(0,0,0,.4);
-    animation: installAlertIn .35s ease-out;
-  }
   @keyframes installAlertIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
-  #installAlert .iaIcon { font-size: 22px; }
-  #installAlert .iaText { flex: 1; min-width: 0; font-size: 13px; line-height: 1.35; }
-  #installAlert .iaText b { display: block; color: var(--accent); }
-  #installAlert .iaText small { display: block; font-size: 11px; opacity: .85; }
-  #installAlertAdd { flex: none; padding: 8px 12px; border-radius: 9px; border: none; font-weight: 700; font-size: 13px; cursor: pointer;
-    background: linear-gradient(135deg, #ffcf6b, #ff9f43); color: var(--on-accent); }
-  #installAlertClose { flex: none; width: 30px; height: 30px; padding: 0; border-radius: 8px; cursor: pointer; font-size: 14px;
-    background: none; color: var(--text-muted); border: 1px solid var(--line); }
-  @media (max-height: 560px) and (orientation: landscape) {
-    #startScreen { flex-direction: row; justify-content: flex-start; }
-    #startScreen > .box { margin: auto; }
-    #startScreen.hasAlert > .box { margin: auto auto auto 0; }
-    #installAlert { flex-direction: column; align-items: stretch; text-align: center; width: 170px; margin: auto 10px auto auto; }
-    #installAlert .iaIcon { display: none; }
-    #installAlertClose { align-self: center; }
-  }
   /* a puzzle's objective, on the board view itself (Learn to Play): title, task and result; a tap folds it to the title */
   #puzzleCard {
     position: absolute; top: 14px; left: 16px; z-index: 3; display: none; cursor: pointer;
@@ -2620,12 +2596,6 @@
 </div>
 
 <div id="startScreen" class="fullOverlay">
-  <div id="installAlert" role="alert" style="display:none">
-    <span class="iaIcon">📲</span>
-    <span class="iaText"><b><span class="t-kh">បង្កើត app ដាក់លើអេក្រង់</span><span class="t-sep"> — </span><span class="t-en">Add the app to your Home Screen</span></b><small><span class="t-kh">លេងពេញអេក្រង់ ហើយចុចតែម្ដងក៏ចូលលេងបាន</span><span class="t-sep"> — </span><span class="t-en">Full screen, and one tap to play</span></small></span>
-    <button id="installAlertAdd" type="button"><span class="t-kh">បង្កើត</span><span class="t-sep"> </span><span class="t-en">Add</span></button>
-    <button id="installAlertClose" type="button" aria-label="Close" title="បិទ — Close">✕</button>
-  </div>
   <div class="box">
     <div id="startLangRow"><button id="startLangToggle" type="button" title="Language ភាសា">🌐 <span class="t-kh">English</span><span class="t-sep"> / </span><span class="t-en">ខ្មែរ</span></button></div>
     <h1><span class="t-kh">អុកចត្រង្គ</span><br class="titleBr"><span class="t-en">Ouk Chatrang</span></h1>
@@ -2702,9 +2672,6 @@
     var ios = /iPhone|iPad|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var iab = /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '');
     window.__oukCanInstall = !installed && !iab && !!(ios || window.__oukInstallReady);
-    var off = +(localStorage.getItem('oukInstallAlertOff') || 0), showAlert = window.__oukCanInstall && Date.now() - off > 3 * 86400000;
-    document.getElementById('installAlert').style.display = showAlert ? 'flex' : 'none';
-    document.getElementById('startScreen').classList.toggle('hasAlert', showAlert);
   };
   window.__oukRetentionUI();
 </script>
@@ -15749,8 +15716,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.78';
+const APP_VERSION = '1.6.79';
 const WHATS_NEW = [
+  {
+    version: '1.6.79',
+    date: '2026-10-25',
+    title: { kh: 'ផ្ទាំងចាប់ផ្ដើមស្អាតជាងមុន', en: 'A cleaner Start pop-up' },
+    items: [
+      { kh: 'ការជូនដំណឹង «បង្កើត app ដាក់លើអេក្រង់» លែងបង្ហាញនៅលើផ្ទាំងចាប់ផ្ដើមទៀតហើយ។ វានៅតែបង្ហាញម្ដងជារបារតូច ពេលចូលលេងល្បែង ឬល្បែងប្រាជ្ញា។',
+        en: 'The "Add the app to your Home Screen" notification no longer shows on the Start pop-up. It still shows once as a small bar when you start a game or a puzzle.' }
+    ]
+  },
   {
     version: '1.6.78',
     date: '2026-10-25',
@@ -17423,13 +17399,6 @@ function openInstall(source) {
   deferredInstall = null; window.__oukInstallReady = false;
   window.__oukRetentionUI();
 }
-function hideInstallAlert() { document.getElementById('installAlert').style.display = 'none'; document.getElementById('startScreen').classList.remove('hasAlert'); }
-document.getElementById('installAlertAdd').onclick = () => { hideInstallAlert(); openInstall('start'); };
-document.getElementById('installAlertClose').onclick = () => {
-  hideInstallAlert();
-  try { localStorage.setItem('oukInstallAlertOff', String(Date.now())); } catch (e) {} // not again for 3 days
-  trackEvent('install_alert_close', {});
-};
 // The in-game banner: when a game or a puzzle is entered (once per visit) and after a finished game (once a day). It
 // leaves by itself after 8 s; ✕ hides every install suggestion for 3 days, and after three ✕ the in-game banner stops.
 const INSTALL_NUDGE_KEY = 'oukInstallNudge';
