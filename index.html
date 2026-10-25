@@ -744,6 +744,7 @@
     background: none; color: var(--text-muted); border: 1px solid var(--line); }
   @media (max-width: 820px), (max-height: 560px) {
     #installNudge { top: auto; right: auto; left: 50%; transform: translateX(-50%); bottom: calc(72px + env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100% - 24px)); animation: none; }
+    body.puzzle-open #installNudge { bottom: auto; top: 118px; } /* the puzzle card has the bottom: the space under the camera buttons is free */
   }
   @media (max-height: 560px) and (orientation: landscape) {
     #installNudge { left: auto; right: 8px; transform: none; top: 92px; bottom: auto; width: 170px; flex-wrap: wrap; }
@@ -872,7 +873,8 @@
        playing times (tickHud sets its top and moves the move list below it), without the level's name */
     #aiChip { left: 16px; transform: none; font-size: 10px; padding: 2px 8px; }
     #aiChip .chipName { display: none; }
-    #puzzleCard { top: 118px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); font-size: 12px; padding: 6px 10px; }
+    /* an upright phone: at the bottom of the view, under the board (the install banner then moves up, see below) */
+    #puzzleCard { top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: calc(100% - 32px); font-size: 12px; padding: 6px 10px; }
     #aiNotice { top: auto; bottom: 120px; font-size: 12px; }
     #hud { font-size: 11px; }
     /* cap to ~4 visible lines (line-height 1.7em/line) instead of the
@@ -888,7 +890,7 @@
     /* the title leaves the top edge of the board for the free left-hand column, halfway down (below the move
        list, above the player's scorecard) */
     #boardTitle { top: 56%; left: 16px; transform: translateY(-50%); text-align: left; font-size: 15px; }
-    #puzzleCard { top: 12px; left: 12px; transform: none; width: 200px; }
+    #puzzleCard { top: 12px; bottom: auto; left: 12px; transform: none; width: 200px; }
     /* the level toast moves off the board into the free left-hand column, above the player's scorecard */
     #aiNotice { top: auto; bottom: 126px; left: 8px; max-width: 200px; font-size: 12px; text-align: left; transform: translateY(10px); }
     #aiNotice.show { transform: translateY(0); }
@@ -15734,8 +15736,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.76';
+const APP_VERSION = '1.6.77';
 const WHATS_NEW = [
+  {
+    version: '1.6.77',
+    date: '2026-10-25',
+    title: { kh: 'កាតល្បែងប្រាជ្ញានៅខាងក្រោម លើទូរស័ព្ទបញ្ឈរ', en: 'The puzzle card sits at the bottom on an upright phone' },
+    items: [
+      { kh: 'លើទូរស័ព្ទបញ្ឈរ កាតល្បែងប្រាជ្ញាឥឡូវនៅខាងក្រោមទិដ្ឋភាព ក្រោមក្ដារ។ លើទូរស័ព្ទផ្ដេក វានៅខាងឆ្វេងដដែល។',
+        en: 'On an upright phone the puzzle card now sits at the bottom of the view, under the board. On a phone held sideways it stays on the left.' }
+    ]
+  },
   {
     version: '1.6.76',
     date: '2026-10-25',
@@ -18082,6 +18093,7 @@ function puzzleSubtitle(pz) { const k = pz.title.indexOf(' — '); return k < 0 
 function updatePuzzleCard() {
   const el = document.getElementById('puzzleCard');
   const pz = uiMode === 'train' && !overlayOpen ? activePuzzle : null;
+  document.body.classList.toggle('puzzle-open', !!pz);
   if (!pz) { if (el.style.display !== 'none') el.style.display = 'none'; puzzleCardSig = ''; return; }
   const dlv = dailyLevelOf(pz.key), daily = DAILY_LEVELS.find((x) => x.k === dlv);
   const wrong = !puzzleSolved && /^✘/.test(flashMsg || '');
