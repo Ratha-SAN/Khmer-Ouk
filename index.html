@@ -647,11 +647,41 @@
     font-size: 13px; padding: 6px 14px; border-radius: 999px; background: var(--surface-2); color: var(--panel-fg);
     border: 1px solid var(--accent-dim); box-shadow: none; font-weight: 600;
   }
-  #startScreen .box #startLearnBtn {
+  #startScreen .box #startLearnBtn, #startScreen .box #continueBtn, #startScreen .box #dailyPuzzleBtn {
     display: block; width: 100%; margin-bottom: 12px; font-size: 15px; padding: 12px 8px;
     background: linear-gradient(160deg, rgba(50,30,90,.85), rgba(22,12,45,.9)); color: var(--panel-fg);
     border: 1px solid rgba(180,140,255,.35); box-shadow: none; font-weight: 600;
   }
+  /* coming back: Continue your game, the daily puzzle with the day streak, Add to Home Screen */
+  #startScreen .box #continueBtn { border-color: var(--accent); }
+  #continueBtn small { display: block; font-size: 12px; font-weight: 500; opacity: .8; margin-top: 3px; }
+  #dailyRow { display: flex; gap: 8px; margin-bottom: 12px; }
+  #startScreen .box #dailyPuzzleBtn { flex: 1; margin-bottom: 0; }
+  .dailyDone { color: #4fd88a; }
+  .streakBadge {
+    display: flex; align-items: center; padding: 0 12px; border-radius: 10px; font-size: 17px; font-weight: 800; white-space: nowrap;
+    background: var(--surface-2); color: var(--accent); border: 1px solid var(--accent-dim);
+  }
+  #startScreen .box p.streakNote { margin: -4px 0 12px; font-size: 12px; color: var(--accent); }
+  #startScreen .box #installPill {
+    margin-top: 8px; font-size: 13px; padding: 7px 16px; border-radius: 999px; font-weight: 600; box-shadow: none;
+    background: var(--surface-2); color: var(--panel-fg); border: 1px solid var(--accent-dim);
+  }
+  #toastNotice {
+    position: fixed; left: 50%; bottom: 96px; z-index: 30; max-width: 86vw; text-align: center; pointer-events: none;
+    background: var(--accent); color: var(--on-accent); padding: 10px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4); opacity: 0; transform: translateX(-50%) translateY(10px); transition: opacity .25s ease, transform .25s ease;
+  }
+  #toastNotice.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #installNudge {
+    position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%); z-index: 30; width: min(360px, 92vw); display: none;
+    background: var(--panel-bg); color: var(--panel-fg); border: 1px solid var(--accent); border-radius: 14px; padding: 12px 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45); text-align: left; font-size: 13px; line-height: 1.5;
+  }
+  #installNudge .btnrow { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  #installNudge button { padding: 7px 14px; font-size: 13px; border-radius: 8px; cursor: pointer; }
+  #installNudgeAdd { background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; }
+  #installNudgeLater { background: none; color: var(--text-muted); border: 1px solid var(--line); }
   /* opened inside a social app's own browser: Google sign-in is blocked there */
   .iabHint {
     display: none; margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.5;
@@ -2430,6 +2460,14 @@
 </div>
 
 <div id="aiNotice" aria-live="polite"></div>
+<div id="toastNotice" aria-live="polite"></div>
+<div id="installNudge" role="dialog">
+  <div>📲 <span class="t-kh">ដាក់ អុកចត្រង្គ លើអេក្រង់ដើម៖ លេងពេញអេក្រង់ ហើយត្រឡប់មកលេងវិញដោយចុចតែម្ដង។</span><span class="t-sep"> — </span><span class="t-en">Add Ouk Chatrang to your Home Screen: play full screen, and come back in one tap.</span></div>
+  <div class="btnrow">
+    <button id="installNudgeLater" type="button"><span class="t-kh">ពេលក្រោយ</span><span class="t-sep"> </span><span class="t-en">Not now</span></button>
+    <button id="installNudgeAdd" type="button"><span class="t-kh">ដាក់</span><span class="t-sep"> </span><span class="t-en">Add</span></button>
+  </div>
+</div>
 <div id="levelMenu" role="dialog" aria-label="Computer level">
   <div class="lmTitle">🤖 កម្រិតកុំព្យូទ័រ Computer level</div>
   <div class="lmGrid" id="levelMenuBtns"></div>
@@ -2508,8 +2546,15 @@
     </div>
     <button id="playNowBtn" type="button"><span class="t-kh">លេងឥឡូវ</span><span class="t-sep"> ▸ </span><span class="t-en">PLAY NOW</span><small><span class="t-kh">ជាមួយកុំព្យូទ័រ កម្រិត ២</span><span class="t-sep"> — </span><span class="t-en">vs Computer, level 2</span></small></button>
     <p id="guestGamesNote" class="guestGamesNote"><span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ <b class="ggLeft">3</b> / 3 · ចូលគណនីដើម្បីលេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free games today: <b class="ggLeft">3</b> of 3 left · sign in for unlimited</span></p>
+    <button id="continueBtn" type="button" style="display:none">▶ <span class="t-kh">បន្តល្បែងមុន</span><span class="t-sep"> — </span><span class="t-en">Continue your game</span><small id="continueInfo"></small></button>
+    <div id="dailyRow">
+      <button id="dailyPuzzleBtn" type="button">🧩 <span class="t-kh">ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ</span><span class="t-sep"> — </span><span class="t-en">Daily puzzle</span><span id="dailyDone" class="dailyDone" style="display:none"> ✔</span></button>
+      <span id="streakBadge" class="streakBadge" style="display:none"></span>
+    </div>
+    <p id="streakNote" class="streakNote" style="display:none"></p>
     <button id="startLearnBtn" type="button">📖 <span class="t-kh">រៀនលេង</span><span class="t-sep"> — </span><span class="t-en">Learn to Play</span></button>
     <button id="startBtn" type="button"><span class="t-kh">ចុះឈ្មោះ / ចូលគណនី</span><span class="t-sep"> ▸ </span><span class="t-en">Sign in / Create account</span></button>
+    <button id="installPill" type="button" style="display:none">📲 <span class="t-kh">ដាក់លើអេក្រង់ដើម</span><span class="t-sep"> — </span><span class="t-en">Add to Home Screen</span></button>
   </div>
 </div>
 <script>
@@ -2525,6 +2570,39 @@
     if (/[?#&]join=[A-Za-z0-9]{6}\b/.test(location.search + location.hash)) document.getElementById('startInviteNote').style.display = 'block';
     if (/FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '')) document.getElementById('startIabHint').style.display = 'block';
   })();
+  // The Start pop-up's coming-back items, all read from this device's storage: Continue your game (the game in
+  // progress, autosaved after every move), the daily puzzle's done mark, the day streak, and Add to Home Screen.
+  // Shown from the first frame (no pop-in); the game script calls it again whenever any of them changes.
+  window.__oukRetentionUI = function () {
+    var dk = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    var read = function (k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+    var sp = function (kh, en, sep) { return '<span class="t-kh">' + kh + '</span><span class="t-sep">' + (sep || ' — ') + '</span><span class="t-en">' + en + '</span>'; };
+    var today = dk(new Date()), y = new Date(); y.setDate(y.getDate() - 1); var yday = dk(y);
+    var a = read('oukAutosave'), cb = document.getElementById('continueBtn');
+    if (a && !a.gameOver && a.moveEntries && a.moveEntries.length && a.mode !== 'online') {
+      var m = /^ai(\d)$/.exec(a.mode || '');
+      document.getElementById('continueInfo').innerHTML = sp('ជើងទី ' + a.moveEntries.length + ' · ' + (m ? 'កុំព្យូទ័រ L' + m[1] : 'លេង ២ នាក់'),
+        'move ' + a.moveEntries.length + ' · ' + (m ? 'vs Computer L' + m[1] : '2 players'), ' ');
+      cb.style.display = 'block';
+    } else cb.style.display = 'none';
+    var dp = read('oukDailyPuzzle');
+    document.getElementById('dailyDone').style.display = dp && dp.d === today && dp.solved ? 'inline' : 'none';
+    var s = read('oukStreak'), alive = !!(s && s.n > 0 && (s.last === today || s.last === yday));
+    var badge = document.getElementById('streakBadge'), note = document.getElementById('streakNote');
+    badge.style.display = alive ? 'flex' : 'none';
+    if (alive) {
+      badge.textContent = '🔥 ' + s.n;
+      note.innerHTML = s.last === today
+        ? sp('🔥 លេងបាន ' + s.n + ' ថ្ងៃជាប់គ្នា! ត្រឡប់មកវិញថ្ងៃស្អែក', '🔥 ' + s.n + '-day streak! Come back tomorrow to keep it going')
+        : sp('🔥 លេងថ្ងៃនេះ ដើម្បីរក្សា ' + s.n + ' ថ្ងៃជាប់គ្នា', '🔥 Play today to keep your ' + s.n + '-day streak');
+    }
+    note.style.display = alive ? 'block' : 'none';
+    var installed = (window.matchMedia && matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches) || navigator.standalone === true;
+    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var iab = /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '');
+    document.getElementById('installPill').style.display = !installed && !iab && (ios || window.__oukInstallReady) ? 'inline-block' : 'none';
+  };
+  window.__oukRetentionUI();
 </script>
 
 <div id="panel">
@@ -13842,7 +13920,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
 // Full screen for everyone -- phones, tablets and computers, in either orientation: requested by each tap of a
 // Start pop-up button (Play now, Learn to Play, Sign up / Sign in), since the Fullscreen API needs a live user
 // gesture. Where a browser has no fullscreen for pages (iPhone Safari, some in-app browsers) it quietly does nothing.
-['playNowBtn', 'startLearnBtn', 'startBtn'].forEach((id) => {
+['playNowBtn', 'startLearnBtn', 'startBtn', 'continueBtn', 'dailyPuzzleBtn'].forEach((id) => {
   document.getElementById(id).addEventListener('click', () => { window.__oukActions.requestFullscreen(); });
 });
 
@@ -13910,6 +13988,8 @@ function refreshStatus() {
     wrapLangRuns(bannerEl); // keep the banner's bilingual labels honoring the language toggle
     if (!gameEndTracked) {
       gameEndTracked = true;
+      clearAutosave();
+      setTimeout(maybeInstallNudge, 2500);
       // A fallen clock flag ends the game with no engine-detected mate/
       // stalemate/count-limit position (E.gameStatus(state) is null in
       // that case) -- timeoutResult is the only source of truth then.
@@ -14237,6 +14317,7 @@ function applyMove(m) {
   if (uiMode === 'play' && moveEntries.length === 0 && gameStartTs) {
     funnel('first_move', { mode, secs: Math.round((Date.now() - gameStartTs) / 1000) });
     if (accessTier === 'guest') bumpGuestGames();
+    noteActiveDay('game');
   }
   E.makeMove(state, m);
   const promoted = wasPawn && E.isProm(state.board[m.to]);
@@ -14287,6 +14368,7 @@ function applyMove(m) {
   // hotseat auto-flip: turn the board to face whoever is now to move
   if (autoFlipEnabled && mode === 'hotseat' && !gameOver) setViewSide(state.turn, true);
   if (mode === 'online') broadcastOnlineMove();
+  autosaveGame();
 }
 
 // training: free exploration — White keeps the move, promotion is celebrated
@@ -14321,6 +14403,7 @@ function applyTrainingMove(m) {
     state.turn = E.WHITE;
     lastMove = m;
     flashMsg = '✔ ដោះស្រាយបានហើយ! Solved!';
+    if (activePuzzle.key === dailyPuzzle().key) dailyPuzzleSolved();
     selected = -1; legalForSelected = [];
     puzzleLessonText();
     clearMarkers();
@@ -15392,6 +15475,7 @@ let activePuzzle = null, puzzleSolved = false, puzzleLevel = 1;
 function puzzleLessonText() {
   const pz = activePuzzle;
   document.getElementById('lessonText').innerHTML =
+    (pz.key === dailyPuzzle().key ? '<span class="gflag">🧩 ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ Daily puzzle</span>' : '') +
     '<span class="gterm">' + pz.title + '</span>' +
     '<span class="gwhy">' + pz.task.kh + '<span class="en">' + pz.task.en + '</span></span>' +
     (puzzleSolved ? '<span class="gresult">✔ ដោះស្រាយបានហើយ! Solved — pick another puzzle.</span>' : '<span class="gflag">ស To move: White — ដើរកូនអុកដោយខ្លួនឯង make your own move on the board.</span>');
@@ -15558,8 +15642,23 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.70';
+const APP_VERSION = '1.6.71';
 const WHATS_NEW = [
+  {
+    version: '1.6.71',
+    date: '2026-10-25',
+    title: { kh: 'បន្តល្បែង ថ្ងៃជាប់គ្នា 🔥 និងល្បែងប្រាជ្ញាប្រចាំថ្ងៃ 🧩', en: 'Continue your game, day streaks 🔥 and a daily puzzle 🧩' },
+    items: [
+      { kh: '▶ បន្តល្បែងមុន៖ ល្បែងដែលមិនទាន់ចប់ត្រូវបានរក្សាទុកដោយស្វ័យប្រវត្តិ ក្រោយគ្រប់ជើង។ ពេលអ្នកត្រឡប់មកវិញ ចុច «បន្តល្បែងមុន» នៅលើផ្ទាំងចាប់ផ្ដើម។',
+        en: '▶ Continue your game: an unfinished game is saved automatically after every move. When you come back, tap Continue your game on the Start pop-up.' },
+      { kh: '🔥 ថ្ងៃជាប់គ្នា៖ លេងមួយល្បែង ឬដោះស្រាយល្បែងប្រាជ្ញាប្រចាំថ្ងៃ រៀងរាល់ថ្ងៃ ដើម្បីបង្កើនចំនួនថ្ងៃជាប់គ្នារបស់អ្នក។',
+        en: '🔥 Day streak: play a game or solve the daily puzzle every day to grow your streak.' },
+      { kh: '🧩 ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ៖ ល្បែងប្រាជ្ញាថ្មីមួយរៀងរាល់ថ្ងៃ ដូចគ្នាសម្រាប់អ្នកលេងទាំងអស់ ឥតគិតថ្លៃ និងមិនរាប់ជាល្បែងទេ។',
+        en: '🧩 Daily puzzle: a new puzzle every day, the same for everyone, free and not counted as a game.' },
+      { kh: '📲 ដាក់លើអេក្រង់ដើម៖ ប៊ូតុងថ្មីនៅលើផ្ទាំងចាប់ផ្ដើម និងការណែនាំមួយដងក្នុងមួយថ្ងៃក្រោយល្បែងចប់ ដើម្បីដាក់ អុកចត្រង្គ លើអេក្រង់ដើម។',
+        en: '📲 Add to Home Screen: a new button on the Start pop-up, and a suggestion once a day after a game, to put Ouk Chatrang on your home screen.' }
+    ]
+  },
   {
     version: '1.6.70',
     date: '2026-10-24',
@@ -17005,6 +17104,122 @@ document.getElementById('playNowBtn').onclick = () => {
     else startAiNow(2);
   }).finally(() => { btn.disabled = false; btn.classList.remove('busy'); });
 };
+// ---------- coming back: Continue your game, the day streak, the daily puzzle, Add to Home Screen ----------
+// Continue: the game in progress (vs Computer or 2 players; not online) is autosaved after every move and offered
+// on the Start pop-up until it ends.
+const AUTOSAVE_KEY = 'oukAutosave';
+function autosaveGame() {
+  if (uiMode !== 'play' || mode === 'online' || reviewMode) return;
+  try {
+    if (gameOver || !moveEntries.length) localStorage.removeItem(AUTOSAVE_KEY);
+    else localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(buildSavePayload()));
+  } catch (e) {}
+}
+function clearAutosave() { try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {} }
+document.getElementById('continueBtn').onclick = () => {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null'); } catch (e) {}
+  if (!p) { window.__oukRetentionUI(); return; }
+  funnel('continue_game', { mode: p.mode, moves: (p.moveEntries || []).length });
+  ensureGuest().then(() => {
+    modeScreenOrigin = 'start';
+    restoreSavePayload(p);
+    gameEndTracked = false; // a game picked up again ends (and is recorded) as normal
+  });
+};
+// Day streak: the days in a row with a game played (its first move) or the daily puzzle solved.
+const STREAK_KEY = 'oukStreak';
+function dayKeyOf(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function noteActiveDay(kind) {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(STREAK_KEY) || 'null'); } catch (e) {}
+  const today = localDayKey();
+  if (s && s.last === today) return;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const n = s && s.last === dayKeyOf(y) ? (s.n | 0) + 1 : 1;
+  try { localStorage.setItem(STREAK_KEY, JSON.stringify({ last: today, n, best: Math.max(n, s ? s.best | 0 : 0) })); } catch (e) {}
+  trackEvent('streak_day', { n, kind });
+  showToast(n > 1
+    ? '<span class="t-kh">🔥 ' + n + ' ថ្ងៃជាប់គ្នា! ត្រឡប់មកវិញថ្ងៃស្អែក</span><span class="t-en">🔥 Day ' + n + ' in a row! Come back tomorrow</span>'
+    : '<span class="t-kh">🔥 ថ្ងៃទី ១! លេងរៀងរាល់ថ្ងៃ ដើម្បីបង្កើនចំនួនថ្ងៃជាប់គ្នា</span><span class="t-en">🔥 Day 1! Play every day to grow your streak</span>');
+  window.__oukRetentionUI();
+}
+let toastTimer = null;
+function showToast(html, ms) {
+  const el = document.getElementById('toastNotice');
+  el.innerHTML = html;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms || 4500);
+}
+// Daily puzzle: one of the puzzles each day, the same for everyone (stepping through them 7 at a time, so the
+// levels mix), free for guests and not counted as a game.
+const DAILY_PUZZLE_KEY = 'oukDailyPuzzle';
+function dailyPuzzle() {
+  const d = new Date();
+  const day = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+  return PUZZLES[(day * 7) % PUZZLES.length];
+}
+function dailyPuzzleSolved() {
+  let dp = null;
+  try { dp = JSON.parse(localStorage.getItem(DAILY_PUZZLE_KEY) || 'null'); } catch (e) {}
+  if (dp && dp.d === localDayKey() && dp.solved) return;
+  try { localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify({ d: localDayKey(), solved: true })); } catch (e) {}
+  trackEvent('daily_puzzle_solved', { key: activePuzzle.key });
+  noteActiveDay('puzzle');
+  flashMsg = '✔ ដោះស្រាយបានហើយ! ល្បែងប្រាជ្ញាថ្មីនៅថ្ងៃស្អែក Solved! A new puzzle tomorrow';
+}
+document.getElementById('dailyPuzzleBtn').onclick = () => {
+  const pz = dailyPuzzle();
+  funnel('daily_puzzle_open', { key: pz.key });
+  ensureGuest().then(() => { hideOverlays(); setUiMode('train'); loadPuzzle(pz.key); });
+};
+// Add to Home Screen: where the browser offers its own install (Android Chrome, desktop Chrome/Edge) that prompt
+// is kept and used; on iPhone/iPad the picture guide explains it. Suggested on the Start pop-up, and once a day
+// after a finished game (until it has been turned down three times); never once installed.
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  window.__oukInstallReady = true;
+  window.__oukRetentionUI();
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null; window.__oukInstallReady = false;
+  trackEvent('app_installed', {});
+  window.__oukRetentionUI();
+});
+function canSuggestInstall() { return document.getElementById('installPill').style.display !== 'none'; }
+function openInstall(source) {
+  trackEvent('install_click', { source, native: !!deferredInstall });
+  if (!deferredInstall) { openPopup('homeScreenPopup'); return; }
+  deferredInstall.prompt();
+  deferredInstall.userChoice.then((r) => { trackEvent('install_choice', { outcome: r && r.outcome }); }).catch(() => {});
+  deferredInstall = null; window.__oukInstallReady = false;
+  window.__oukRetentionUI();
+}
+document.getElementById('installPill').onclick = () => openInstall('start');
+const INSTALL_NUDGE_KEY = 'oukInstallNudge';
+function maybeInstallNudge() {
+  if (!canSuggestInstall() || overlayOpen) return;
+  let r = null;
+  try { r = JSON.parse(localStorage.getItem(INSTALL_NUDGE_KEY) || 'null'); } catch (e) {}
+  r = r || { last: '', no: 0 };
+  if (r.last === localDayKey() || r.no >= 3) return;
+  r.last = localDayKey();
+  try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); } catch (e) {}
+  trackEvent('install_nudge', {});
+  document.getElementById('installNudge').style.display = 'block';
+}
+document.getElementById('installNudgeAdd').onclick = () => { document.getElementById('installNudge').style.display = 'none'; openInstall('after_game'); };
+document.getElementById('installNudgeLater').onclick = () => {
+  document.getElementById('installNudge').style.display = 'none';
+  let r = null;
+  try { r = JSON.parse(localStorage.getItem(INSTALL_NUDGE_KEY) || 'null'); } catch (e) {}
+  r = r || { last: localDayKey(), no: 0 };
+  r.no = (r.no | 0) + 1;
+  try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); } catch (e) {}
+};
 document.getElementById('startLearnBtn').onclick = () => {
   funnel('start_learn_click');
   ensureGuest().then(() => { trackEvent('mode_access', { mode: 'learn' }); hideOverlays(); setUiMode('train'); });
@@ -17462,6 +17677,7 @@ function leaveOnlineMatch() {
 }
 function showStartScreen() {
   if (mode === 'online') leaveOnlineMatch();
+  window.__oukRetentionUI();
   document.getElementById('startScreen').style.display = 'flex';
   overlayOpen = true;
   tickHud();
@@ -17511,10 +17727,8 @@ function showSaveStatus(msg) {
   el.textContent = msg;
   setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
 }
-function saveGame() {
-  if (uiMode !== 'play') { showSaveStatus('ត្រូវនៅរបៀបលេង Switch to Play mode first'); return; }
-  if (mode === 'online') { showSaveStatus('មិនអាចរក្សាទុកល្បែងអនឡាញបានទេ Online games can\'t be saved'); return; }
-  const payload = {
+function buildSavePayload() {
+  return {
     v: 1, state: E.toJSON(state), mode, humanSide,
     history, moveEntries, lastMove, baselineCounts, gameOver,
     elapsed: frozenElapsed !== null ? frozenElapsed : (gameStartTs ? Date.now() - gameStartTs : 0),
@@ -17525,8 +17739,12 @@ function saveGame() {
     // the true remaining balance rather than from the last move boundary
     clockMs: clockCfg ? [clockRemaining(E.WHITE), clockRemaining(E.BLACK)] : [0, 0]
   };
+}
+function saveGame() {
+  if (uiMode !== 'play') { showSaveStatus('ត្រូវនៅរបៀបលេង Switch to Play mode first'); return; }
+  if (mode === 'online') { showSaveStatus('មិនអាចរក្សាទុកល្បែងអនឡាញបានទេ Online games can\'t be saved'); return; }
   try {
-    localStorage.setItem(saveKeyFor(currentSaveSlot()), JSON.stringify(payload));
+    localStorage.setItem(saveKeyFor(currentSaveSlot()), JSON.stringify(buildSavePayload()));
     refreshSaveSlotLabels();
     showSaveStatus('រក្សាទុករួច Saved!');
   } catch (e) { showSaveStatus('Save failed: ' + e.message); }
@@ -17537,6 +17755,10 @@ function loadGame() {
   if (!raw) { showSaveStatus('គ្មានហ្គេមរក្សាទុក No saved game'); return; }
   let payload;
   try { payload = JSON.parse(raw); } catch (e) { showSaveStatus('ឯកសារខូច Corrupt save'); return; }
+  restoreSavePayload(payload);
+  showSaveStatus('ផ្ទុករួច Loaded!');
+}
+function restoreSavePayload(payload) {
   mode = payload.mode; humanSide = payload.humanSide;
   state = E.fromJSON(payload.state);
   history = payload.history || [];
@@ -17589,7 +17811,6 @@ function loadGame() {
   refreshAll();
   refreshModeReadout();
   scheduleAI();
-  showSaveStatus('ផ្ទុករួច Loaded!');
 }
 document.getElementById('saveBtn').onclick = saveGame;
 document.getElementById('loadBtn').onclick = loadGame;
@@ -18586,6 +18807,7 @@ window.__ouk = {
   debugNewGame: () => newGame(),
   debugFlat2DSize: (setStyle, type) => (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type],
   debugApplyMove: (m) => applyMove(m),
+  debugTrainMove: (m) => applyTrainingMove(m), // Test-only: a move made in Learn to Play (puzzles check it)
   debugFxLog: () => window.__oukFxLog.slice(),
   debugSfxLog: () => window.__oukSfxLog.slice(),
   debugFireModernNuke: (mate) => { if (mate) fxModernCheckmate(E.kingSq(state, state.turn)); else fxModernCheck(E.kingSq(state, state.turn)); },
