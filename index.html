@@ -667,6 +667,19 @@
     margin-top: 8px; font-size: 13px; padding: 7px 16px; border-radius: 999px; font-weight: 600; box-shadow: none;
     background: var(--surface-2); color: var(--panel-fg); border: 1px solid var(--accent-dim);
   }
+  /* a puzzle's objective, on the board view itself (Learn to Play): title, task and result; a tap folds it to the title */
+  #puzzleCard {
+    position: absolute; top: 14px; left: 16px; z-index: 3; display: none; cursor: pointer;
+    width: min(320px, calc(100% - 32px)); box-sizing: border-box; padding: 8px 12px; border-radius: 12px; text-align: left;
+    background: color-mix(in srgb, var(--panel-bg) 88%, transparent); color: var(--panel-fg); border: 1px solid var(--accent-dim);
+    font-size: 13px; line-height: 1.45; box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  }
+  #puzzleCard .pcTitle { display: block; font-weight: 700; color: var(--accent); }
+  #puzzleCard .pcTask { display: block; margin-top: 2px; }
+  #puzzleCard .pcResult { display: block; margin-top: 4px; font-weight: 700; }
+  #puzzleCard .pcResult.ok { color: #4fd88a; }
+  #puzzleCard .pcResult.no { color: #ff7a6b; }
+  #puzzleCard.folded .pcTask, #puzzleCard.folded .pcResult.hint { display: none; }
   #toastNotice {
     position: fixed; left: 50%; bottom: 96px; z-index: 30; max-width: 86vw; text-align: center; pointer-events: none;
     background: var(--accent); color: var(--on-accent); padding: 10px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
@@ -805,6 +818,7 @@
        playing times (tickHud sets its top and moves the move list below it), without the level's name */
     #aiChip { left: 16px; transform: none; font-size: 10px; padding: 2px 8px; }
     #aiChip .chipName { display: none; }
+    #puzzleCard { top: 118px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); font-size: 12px; padding: 6px 10px; }
     #aiNotice { top: auto; bottom: 120px; font-size: 12px; }
     #hud { font-size: 11px; }
     /* cap to ~4 visible lines (line-height 1.7em/line) instead of the
@@ -820,6 +834,7 @@
     /* the title leaves the top edge of the board for the free left-hand column, halfway down (below the move
        list, above the player's scorecard) */
     #boardTitle { top: 56%; left: 16px; transform: translateY(-50%); text-align: left; font-size: 15px; }
+    #puzzleCard { top: 12px; left: 12px; transform: none; width: 200px; }
     /* the level toast moves off the board into the free left-hand column, above the player's scorecard */
     #aiNotice { top: auto; bottom: 126px; left: 8px; max-width: 200px; font-size: 12px; text-align: left; transform: translateY(10px); }
     #aiNotice.show { transform: translateY(0); }
@@ -2430,6 +2445,7 @@
     <div class="meta"><span class="pname">Black</span><span class="pscore">0</span></div>
   </div>
   <button id="aiChip" type="button" aria-label="Computer level"></button>
+  <div id="puzzleCard" role="status" title="ចុចដើម្បីបង្រួម / ពង្រីក — Tap to fold / unfold"></div>
   <div id="hud"></div>
   <div id="movelist"></div>
   <div id="thinking">កំពុងគិត… Computer is thinking…</div>
@@ -15642,8 +15658,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.71';
+const APP_VERSION = '1.6.72';
 const WHATS_NEW = [
+  {
+    version: '1.6.72',
+    date: '2026-10-25',
+    title: { kh: 'គោលដៅរបស់ល្បែងប្រាជ្ញានៅលើក្ដារ', en: "The puzzle's objective on the board view" },
+    items: [
+      { kh: 'ពេលដោះស្រាយល្បែងប្រាជ្ញា (រួមទាំងល្បែងប្រាជ្ញាប្រចាំថ្ងៃ 🧩) កាតតូចមួយលើក្ដារបង្ហាញគោលដៅ និងលទ្ធផល៖ «មិនមែនទេ សាកម្ដងទៀត» ឬ «ដោះស្រាយបានហើយ!»។ ចុចលើកាតដើម្បីបង្រួមវា។',
+        en: 'While you solve a puzzle (the daily puzzle 🧩 included), a small card on the board view shows the objective and the result: "Not it, try again" or "Solved!". Tap the card to fold it.' }
+    ]
+  },
   {
     version: '1.6.71',
     date: '2026-10-25',
@@ -17855,8 +17880,33 @@ function updateThinkTimes() {
   thinkRunning = running;
 }
 const PHONE_MQ = window.matchMedia('(max-width: 820px), (max-height: 560px)'); // the phone layout's media query
+// the puzzle card: shown while a puzzle is open in Learn to Play, refreshed from the HUD tick (only when it changes)
+let puzzleCardSig = '';
+function updatePuzzleCard() {
+  const el = document.getElementById('puzzleCard');
+  const pz = uiMode === 'train' && !overlayOpen ? activePuzzle : null;
+  if (!pz) { if (el.style.display !== 'none') el.style.display = 'none'; puzzleCardSig = ''; return; }
+  const daily = pz.key === dailyPuzzle().key;
+  const wrong = !puzzleSolved && /^✘/.test(flashMsg || '');
+  const sig = pz.key + '|' + puzzleSolved + '|' + wrong + '|' + daily;
+  if (sig !== puzzleCardSig) {
+    puzzleCardSig = sig;
+    const sp = (kh, en, sep) => '<span class="t-kh">' + kh + '</span><span class="t-sep">' + (sep || ' — ') + '</span><span class="t-en">' + en + '</span>';
+    const result = puzzleSolved
+      ? '<span class="pcResult ok">' + (daily ? sp('✔ ដោះស្រាយបានហើយ! ល្បែងប្រាជ្ញាថ្មីនៅថ្ងៃស្អែក', '✔ Solved! A new puzzle tomorrow') : sp('✔ ដោះស្រាយបានហើយ!', '✔ Solved!')) + '</span>'
+      : wrong ? '<span class="pcResult no">' + sp('✘ មិនមែនទេ សាកម្ដងទៀត', '✘ Not it, try again') + '</span>'
+      : '<span class="pcResult hint">' + sp('ស ដើរមុន — ដើរកូនអុកនៅលើក្ដារ', 'White to move: make your move on the board') + '</span>';
+    el.innerHTML = '<span class="pcTitle">' + (daily ? '🧩 ' : '') + '<span class="pcTitleText"></span></span>' +
+      '<span class="pcTask">' + sp(pz.task.kh, pz.task.en, ' ') + '</span>' + result;
+    el.querySelector('.pcTitleText').textContent = pz.title;
+    wrapLangRuns(el.querySelector('.pcTitle')); // the title is one bilingual string: split it for the language toggle
+  }
+  if (el.style.display !== 'block') el.style.display = 'block';
+}
+document.getElementById('puzzleCard').onclick = () => document.getElementById('puzzleCard').classList.toggle('folded');
 function tickHud() {
   updateAiChip();
+  updatePuzzleCard();
   if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
     const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
     if ([I.T, I.B, I.L, I.R].map(Math.round).join('/') !== planSig) resize();
@@ -19218,11 +19268,11 @@ function planInsets(w, h, side) {
   let T = 0, B = 0, L = 0, R = 0;
   // vertical rule: an element in the upper half of the viewport pushes the board down, one in the lower half pushes it up
   const vertical = (r) => { if ((r.top + r.bottom) / 2 - sr.top < h / 2) T = Math.max(T, r.bottom - sr.top); else B = Math.max(B, sr.bottom - r.top); };
-  for (const id of ['scoreW', 'scoreB', 'boardTitle', 'aiChip']) {
+  for (const id of ['scoreW', 'scoreB', 'boardTitle', 'aiChip', 'puzzleCard']) {
     const e = vis(id); if (!e) continue;
     const r = e.getBoundingClientRect();
     // the title and level chip sit in the left-hand column on a landscape phone: there they push the board right
-    if (side && (id === 'boardTitle' || id === 'aiChip') && r.right - sr.left < w * 0.35) L = Math.max(L, r.right - sr.left);
+    if (side && (id === 'boardTitle' || id === 'aiChip' || id === 'puzzleCard') && r.right - sr.left < w * 0.35) L = Math.max(L, r.right - sr.left);
     else vertical(r);
   }
   for (const id of ['camControls', 'panelToggle']) {
