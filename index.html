@@ -322,6 +322,19 @@
   select { width: 100%; margin: 3px 0; }
   button:hover:not(:disabled) { background: var(--surface-3); border-color: var(--accent); }
   button:disabled { opacity: .45; cursor: default; }
+  /* Refined controls: no outline strokes -- an unselected button, list or section is simply a slightly different tone
+     from what is behind it, the selected one keeps its solid accent fill, and a hover lifts the tone a step. The
+     strokes stay transparent (not removed) so nothing changes size. (Notifications keep their accent edge.) */
+  button, select, details.acc, #status, #countPanel, .themeCatDrop, #puzzleCard, #aiChip, #dailyRow, .streakBadge {
+    border-color: transparent !important;
+  }
+  button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  details.acc { background: color-mix(in srgb, var(--panel-fg) 4%, var(--surface-0)); }
+  /* the marks that used to be an accent stroke are an accent tint now */
+  .themeCatBtn.hasSelection { background: color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
+  #startScreen .box #continueBtn { background: linear-gradient(160deg, rgba(96,66,40,.9), rgba(52,32,26,.92)) !important; } /* a warmer tone: the game waiting for you */
+  #startScreen .box .dailyBtn.rec { background: color-mix(in srgb, var(--accent) 24%, var(--surface-2)); box-shadow: none; }
+  #puzzleCard .pcLv.cur { background: color-mix(in srgb, var(--accent) 24%, var(--surface-2)); }
   /* guest-tier locked controls: dimmed but still clickable (a real
      disabled attribute would swallow the click, so a popup could never be
      shown) -- clicking one pops up the sign-in prompt instead of acting. */
@@ -15736,8 +15749,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.77';
+const APP_VERSION = '1.6.78';
 const WHATS_NEW = [
+  {
+    version: '1.6.78',
+    date: '2026-10-25',
+    title: { kh: 'ប៊ូតុងស្អាតជាងមុន៖ គ្មានបន្ទាត់ជុំវិញ', en: 'Cleaner buttons: no outlines' },
+    items: [
+      { kh: 'ប៊ូតុង ស្បែក និងផ្ទាំងផ្សេងៗលែងមានបន្ទាត់ជុំវិញទៀតហើយ៖ ប៊ូតុងដែលមិនបានជ្រើស មានពណ៌ខុសពីផ្ទៃខាងក្រោយបន្តិច ហើយប៊ូតុងដែលបានជ្រើស នៅតែពណ៌មាសពេញ។',
+        en: 'Buttons, themes and the other boxes no longer have outlines: an unselected one is a slightly different tone from its background, and the selected one keeps its solid gold fill.' }
+    ]
+  },
   {
     version: '1.6.77',
     date: '2026-10-25',
