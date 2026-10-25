@@ -728,15 +728,27 @@
     box-shadow: 0 6px 20px rgba(0,0,0,.4); opacity: 0; transform: translateX(-50%) translateY(10px); transition: opacity .25s ease, transform .25s ease;
   }
   #toastNotice.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* the in-game "Add the app" banner: one line in free space -- top right beside the camera buttons on a computer,
+     under the board (above the scorecards) on an upright phone, the right-hand column on a landscape phone */
   #installNudge {
-    position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%); z-index: 30; width: min(360px, 92vw); display: none;
-    background: var(--panel-bg); color: var(--panel-fg); border: 1px solid var(--accent); border-radius: 14px; padding: 12px 14px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.45); text-align: left; font-size: 13px; line-height: 1.5;
+    position: absolute; top: 60px; right: 64px; z-index: 6; width: 270px; display: none; align-items: center; gap: 8px;
+    box-sizing: border-box; padding: 7px 8px 7px 10px; border-radius: 12px; text-align: left; font-size: 12px; line-height: 1.3;
+    background: var(--panel-bg); color: var(--panel-fg); border: 1px solid var(--accent); box-shadow: 0 6px 18px rgba(0,0,0,.4);
+    animation: installAlertIn .3s ease-out;
   }
-  #installNudge .btnrow { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
-  #installNudge button { padding: 7px 14px; font-size: 13px; border-radius: 8px; cursor: pointer; }
-  #installNudgeAdd { background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; }
-  #installNudgeLater { background: none; color: var(--text-muted); border: 1px solid var(--line); }
+  #installNudge .inIcon { font-size: 18px; }
+  #installNudge .inText { flex: 1; min-width: 0; font-weight: 600; }
+  #installNudgeAdd { flex: none; padding: 6px 10px; border-radius: 8px; border: none; font-weight: 700; font-size: 12px; cursor: pointer;
+    background: linear-gradient(135deg, #ffcf6b, #ff9f43); color: var(--on-accent); }
+  #installNudgeLater { flex: none; width: 26px; height: 26px; padding: 0; border-radius: 7px; cursor: pointer; font-size: 12px;
+    background: none; color: var(--text-muted); border: 1px solid var(--line); }
+  @media (max-width: 820px), (max-height: 560px) {
+    #installNudge { top: auto; right: auto; left: 50%; transform: translateX(-50%); bottom: calc(72px + env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100% - 24px)); animation: none; }
+  }
+  @media (max-height: 560px) and (orientation: landscape) {
+    #installNudge { left: auto; right: 8px; transform: none; top: 92px; bottom: auto; width: 170px; flex-wrap: wrap; }
+    #installNudge .inText { flex-basis: calc(100% - 30px); }
+  }
   /* opened inside a social app's own browser: Google sign-in is blocked there */
   .iabHint {
     display: none; margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.5;
@@ -2488,6 +2500,12 @@
   </div>
   <button id="aiChip" type="button" aria-label="Computer level"></button>
   <div id="puzzleCard" role="status" title="ចុចដើម្បីបង្រួម / ពង្រីក — Tap to fold / unfold"></div>
+  <div id="installNudge" role="status">
+    <span class="inIcon">📲</span>
+    <span class="inText"><span class="t-kh">បង្កើត app ដាក់លើអេក្រង់</span><span class="t-sep"> — </span><span class="t-en">Add the app to your Home Screen</span></span>
+    <button id="installNudgeAdd" type="button"><span class="t-kh">បង្កើត</span><span class="t-sep"> </span><span class="t-en">Add</span></button>
+    <button id="installNudgeLater" type="button" aria-label="Close" title="បិទ — Close">✕</button>
+  </div>
   <div id="hud"></div>
   <div id="movelist"></div>
   <div id="thinking">កំពុងគិត… Computer is thinking…</div>
@@ -2519,13 +2537,7 @@
 
 <div id="aiNotice" aria-live="polite"></div>
 <div id="toastNotice" aria-live="polite"></div>
-<div id="installNudge" role="dialog">
-  <div>📲 <span class="t-kh">បង្កើត app អុកចត្រង្គ ដាក់លើអេក្រង់៖ លេងពេញអេក្រង់ ហើយត្រឡប់មកលេងវិញដោយចុចតែម្ដង។</span><span class="t-sep"> — </span><span class="t-en">Add the Ouk Chatrang app to your Home Screen: play full screen, and come back in one tap.</span></div>
-  <div class="btnrow">
-    <button id="installNudgeLater" type="button"><span class="t-kh">ពេលក្រោយ</span><span class="t-sep"> </span><span class="t-en">Not now</span></button>
-    <button id="installNudgeAdd" type="button"><span class="t-kh">បង្កើត app</span><span class="t-sep"> </span><span class="t-en">Add</span></button>
-  </div>
-</div>
+
 <div id="levelMenu" role="dialog" aria-label="Computer level">
   <div class="lmTitle">🤖 កម្រិតកុំព្យូទ័រ Computer level</div>
   <div class="lmGrid" id="levelMenuBtns"></div>
@@ -15722,8 +15734,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.75';
+const APP_VERSION = '1.6.76';
 const WHATS_NEW = [
+  {
+    version: '1.6.76',
+    date: '2026-10-25',
+    title: { kh: '«បង្កើត app ដាក់លើអេក្រង់» ក៏បង្ហាញពេលចូលលេង', en: '"Add the app" also shows when you start a game or puzzle' },
+    items: [
+      { kh: 'ពេលចូលលេងល្បែង ឬល្បែងប្រាជ្ញា របារតូចមួយ «បង្កើត app ដាក់លើអេក្រង់» បង្ហាញនៅកន្លែងទំនេរ (ក្រោមក្ដារលើទូរស័ព្ទ ខាងស្ដាំលើទូរស័ព្ទផ្ដេក ជ្រុងខាងលើខាងស្ដាំលើកុំព្យូទ័រ) ហើយបាត់ដោយខ្លួនឯងក្រោយ ៨ វិនាទី។ ម្ដងប៉ុណ្ណោះក្នុងមួយដងបើក ហើយ ✕ លាក់វារយៈពេល ៣ ថ្ងៃ។',
+        en: 'When you start a game or a puzzle, a small "Add the app to your Home Screen" bar shows in free space (under the board on a phone, on the right on a phone held sideways, top right on a computer) and leaves by itself after 8 seconds. Once per visit, and ✕ hides it for 3 days.' }
+    ]
+  },
   {
     version: '1.6.75',
     date: '2026-10-25',
@@ -17004,6 +17025,7 @@ function hideOverlays() {
   overlayOpen = false;
   closeModeAccordion();
   tickHud();
+  setTimeout(() => showInstallBanner('enter'), 1500); // a moment after the game / puzzle has appeared
 }
 // After a sign-in (or a remembered one resuming) the player goes straight into a game against the computer, or,
 // arriving through a friend's invite link, to the Join screen.
@@ -17375,26 +17397,32 @@ document.getElementById('installAlertClose').onclick = () => {
   try { localStorage.setItem('oukInstallAlertOff', String(Date.now())); } catch (e) {} // not again for 3 days
   trackEvent('install_alert_close', {});
 };
+// The in-game banner: when a game or a puzzle is entered (once per visit) and after a finished game (once a day). It
+// leaves by itself after 8 s; ✕ hides every install suggestion for 3 days, and after three ✕ the in-game banner stops.
 const INSTALL_NUDGE_KEY = 'oukInstallNudge';
-function maybeInstallNudge() {
+let installBannerShownThisVisit = false, installBannerTimer = null;
+function hideInstallBanner() { document.getElementById('installNudge').style.display = 'none'; if (installBannerTimer) { clearTimeout(installBannerTimer); installBannerTimer = null; } }
+function showInstallBanner(source) {
   if (!canSuggestInstall() || overlayOpen) return;
-  let r = null;
-  try { r = JSON.parse(localStorage.getItem(INSTALL_NUDGE_KEY) || 'null'); } catch (e) {}
-  r = r || { last: '', no: 0 };
-  if (r.last === localDayKey() || r.no >= 3) return;
-  r.last = localDayKey();
-  try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); } catch (e) {}
-  trackEvent('install_nudge', {});
-  document.getElementById('installNudge').style.display = 'block';
+  if (Date.now() - (+(localStorage.getItem('oukInstallAlertOff') || 0)) < 3 * 86400000) return;
+  const r = readJSON(INSTALL_NUDGE_KEY) || { last: '', no: 0 };
+  if ((r.no | 0) >= 3) return;
+  if (source === 'enter') { if (installBannerShownThisVisit) return; }
+  else { if (r.last === localDayKey()) return; r.last = localDayKey(); try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); } catch (e) {} }
+  installBannerShownThisVisit = true;
+  trackEvent('install_banner', { source });
+  document.getElementById('installNudge').style.display = 'flex';
+  if (installBannerTimer) clearTimeout(installBannerTimer);
+  installBannerTimer = setTimeout(hideInstallBanner, 8000);
 }
-document.getElementById('installNudgeAdd').onclick = () => { document.getElementById('installNudge').style.display = 'none'; openInstall('after_game'); };
+function maybeInstallNudge() { showInstallBanner('after_game'); }
+document.getElementById('installNudgeAdd').onclick = () => { hideInstallBanner(); openInstall('banner'); };
 document.getElementById('installNudgeLater').onclick = () => {
-  document.getElementById('installNudge').style.display = 'none';
-  let r = null;
-  try { r = JSON.parse(localStorage.getItem(INSTALL_NUDGE_KEY) || 'null'); } catch (e) {}
-  r = r || { last: localDayKey(), no: 0 };
+  hideInstallBanner();
+  const r = readJSON(INSTALL_NUDGE_KEY) || { last: localDayKey(), no: 0 };
   r.no = (r.no | 0) + 1;
-  try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); } catch (e) {}
+  try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); localStorage.setItem('oukInstallAlertOff', String(Date.now())); } catch (e) {}
+  trackEvent('install_banner_close', { no: r.no });
 };
 document.getElementById('startLearnBtn').onclick = () => {
   funnel('start_learn_click');
