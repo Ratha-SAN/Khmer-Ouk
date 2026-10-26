@@ -718,6 +718,15 @@
   #puzzleCard .pcLv.done { color: #4fd88a; }
   #puzzleCard .pcBack { margin-left: auto; }
   details.puzzleHint summary { cursor: pointer; color: var(--accent); margin-top: 6px; }
+  /* a newer version is published: a small bar at the top, tap to reload */
+  #updateBar {
+    position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 40;
+    display: flex; align-items: center; gap: 6px; width: min(420px, calc(100% - 24px)); box-sizing: border-box; padding: 6px;
+    border-radius: 12px; background: var(--accent); color: var(--on-accent); box-shadow: 0 6px 18px rgba(0,0,0,.45);
+    animation: installAlertIn .3s ease-out;
+  }
+  #updateBarGo { flex: 1; min-width: 0; text-align: left; font-size: 13px; font-weight: 700; padding: 6px 8px; background: none !important; color: inherit; border: none; cursor: pointer; }
+  #updateBarClose { flex: none; width: 28px; height: 28px; padding: 0; border-radius: 8px; background: rgba(0,0,0,.12) !important; color: inherit; border: none; cursor: pointer; }
   #toastNotice {
     position: fixed; left: 50%; bottom: 96px; z-index: 30; max-width: 86vw; text-align: center; pointer-events: none;
     background: var(--accent); color: var(--on-accent); padding: 10px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
@@ -2535,6 +2544,10 @@
 
 <div id="aiNotice" aria-live="polite"></div>
 <div id="toastNotice" aria-live="polite"></div>
+<div id="updateBar" role="status" style="display:none">
+  <button id="updateBarGo" type="button">🔄 <span class="t-kh">មានកំណែថ្មីហើយ — ចុចដើម្បីធ្វើបច្ចុប្បន្នភាព</span><span class="t-sep"> </span><span class="t-en">A new version is ready: tap to update</span></button>
+  <button id="updateBarClose" type="button" aria-label="Close" title="បិទ — Close">✕</button>
+</div>
 
 <div id="levelMenu" role="dialog" aria-label="Computer level">
   <div class="lmTitle">🤖 កម្រិតកុំព្យូទ័រ Computer level</div>
@@ -15812,8 +15825,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.80';
+const APP_VERSION = '1.6.81';
 const WHATS_NEW = [
+  {
+    version: '1.6.81',
+    date: '2026-10-26',
+    title: { kh: 'ប្រាប់ពេលមានកំណែថ្មី', en: 'A notice when a new version is ready' },
+    items: [
+      { kh: 'បើអ្នកទុកល្បែងបើកចោល (ឧ. app នៅលើអេក្រង់ដើម) ហើយមានកំណែថ្មី របារតូចមួយនៅខាងលើប្រាប់ «មានកំណែថ្មីហើយ — ចុចដើម្បីធ្វើបច្ចុប្បន្នភាព»។ ល្បែងដែលកំពុងលេងត្រូវបានរក្សាទុក ដូច្នេះអ្នកអាចចុច «បន្តល្បែងមុន» បន្ទាប់ពីធ្វើបច្ចុប្បន្នភាព។',
+        en: 'If you leave the game open (for example the app on your home screen) and a new version comes out, a small bar at the top says "A new version is ready: tap to update". A game in progress is saved, so you can tap Continue your game after the update.' }
+    ]
+  },
   {
     version: '1.6.80',
     date: '2026-10-25',
@@ -17363,6 +17385,39 @@ document.getElementById('playNowBtn').onclick = () => {
     if (pendingInviteCode) landAfterSignIn(); // a friend's invite link: on to the Join screen
     else startAiNow(2);
   }).finally(() => { btn.disabled = false; btn.classList.remove('busy'); });
+};
+// ---------- updates for a copy left open ----------
+// A copy kept open (a home-screen app paused in the background, a tab never reloaded) would go on running an old
+// version: when the game comes back to the foreground, and every 30 min while open, it reads the published
+// version.json (written by the deploy, see build-cloudflare.sh) and offers a reload when that is newer. A game in
+// progress is autosaved, so after the reload it is one tap away (Continue).
+let updateCheckedAt = 0, updateDismissed = '';
+function newerVersion(a, b) { // is a newer than b ('1.6.81' vs '1.6.80')
+  const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); }
+  return false;
+}
+function checkForUpdate() {
+  if (!/^https?:/.test(location.protocol) || Date.now() - updateCheckedAt < 60000) return;
+  updateCheckedAt = Date.now();
+  fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+    if (!j || !j.version || !newerVersion(j.version, APP_VERSION) || updateDismissed === j.version) return;
+    trackEvent('update_offered', { from: APP_VERSION, to: j.version });
+    document.getElementById('updateBar').dataset.v = j.version;
+    document.getElementById('updateBar').style.display = 'flex';
+  }).catch(() => {});
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+setInterval(() => { if (document.visibilityState === 'visible') checkForUpdate(); }, 30 * 60000);
+setTimeout(checkForUpdate, 15000); // a copy opened from a stale cache learns of a newer one soon after it starts
+document.getElementById('updateBarGo').onclick = () => {
+  trackEvent('update_reload', { to: document.getElementById('updateBar').dataset.v });
+  autosaveGame();
+  location.reload();
+};
+document.getElementById('updateBarClose').onclick = () => {
+  updateDismissed = document.getElementById('updateBar').dataset.v || '';
+  document.getElementById('updateBar').style.display = 'none';
 };
 // ---------- coming back: Continue your game, the day streak, the daily puzzle, Add to Home Screen ----------
 // Continue: the game in progress (vs Computer or 2 players; not online) is autosaved after every move and offered

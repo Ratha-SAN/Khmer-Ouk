@@ -30,6 +30,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   const sameOrigin = url.origin === self.location.origin;
   if (!sameOrigin && !STATIC_HOSTS.includes(url.hostname)) return; // API traffic: network only
+  if (sameOrigin && url.pathname.endsWith('/version.json')) return; // the update check: always the network's answer
 
   // the page itself is network-first so game updates land on the next
   // online visit, with the cached copy as the offline fallback
