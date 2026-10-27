@@ -900,6 +900,10 @@
        scrolling within the fade mask. */
     #movelist { top: 54px; width: 150px; font-size: 11px; max-height: 6.8em; }
   }
+  /* an upright phone, once a game has moves: the move list takes the title's place (tickHud places it) */
+  @media (max-width: 820px) and (min-height: 561px), (max-width: 820px) and (orientation: portrait) {
+    body.moves-in-title #boardTitle { visibility: hidden; }
+  }
   /* where the puzzle card sits at the bottom (not a landscape phone): one line, the full card only when tapped */
   @media (max-width: 820px) and (min-height: 561px), (max-width: 820px) and (orientation: portrait) {
     #puzzleCard:not(.open) > :not(.pcLine) { display: none !important; }
@@ -15845,8 +15849,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.83';
+const APP_VERSION = '1.6.84';
 const WHATS_NEW = [
+  {
+    version: '1.6.84',
+    date: '2026-10-27',
+    title: { kh: 'ក្តារ 2D ពេញអេក្រង់ និងជើងដើរនៅកន្លែងចំណងជើង', en: 'A full-width 2D board, and the moves in the title\'s place' },
+    items: [
+      { kh: 'នៅលើទូរស័ព្ទបញ្ឈរ ក្តារ 2D ពង្រីកឲ្យក្រឡាទាំង ៨ ពេញទទឹងអេក្រង់តាំងពីដំបូង។',
+        en: 'On an upright phone the 2D board now starts with its 8 squares filling the width of the screen.' },
+      { kh: 'ពេលចាប់ផ្ដើមដើរ បញ្ជីជើងដើរជំនួសចំណងជើង «អុកចត្រង្គ» នៅខាងលើ ដូច្នេះវាលែងបាំងក្តារ។',
+        en: 'Once the first move is played, the list of moves takes the place of the "Ouk Chatrang" title at the top, so it no longer covers the board.' }
+    ]
+  },
   {
     version: '1.6.83',
     date: '2026-10-27',
@@ -18349,12 +18364,12 @@ function updatePuzzleCard() {
   if (el.style.display !== 'block') el.style.display = 'block';
 }
 // the CSS rule that turns the card into one line (see the stylesheet): there, a tap on the title goes back to the line
-const PUZZLE_LINE_MQ = matchMedia('(max-width: 820px) and (min-height: 561px), (max-width: 820px) and (orientation: portrait)');
+const UPRIGHT_PHONE_MQ = matchMedia('(max-width: 820px) and (min-height: 561px), (max-width: 820px) and (orientation: portrait)');
 document.getElementById('puzzleCard').onclick = (e) => {
   const t = e.target.closest('[data-act]'), act = t ? t.dataset.act : 'fold';
   const card = document.getElementById('puzzleCard');
   if (act === 'open') { card.classList.add('open'); return; }
-  if (act === 'fold') { if (PUZZLE_LINE_MQ.matches) card.classList.remove('open'); else card.classList.toggle('folded'); return; }
+  if (act === 'fold') { if (UPRIGHT_PHONE_MQ.matches) card.classList.remove('open'); else card.classList.toggle('folded'); return; }
   if (act === 'hint') { puzzleHintOpen = true; trackEvent('puzzle_hint', { key: activePuzzle && activePuzzle.key }); updatePuzzleCard(); return; }
   if (act === 'lv') { const k = dailyPuzzleFor(t.dataset.lv).key; if (!activePuzzle || activePuzzle.key !== k) loadPuzzle(k); return; }
   if (act === 'back') { showStartScreen(); }
@@ -18386,7 +18401,8 @@ function tickHud() {
   const hud = document.getElementById('hud');
   if (uiMode !== 'play' || overlayOpen || !gameStartTs) {
     hud.style.display = 'none'; hud.innerHTML = '';
-    const ml0 = document.getElementById('movelist'); if (ml0) ml0.style.top = '';
+    const ml0 = document.getElementById('movelist'); if (ml0) ml0.style.top = ml0.style.left = ml0.style.width = ml0.style.maxHeight = '';
+    document.body.classList.remove('moves-in-title');
     return;
   }
   hud.style.display = 'block';
@@ -18415,7 +18431,24 @@ function tickHud() {
     below = chip.offsetTop + chip.offsetHeight;
   } else if (chip.style.top) chip.style.top = '';
   const ml = document.getElementById('movelist');
-  if (ml) ml.style.top = (below + 8) + 'px';
+  if (!ml) return;
+  // an upright phone, once the first move is made: the move list takes the title's place at the top, between the
+  // HUD and the camera buttons, down to the bottom of the HUD column, so it no longer covers the board
+  const inTitle = UPRIGHT_PHONE_MQ.matches && moveEntries.length > 0;
+  document.body.classList.toggle('moves-in-title', inTitle);
+  if (inTitle) {
+    const sr = sceneDiv.getBoundingClientRect(), cam = document.getElementById('camControls').getBoundingClientRect();
+    let left = 0;
+    for (const s of hud.querySelectorAll('.stat > *')) left = Math.max(left, s.getBoundingClientRect().right - sr.left);
+    const right = cam.left - sr.left, top = 10;
+    ml.style.top = top + 'px';
+    ml.style.left = (left + 8) + 'px';
+    ml.style.width = Math.max(100, right - left - 16) + 'px';
+    ml.style.maxHeight = Math.max(60, below - top) + 'px';
+  } else {
+    ml.style.top = (below + 8) + 'px';
+    ml.style.left = ml.style.width = ml.style.maxHeight = '';
+  }
 }
 setInterval(tickHud, 250);
 
@@ -19312,6 +19345,8 @@ window.__ouk = {
     showMarkers(); updateSquareTints();
   },
   selectedSq: () => selected,
+  // Test-only: play a legal move as if tapped (the AI then answers as usual)
+  debugApplyMove: (m) => applyMove(m),
   cameraPos: () => camera.position.toArray(),
   viewOffsetY: () => (camera.view ? camera.view.offsetY : 0),
   flatPlaneState: () => { for (const g of pieceGroup.children) if (g.userData.flat2dLying) return { rotX: g.userData.flat2dPlane.rotation.x, rotY: g.userData.flat2dPlane.rotation.y, groupRotY: g.rotation.y }; return null; },
@@ -19773,8 +19808,9 @@ function planInsets(w, h, side) {
     }
   }
   const m = 10; // breathing room
-  // keep the board in the middle of the view, clear of whichever side has more UI (top/bottom and left/right alike)
-  T = B = Math.max(T, B);
+  // keep the board in the middle of the view, clear of whichever side has more UI (top/bottom and left/right alike);
+  // an upright phone instead uses all the height between the HUD and the player cards, so the board fills the width
+  if (side || w > 820) T = B = Math.max(T, B);
   L = R = Math.max(L, R);
   return { T: T ? Math.min(T + m, h * 0.35) : m, B: B ? Math.min(B + m, h * 0.35) : m, L: L ? Math.min(L + m, w * 0.3) : 0, R: R ? Math.min(R + m, w * 0.2) : 0 };
 }
@@ -19791,9 +19827,12 @@ function planLayout() {
 function topViewFitDist() {
   const P = planLayout();
   const tanH = Math.tan(camera.fov * Math.PI / 360);
-  // half-extents (world units) that must stay visible: beside-the-board columns on a wide screen; on an upright screen
-  // the frame itself (4.7 wide) spans edge to edge
-  const needH = P.side ? 4.95 : 6.1, needW = P.side ? 6.5 : 4.72;
+  // half-extents (world units) that must stay visible: beside-the-board columns on a wide screen; on an upright phone
+  // the 8 squares themselves (4 each side of the centre) span edge to edge, with the file letters below them (the
+  // frame and the captured-piece strips may run under the HUD and the player cards); on any other upright screen
+  // the frame (4.7 wide) spans edge to edge
+  const phoneUp = !P.side && P.w <= 820;
+  const needH = P.side ? 4.95 : phoneUp ? 4.5 : 6.1, needW = P.side ? 6.5 : phoneUp ? 4.03 : 4.72;
   // vertical pixels per world unit at distance d is fullH / (2 d tanH); the same on x (the aspect is set to fullW/fullH)
   const d = Math.max(needH * P.fullH / (2 * tanH * P.Ah), needW * P.fullH / (2 * tanH * P.Aw));
   controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
