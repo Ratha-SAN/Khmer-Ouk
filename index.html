@@ -15849,8 +15849,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.84';
+const APP_VERSION = '1.6.85';
 const WHATS_NEW = [
+  {
+    version: '1.6.85',
+    date: '2026-10-27',
+    title: { kh: 'កម្រិតកុំព្យូទ័រនៅលើកាតកុំព្យូទ័រ', en: 'The computer level sits on the computer\'s card' },
+    items: [
+      { kh: 'នៅលើទូរស័ព្ទ ស្លាក «🤖 កុំព្យូទ័រ កម្រិត…» ឥឡូវនៅពីលើកាតអ្នកលេងកុំព្យូទ័រ (ខាងក្រោមស្តាំ) លែងនៅខាងលើក្តារ។',
+        en: 'On a phone the "🤖 Computer level…" chip now sits just above the computer\'s player card (bottom right), off the top of the board.' },
+      { kh: 'លើ iPhone ដែលមិនអនុញ្ញាតពេញអេក្រង់ ប៊ូតុង ⛶ និងផ្ទាំងពន្យល់របស់វាត្រូវបានដកចេញ។',
+        en: 'On iPhone, which allows no full screen for web pages, the ⛶ button and its explanation pop-up are gone.' }
+    ]
+  },
   {
     version: '1.6.84',
     date: '2026-10-27',
@@ -18426,10 +18437,13 @@ function tickHud() {
   // phone the level chip too, between the two
   let below = hud.offsetTop + hud.offsetHeight;
   const chip = document.getElementById('aiChip');
-  if (PHONE_MQ.matches && chip.style.display === 'block') {
-    chip.style.top = (below + 6) + 'px';
-    below = chip.offsetTop + chip.offsetHeight;
-  } else if (chip.style.top) chip.style.top = '';
+  // on a phone the level chip sits just above the computer's player card (bottom right), clear of the board
+  const aiCard = document.getElementById(humanSide === E.WHITE ? 'scoreB' : 'scoreW');
+  if (PHONE_MQ.matches && chip.style.display === 'block' && aiCard && aiCard.offsetWidth && chip.offsetParent) {
+    const pr = chip.offsetParent.getBoundingClientRect(), cr = aiCard.getBoundingClientRect();
+    chip.style.top = Math.round(cr.top - pr.top - chip.offsetHeight - 6) + 'px';
+    chip.style.left = Math.round(Math.max(8, cr.right - pr.left - chip.offsetWidth)) + 'px';
+  } else if (chip.style.top || chip.style.left) chip.style.top = chip.style.left = '';
   const ml = document.getElementById('movelist');
   if (!ml) return;
   // an upright phone, once the first move is made: the move list takes the title's place at the top, between the
@@ -18444,7 +18458,7 @@ function tickHud() {
     ml.style.top = top + 'px';
     ml.style.left = (left + 8) + 'px';
     ml.style.width = Math.max(100, right - left - 16) + 'px';
-    ml.style.maxHeight = Math.max(60, below - top) + 'px';
+    ml.style.maxHeight = Math.max(60, Math.max(below, cam.bottom - sr.top) - top) + 'px';
   } else {
     ml.style.top = (below + 8) + 'px';
     ml.style.left = ml.style.width = ml.style.maxHeight = '';
@@ -19985,20 +19999,21 @@ function toggleSettingsPanel() {
 document.getElementById('panelToggle').onclick = () => toggleSettingsPanel();
 document.getElementById('settingsBtn').onclick = () => toggleSettingsPanel();
 // ⛶ full screen: switches full screen on and off where the browser allows it (Android, iPad, computers). An iPhone
-// allows no full screen for web pages, so there it explains how to add the game to the home screen, which opens it
-// with no browser bars (see the manifest and the apple-mobile-web-app tags). Hidden once opened that way.
+// allows no full screen for web pages, so there the button is hidden (no pop-up: the Add to Home Screen banner still
+// offers the home-screen guide, and the game opened from the home screen has no browser bars). Hidden too once
+// opened that way.
 (function () {
   const btn = document.getElementById('fullscreenBtn');
   const installed = window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
   if (installed) { btn.style.display = 'none'; return; }
   const supported = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  if (!supported) { btn.style.display = 'none'; return; }
   const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
   const sync = () => btn.classList.toggle('active', isFull());
   document.addEventListener('fullscreenchange', sync);
   document.addEventListener('webkitfullscreenchange', sync);
   btn.onclick = () => {
     trackEvent('fullscreen_btn', { supported, on: !isFull() });
-    if (!supported) { openPopup('homeScreenPopup'); return; }
     if (!isFull()) { window.__oukActions.requestFullscreen().then(sync); return; }
     try {
       if (document.exitFullscreen) document.exitFullscreen().then(sync, sync);
