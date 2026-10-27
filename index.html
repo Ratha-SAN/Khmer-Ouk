@@ -863,6 +863,9 @@
   body.plan-desk #scoreW { right: auto; left: 8px; top: auto; bottom: 10px; }
   body.plan-desk #scoreB { left: auto; right: 8px; top: auto; bottom: 10px; }
   body.plan-desk #aiChip .chipName { display: none; } /* a narrower right-hand column */
+  /* the move list narrowed to the left-hand column: one move per line, cut short rather than wrapped */
+  body.plan-desk #movelist { width: 104px; font-size: 11px; }
+  body.plan-desk #movelist div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* ---------- mobile (phone) layout: portrait and landscape ----------
      The settings panel becomes a full-screen slide-up sheet (toggled by
      the React touch toolbar or the panel-hide button) instead of a fixed
@@ -15873,8 +15876,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.88';
+const APP_VERSION = '1.6.89';
 const WHATS_NEW = [
+  {
+    version: '1.6.89',
+    date: '2026-10-27',
+    title: { kh: 'ទិដ្ឋភាពដើមថ្មីលើកុំព្យូទ័រ', en: 'New starting views on computers' },
+    items: [
+      { kh: 'លើកុំព្យូទ័រ ក្តារ 3D ចាប់ផ្ដើមជាមួយថាសនៅសងខាង ហើយជិតជាងមុន៖ គែមខាងមុខនៃក្តារពេញទទឹងអេក្រង់។ ពេលបើកពេញអេក្រង់ ឬបិទផ្ទាំងបញ្ជា វាពង្រីកតាម។ ⟲ ត្រឡប់មកទិដ្ឋភាពនេះ។',
+        en: 'On a computer the 3D board now starts with the trays at the sides and closer in: the front edge of the board spans the screen. Going full screen or closing the panel re-fits it, and ⟲ comes back to it.' },
+      { kh: 'លើកុំព្យូទ័រ ក្តារ 2D ធំជាងមុន៖ ក្រឡា និងអក្សរជួរឈរពេញកម្ពស់ ហើយបញ្ជីជើងដើររួមតូចនៅជួរខាងឆ្វេង។',
+        en: 'On a computer the 2D board is bigger: the squares and file letters fill the height, and the move list is narrowed into the left-hand column.' }
+    ]
+  },
   {
     version: '1.6.88',
     date: '2026-10-27',
@@ -18460,6 +18474,8 @@ function tickHud() {
   updateTopViewBtn();
   updatePuzzleCard();
   syncPlanDesk();
+  // a computer's default 3D view follows the scene's size (full screen, the panel) until the player moves the camera
+  if (deskFitHeld && !theme().topDown && !viewAnimRaf && deskSig() !== deskFitSig) deskDefaultView();
   if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
     const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
     if ([I.T, I.B, I.L, I.R].map(Math.round).join('/') !== planSig) resize();
@@ -19793,6 +19809,7 @@ function resetBoardShift() { if (boardShiftY) { boardShiftY = 0; applyBoardShift
 // target, so the board always stays centered no matter the zoom level) ----------
 const DEFAULT_CAM_POS = new THREE.Vector3(0, 10, 9.3);
 function zoomBy(factor) {
+  deskFitHeld = false;
   const dir = camera.position.clone().sub(controls.target);
   const dist = dir.length() * factor;
   const clamped = Math.min(controls.maxDistance, Math.max(controls.minDistance, dist));
@@ -19829,26 +19846,77 @@ const BOARD_FIT_RADIUS = 6.0;
 function uprightPhoneFitDist(w, h) {
   if (w > 820 || w / h >= TRAY_SIDE_ASPECT) return null;
   const I = planInsets(w, h, false);
+  return projectedFitDist(h, [[-4, 0, -4], [4, 0, -4], [-4, 0, 4], [4, 0, 4]], 0.985,
+    [[-4.7, 0, -4.7], [4.7, 0, -4.7], [-4.7, 0, 4.7], [4.7, 0, 4.7]], I.T - 6, h - I.B + 6);
+}
+// The nearest camera distance, along the current viewing direction, at which the xPts all project within
+// ±xLim (normalised screen x) and the yPts between screen rows top and bottom (px). Tried by bisection,
+// projecting with the layout's lens shift; null if even far away they do not fit. The camera is left as it was.
+function projectedFitDist(h, xPts, xLim, yPts, top, bottom) {
   const dir = camera.position.clone().sub(controls.target).normalize();
   const save = camera.position.clone(), saveQ = camera.quaternion.clone();
-  const grid = [[-4, -4], [4, -4], [-4, 4], [4, 4]], frame = [[-4.7, -4.7], [4.7, -4.7], [-4.7, 4.7], [4.7, 4.7]];
   const v = new THREE.Vector3();
   const fits = (d) => {
     camera.position.copy(controls.target).addScaledVector(dir, d);
     camera.lookAt(controls.target); camera.updateMatrixWorld();
-    for (const [x, z] of grid) { v.set(x, 0, z).project(camera); if (Math.abs(v.x) > 0.985) return false; }
-    for (const [x, z] of frame) {
-      v.set(x, 0, z).project(camera);
+    for (const p of xPts) { v.set(p[0], p[1], p[2]).project(camera); if (Math.abs(v.x) > xLim) return false; }
+    for (const p of yPts) {
+      v.set(p[0], p[1], p[2]).project(camera);
       const py = (1 - v.y) / 2 * h;
-      if (py < I.T - 6 || py > h - I.B + 6) return false;
+      if (py < top || py > bottom) return false;
     }
     return true;
   };
-  let lo = controls.minDistance, hi = Math.max(controls.maxDistance, 40);
-  if (!fits(hi)) { camera.position.copy(save); camera.quaternion.copy(saveQ); return null; }
-  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
+  let lo = controls.minDistance, hi = Math.max(controls.maxDistance, 40), out = null;
+  if (fits(hi)) {
+    for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
+    out = hi;
+  }
   camera.position.copy(save); camera.quaternion.copy(saveQ); camera.updateMatrixWorld();
-  return hi;
+  return out;
+}
+// A computer's default 3D view -- at the start, from ⟲, back from the Top view, and again whenever the scene changes
+// size (full screen, the panel opened or closed) while the camera is still where this put it: the board turned so the
+// two trays stand left and right of it (side view 1), close in -- the front edge of the frame across the whole width,
+// its back edge just under the player cards and title.
+let deskFitHeld = false; // the camera is still at that fit (no zoom or orbit since)
+function isDeskViewport() { return !(window.innerWidth <= 820 || window.innerHeight <= 560); }
+function deskFitDist() {
+  const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, sr = sceneDiv.getBoundingClientRect();
+  let top = 0;
+  for (const id of ['scoreW', 'scoreB', 'boardTitle']) {
+    const e = document.getElementById(id);
+    if (e && e.offsetWidth && getComputedStyle(e).visibility !== 'hidden') { const r = e.getBoundingClientRect(); if (r.top - sr.top < h / 2) top = Math.max(top, r.bottom - sr.top); }
+  }
+  const X = 5.95, Z = 4.7, corners = [];
+  for (const x of [-X, X]) for (const z of [-Z, Z]) corners.push([x, -0.05, z], [x, -0.55, z]);
+  return projectedFitDist(h, corners, 0.995, corners, top + 8, h - 4);
+}
+function deskDefaultView() {
+  if (!isDeskViewport() || theme().topDown || !sceneDiv.clientWidth) return false;
+  if (sideViewMode !== 1) setSideView(1, false);
+  if (viewAnimRaf) { cancelAnimationFrame(viewAnimRaf); viewAnimRaf = null; }
+  // the default height, from this seat's side
+  controls.target.set(0, 0, 0);
+  const elev = Math.atan2(DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z), az = viewAz();
+  camera.position.set(Math.sin(az) * Math.cos(elev), Math.sin(elev), Math.cos(az) * Math.cos(elev)).multiplyScalar(DEFAULT_CAM_POS.length());
+  controls.update();
+  const d = deskFitDist();
+  if (d) {
+    controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
+    const off = camera.position.clone().sub(controls.target).setLength(d);
+    camera.position.copy(controls.target).add(off);
+    controls.update();
+  }
+  deskFitHeld = true;
+  deskFitSig = deskSig();
+  return true;
+}
+// what the fit depends on: the scene's size and how far down the player cards / title reach
+let deskFitSig = '';
+function deskSig() {
+  const r = (id) => { const e = document.getElementById(id); return e && e.offsetWidth ? Math.round(e.getBoundingClientRect().bottom) : 0; };
+  return [sceneDiv.clientWidth, sceneDiv.clientHeight, r('scoreW'), r('scoreB'), r('boardTitle')].join('/');
 }
 // moves the camera to the upright-phone distance (same direction); false where that fit does not apply
 function applyUprightPhoneFit() {
@@ -19885,6 +19953,7 @@ function fitCameraToBoard() {
 }
 function resetView() {
   if (theme().topDown) { topView(); return; }
+  if (deskDefaultView()) return;
   camera.position.copy(DEFAULT_CAM_POS);
   controls.target.set(0, 0, 0);
   controls.update();
@@ -19898,15 +19967,17 @@ function planInsets(w, h, side) {
   const sr = sceneDiv.getBoundingClientRect();
   const vis = (id) => { const e = document.getElementById(id); if (!e || !e.offsetWidth || !e.offsetHeight) return null; const cs = getComputedStyle(e); return cs.display === 'none' || cs.visibility === 'hidden' ? null : e; };
   let T = 0, B = 0, L = 0, R = 0;
-  // a computer in a Flat 2D theme: everything (HUD, move list, title, cards, level chip, camera buttons) stands in a
-  // column at the left or right edge, so the board fills the height between them
+  // a computer in a Flat 2D theme: the HUD, the (narrowed) move list and the title stand in a column at the left
+  // edge, the camera buttons at the right, and the board fills the height between them (the player cards and the
+  // level chip in the bottom corners may overlap the frame's corners)
   if (document.body.classList.contains('plan-desk')) {
     const pc = vis('puzzleCard'); // above the board (CSS): it pushes the board down instead
     if (pc) T = pc.getBoundingClientRect().bottom - sr.top;
-    for (const id of ['hud', 'movelist', 'boardTitle', 'scoreW', 'scoreB', 'aiChip', 'camControls', 'panelToggle']) {
+    const hud = vis('hud');
+    if (hud) for (const c of hud.querySelectorAll('.stat > *')) L = Math.max(L, c.getBoundingClientRect().right - sr.left);
+    for (const id of ['movelist', 'boardTitle', 'camControls', 'panelToggle']) {
       const e = vis(id); if (!e) continue;
-      let r = e.getBoundingClientRect();
-      if (id === 'movelist') r = { left: r.left, right: r.left + Math.min(r.width, 190) };
+      const r = e.getBoundingClientRect();
       if ((r.left + r.right) / 2 - sr.left < w / 2) L = Math.max(L, r.right - sr.left); else R = Math.max(R, sr.right - r.left);
     }
     L = R = Math.min(Math.max(L, R) + 10, w * 0.3);
@@ -19972,11 +20043,13 @@ function topViewFitDist() {
   // frame and the captured-piece strips may run under the HUD and the player cards); on any other upright screen
   // the frame (4.7 wide) spans edge to edge
   const phoneUp = !P.side && P.w <= 820;
-  // a computer (planInsets' desk layout): the frame fills the height, the captured-piece strips may reach into the
-  // side columns
-  const needH = P.I.desk ? (P.side ? 4.75 : 6.1) : P.side ? 4.95 : phoneUp ? 4.5 : 6.1, needW = P.I.desk ? 4.75 : P.side ? 6.5 : phoneUp ? 4.03 : 4.72;
+  // a computer (planInsets' desk layout): the squares and the file letters fill the height, the squares fit between
+  // the side columns (the rank numbers, frame and captured-piece strips may reach into them)
+  const needH = P.I.desk ? (P.side ? 4.5 : 6.1) : P.side ? 4.95 : phoneUp ? 4.5 : 6.1, needW = P.I.desk ? 4.0 : P.side ? 6.5 : phoneUp ? 4.03 : 4.72;
   // vertical pixels per world unit at distance d is fullH / (2 d tanH); the same on x (the aspect is set to fullW/fullH)
-  const d = Math.max(needH * P.fullH / (2 * tanH * P.Ah), needW * P.fullH / (2 * tanH * P.Aw));
+  let d = Math.max(needH * P.fullH / (2 * tanH * P.Ah), needW * P.fullH / (2 * tanH * P.Aw));
+  // the desk layout's side strips of captured pieces (out to ~6.2) must still be on screen, under the side columns
+  if (P.I.desk && P.side) d = Math.max(d, 6.2 * P.fullH / (2 * tanH * (P.w / 2 - 4)));
   controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
   return Math.min(controls.maxDistance, Math.max(controls.minDistance, d));
 }
@@ -20000,6 +20073,7 @@ function topView(keepZoom) {
 }
 // back from topView(): the default elevation, still seen from the current seat
 function tiltedView() {
+  if (deskDefaultView()) return;
   controls.target.set(0, 0, 0);
   camera.position.set(0, DEFAULT_CAM_POS.y, viewSide === E.BLACK ? -DEFAULT_CAM_POS.z : DEFAULT_CAM_POS.z);
   controls.update();
@@ -20077,7 +20151,11 @@ document.getElementById('autoFlipChk').onchange = (e) => {
   if (autoFlipEnabled && uiMode === 'play' && mode === 'hotseat' && !gameOver) setViewSide(state.turn, true);
 };
 document.getElementById('flipViewBtn').onclick = () => setViewSide(viewSide === E.WHITE ? E.BLACK : E.WHITE, true);
-document.getElementById('sideViewBtn').onclick = () => setSideView((sideViewMode + 1) % 3, true);
+document.getElementById('sideViewBtn').onclick = () => {
+  const next = (sideViewMode + 1) % 3;
+  if (next === 1 && deskDefaultView()) return; // a computer: the trays-at-the-sides view is its default, close in
+  setSideView(next, true); deskFitHeld = false;
+};
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
 document.getElementById('zoomResetBtn').onclick = () => { viewSide = E.WHITE; resetBoardShift(); if (sideViewMode) setSideView(0, false); resetView(); setLabelOrientation(false); };
@@ -20091,9 +20169,11 @@ function pickTheme(key) {
   refreshThemeCategoryUI();
 }
 document.getElementById('topViewBtn').onclick = () => {
+  deskFitHeld = false; // (back to 3D, tiltedView puts a computer's default view back)
   if (sideViewMode) setSideView(0, false);
   if (theme().topDown) { // 2D -> the 3D board from straight above
     pickTheme(THEMES[last3dThemeKey] && !THEMES[last3dThemeKey].topDown ? last3dThemeKey : 'wood');
+    deskFitHeld = false; if (sideViewMode) setSideView(0, false); // (the theme change put the default view back)
     const tanV = Math.tan(camera.fov * Math.PI / 360), tanH = tanV * sceneDiv.clientWidth / Math.max(1, sceneDiv.clientHeight);
     const fit = Math.max(6.5 / tanV, 5.4 / tanH); // the frame's half-depth (with the trays) / half-width (with the labels)
     controls.maxDistance = Math.max(controls.maxDistance, fit * 1.02);
@@ -20273,6 +20353,8 @@ function applyLangPref(v) {
 applyTheme('wood');
 resize();
 newGame();
+deskDefaultView();
+controls.addEventListener('start', () => { deskFitHeld = false; }); // the player orbits or zooms: keep their view
 funnel('start_view', { invite: pendingInviteCode ? 'yes' : 'no' });
 loop();
 </script>
