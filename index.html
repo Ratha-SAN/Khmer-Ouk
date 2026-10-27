@@ -230,7 +230,7 @@
   #camControls #topViewBtn.mode-top { background: color-mix(in srgb, #4fd88a 24%, var(--panel-bg)) !important; color: #d9ffe8; }
   #camControls #topViewBtn.mode-3d { background: color-mix(in srgb, var(--accent) 20%, var(--panel-bg)) !important; color: var(--accent); }
   /* full screen: a wider button with its name */
-  #camControls #fullscreenBtn { width: auto; padding: 0 12px; white-space: nowrap; font-size: 13px; font-weight: 600; }
+  #camControls #fullscreenBtn { width: auto; padding: 0 12px; white-space: nowrap; font-size: 13px; font-weight: 600; order: -1; } /* a computer: first in the column, just under ◧ */
   #camControls button {
     width: 44px; height: 40px; font-size: 16px; border-radius: 8px; border: 1px solid var(--accent-dim);
     background: color-mix(in srgb, var(--panel-bg) 82%, transparent); color: var(--panel-fg); cursor: pointer;
@@ -879,7 +879,7 @@
     #camControls button { width: auto; min-width: 0; height: 30px; padding: 0; font-size: 14px; border-radius: 7px; }
     #camControls #settingsBtn { display: block; grid-column: 3; grid-row: 1; }
     #camControls #topViewBtn { font-size: 11px; }
-    #camControls #fullscreenBtn { grid-column: span 2; width: auto; padding: 0 4px; font-size: 11px; }
+    #camControls #fullscreenBtn { grid-column: span 2; width: auto; padding: 0 4px; font-size: 11px; order: 0; }
     #boardTitle { font-size: 20px; top: 14px; }
   }
   @media (max-width: 400px) {
@@ -15849,8 +15849,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.86';
+const APP_VERSION = '1.6.87';
 const WHATS_NEW = [
+  {
+    version: '1.6.87',
+    date: '2026-10-27',
+    title: { kh: 'ប៊ូតុងពេញអេក្រង់នៅខាងលើ (កុំព្យូទ័រ)', en: 'The full-screen button near the top (computers)' },
+    items: [
+      { kh: 'នៅលើកុំព្យូទ័រ ប៊ូតុង ⛶ ពេញអេក្រង់ ឥឡូវនៅលំដាប់ទីពីរពីលើ ក្រោមប៊ូតុង ◧ ភ្លាម។',
+        en: 'On a computer the ⛶ full-screen button is now second from the top, right under ◧.' }
+    ]
+  },
   {
     version: '1.6.86',
     date: '2026-10-27',
