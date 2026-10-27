@@ -15849,8 +15849,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.85';
+const APP_VERSION = '1.6.86';
 const WHATS_NEW = [
+  {
+    version: '1.6.86',
+    date: '2026-10-27',
+    title: { kh: 'ក្តារ 3D ធំជាងមុនលើទូរស័ព្ទ', en: 'A bigger 3D board on phones' },
+    items: [
+      { kh: 'នៅលើទូរស័ព្ទបញ្ឈរ ក្តារ 3D ចាប់ផ្ដើមជិតជាងមុន៖ ជួរខាងមុខនៃក្រឡាទាំង ៨ ពេញទទឹងអេក្រង់ ហើយក្តារទាំងមូលនៅចន្លោះម៉ោងខាងលើ និងកាតអ្នកលេងខាងក្រោម។ ប៊ូតុង ⟲ ក៏ត្រឡប់មកទិដ្ឋភាពនេះ។',
+        en: 'On an upright phone the 3D board now starts closer: the front row of the 8 squares fills the width of the screen, and the whole board sits between the timers at the top and the player cards at the bottom. ⟲ comes back to this view too.' }
+    ]
+  },
   {
     version: '1.6.85',
     date: '2026-10-27',
@@ -19750,10 +19759,49 @@ function zoomBy(factor) {
 // against a 390x844 viewport: files a and h plus their labels stay fully
 // on screen while the board fills the width instead of ~70% of it.
 const BOARD_FIT_RADIUS = 6.0;
+// An upright phone, closer in than the sphere fit: the near edge of the 8 squares spans the screen's width (the
+// frame and rank numbers may run off the sides), as long as the whole frame, front to back, stays in the band
+// between the HUD / camera buttons and the player cards / level chip. Found by trying distances along the current
+// viewing direction and projecting the board's corners (with the layout's lens shift); null off an upright phone.
+function uprightPhoneFitDist(w, h) {
+  if (w > 820 || w / h >= TRAY_SIDE_ASPECT) return null;
+  const I = planInsets(w, h, false);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const save = camera.position.clone(), saveQ = camera.quaternion.clone();
+  const grid = [[-4, -4], [4, -4], [-4, 4], [4, 4]], frame = [[-4.7, -4.7], [4.7, -4.7], [-4.7, 4.7], [4.7, 4.7]];
+  const v = new THREE.Vector3();
+  const fits = (d) => {
+    camera.position.copy(controls.target).addScaledVector(dir, d);
+    camera.lookAt(controls.target); camera.updateMatrixWorld();
+    for (const [x, z] of grid) { v.set(x, 0, z).project(camera); if (Math.abs(v.x) > 0.985) return false; }
+    for (const [x, z] of frame) {
+      v.set(x, 0, z).project(camera);
+      const py = (1 - v.y) / 2 * h;
+      if (py < I.T - 6 || py > h - I.B + 6) return false;
+    }
+    return true;
+  };
+  let lo = controls.minDistance, hi = Math.max(controls.maxDistance, 40);
+  if (!fits(hi)) { camera.position.copy(save); camera.quaternion.copy(saveQ); return null; }
+  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
+  camera.position.copy(save); camera.quaternion.copy(saveQ); camera.updateMatrixWorld();
+  return hi;
+}
+// moves the camera to the upright-phone distance (same direction); false where that fit does not apply
+function applyUprightPhoneFit() {
+  const d = uprightPhoneFitDist(sceneDiv.clientWidth, sceneDiv.clientHeight);
+  if (!d) return false;
+  controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
+  const off = camera.position.clone().sub(controls.target).setLength(d);
+  camera.position.copy(controls.target).add(off);
+  controls.update();
+  return true;
+}
 function fitCameraToBoard() {
   const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
   if (!w || !h) return;
   if (theme().topDown) { topView(); return; }
+  if (applyUprightPhoneFit()) return;
   const aspect = w / h;
   const vFovRad = camera.fov * Math.PI / 180;
   const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * aspect);
@@ -19777,6 +19825,7 @@ function resetView() {
   camera.position.copy(DEFAULT_CAM_POS);
   controls.target.set(0, 0, 0);
   controls.update();
+  applyUprightPhoneFit();
 }
 // Plan view: the board (frame, labels and the captured-piece columns) is centred in the part of the viewport that
 // no UI element covers -- below the player cards / title, clear of the move list on the left and the camera
@@ -19875,6 +19924,7 @@ function tiltedView() {
   controls.target.set(0, 0, 0);
   camera.position.set(0, DEFAULT_CAM_POS.y, viewSide === E.BLACK ? -DEFAULT_CAM_POS.z : DEFAULT_CAM_POS.z);
   controls.update();
+  applyUprightPhoneFit();
 }
 // ---------- board-view flipping (for the Black-side player) ----------
 // Rotates the camera's azimuth around the board center while keeping its
