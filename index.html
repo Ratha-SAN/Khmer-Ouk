@@ -726,7 +726,21 @@
   #puzzleCard .pcLv.cur { border-color: var(--accent); color: var(--accent); }
   #puzzleCard .pcLv.done { color: #4fd88a; }
   #puzzleCard .pcBack { margin-left: auto; }
-  #puzzleCard .pcLine { display: none; }
+  #puzzleCard .pcLine, #puzzleCard .pcL1, #puzzleCard .pcL2 { display: none; }
+  /* a computer: the card is two lines (news, then buttons), as wide as they need */
+  @media (min-width: 821px) and (min-height: 561px) {
+    #puzzleCard { width: auto; max-width: min(560px, calc(100% - 32px)); padding: 6px 10px; }
+    #puzzleCard > :not(.pcL1):not(.pcL2) { display: none !important; }
+    #puzzleCard .pcL1 { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+    #puzzleCard .pcL1 > span { display: inline; margin: 0; }
+    #puzzleCard .pcL1 .pcL1Txt:not(.pcResult) { color: var(--accent); }
+    #puzzleCard .pcL2 { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 4px; }
+    #puzzleCard .pcL2 .pcBtn { margin: 0; white-space: nowrap; }
+    #puzzleCard.folded .pcL2 { display: none; }
+    #puzzleCard.folded > .pcL1 { display: block; }
+    /* a Flat 2D theme: above the board, in the middle (the title has gone to the left-hand column) */
+    body.plan-desk #puzzleCard { top: 10px; left: 50%; transform: translateX(-50%); }
+  }
   details.puzzleHint summary { cursor: pointer; color: var(--accent); margin-top: 6px; }
   /* a newer version is published: a small bar at the top, tap to reload */
   #updateBar {
@@ -773,14 +787,18 @@
   .iabHint button { margin-top: 6px; font-size: 13px; padding: 6px 12px; }
   #startScreen .box .iabHint button { font-size: 13px; padding: 6px 12px; background: var(--accent); color: var(--on-accent); box-shadow: none; }
   /* the computer-level reminder: a chip under the board title, plus a short toast when such a game starts */
+  /* it sits on the computer's player card (tickHud places it): no box, just its text with a soft glow, which
+     brightens a few times when a game starts or the level changes */
   #aiChip {
     position: absolute; top: 58px; left: 50%; transform: translateX(-50%); z-index: 3; display: none;
-    padding: 4px 12px; font-size: 12px; font-weight: 600; border-radius: 999px; cursor: pointer; white-space: nowrap;
-    background: color-mix(in srgb, var(--panel-bg) 82%, transparent); color: var(--accent); border: 1px solid var(--accent-dim);
+    padding: 2px 6px; font-size: 12px; font-weight: 600; border-radius: 999px; cursor: pointer; white-space: nowrap;
+    background: none !important; color: var(--accent); border: none !important; box-shadow: none !important;
+    text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 55%, transparent), 0 1px 3px rgba(0,0,0,.8);
   }
-  #aiChip:hover { border-color: var(--accent); }
+  #aiChip:hover { text-shadow: 0 0 10px var(--accent), 0 1px 3px rgba(0,0,0,.8); }
   #aiChip.attn { animation: aiChipPulse 1s ease-in-out 3; }
-  @keyframes aiChipPulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px var(--accent-dim), 0 0 14px var(--accent); } }
+  @keyframes aiChipPulse { 0%, 100% { text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 55%, transparent), 0 1px 3px rgba(0,0,0,.8); }
+    50% { text-shadow: 0 0 12px var(--accent), 0 0 22px var(--accent), 0 1px 3px rgba(0,0,0,.8); } }
   #playNowBtn.busy { opacity: .75; cursor: progress; }
   #aiNotice {
     position: fixed; top: 96px; left: 50%; z-index: 30; max-width: 86vw; text-align: center; cursor: pointer;
@@ -839,6 +857,12 @@
   body.scene-narrow .scorecard .avatar { width: 28px; height: 28px; }
   body.scene-narrow .scorecard .pname { font-size: 11px; max-width: 110px; }
   body.scene-narrow .scorecard .pscore { font-size: 13px; }
+  /* a computer in a Flat 2D theme: the board fills the height between the side columns -- the title moves into the
+     left-hand column (under the move list), the player cards to the bottom corners (see planInsets) */
+  body.plan-desk #boardTitle { top: 56%; left: 16px; transform: translateY(-50%); text-align: left; font-size: 22px; }
+  body.plan-desk #scoreW { right: auto; left: 8px; top: auto; bottom: 10px; }
+  body.plan-desk #scoreB { left: auto; right: 8px; top: auto; bottom: 10px; }
+  body.plan-desk #aiChip .chipName { display: none; } /* a narrower right-hand column */
   /* ---------- mobile (phone) layout: portrait and landscape ----------
      The settings panel becomes a full-screen slide-up sheet (toggled by
      the React touch toolbar or the panel-hide button) instead of a fixed
@@ -15849,15 +15873,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.87';
+const APP_VERSION = '1.6.88';
 const WHATS_NEW = [
   {
-    version: '1.6.87',
+    version: '1.6.88',
     date: '2026-10-27',
-    title: { kh: 'ប៊ូតុងពេញអេក្រង់នៅខាងលើ (កុំព្យូទ័រ)', en: 'The full-screen button near the top (computers)' },
+    title: { kh: 'ក្តារ 2D ពេញកម្ពស់លើកុំព្យូទ័រ និងស្លាកកម្រិតភ្លឺ', en: 'A full-height 2D board on computers, and a glowing level label' },
     items: [
-      { kh: 'នៅលើកុំព្យូទ័រ ប៊ូតុង ⛶ ពេញអេក្រង់ ឥឡូវនៅលំដាប់ទីពីរពីលើ ក្រោមប៊ូតុង ◧ ភ្លាម។',
-        en: 'On a computer the ⛶ full-screen button is now second from the top, right under ◧.' }
+      { kh: 'នៅលើកុំព្យូទ័រ ក្តារ 2D ពេញកម្ពស់អេក្រង់៖ ចំណងជើងទៅជួរខាងឆ្វេង ហើយកាតអ្នកលេងទាំងពីរទៅជ្រុងខាងក្រោម។',
+        en: 'On a computer the 2D board fills the height of the screen: the title moves to the left-hand column and both player cards to the bottom corners.' },
+      { kh: 'ស្លាក «🤖 កុំព្យូទ័រ កម្រិត…» លែងមានប្រអប់ទៀត គ្រាន់តែភ្លឺបន្តិច។ លើទូរស័ព្ទ និង 2D លើកុំព្យូទ័រ វានៅពីលើកាតកុំព្យូទ័រ។ លើ 3D លើកុំព្យូទ័រ វានៅខាងឆ្វេង។',
+        en: 'The "🤖 Computer level…" label has no box any more, just a soft glow. On a phone and in 2D on a computer it sits on the computer\'s card; in 3D on a computer it is on the left.' },
+      { kh: 'នៅលើកុំព្យូទ័រ ផ្ទាំងល្បែងប្រាជ្ញាមានតែពីរបន្ទាត់៖ ដំណឹង (ឬជំនួយ) ហើយប៊ូតុង 💡, កម្រិតទាំងបី និង ↩។ ក្នុង 2D វានៅខាងលើក្តារ ចំកណ្ដាល។',
+        en: 'On a computer the puzzle card is just two lines: the news (or the hint), then the 💡, three-level and ↩ buttons. In 2D it sits above the board, in the middle.' },
+      { kh: 'នៅលើកុំព្យូទ័រ ប៊ូតុង ⛶ ពេញអេក្រង់ នៅលំដាប់ទីពីរពីលើ ក្រោមប៊ូតុង ◧។',
+        en: 'On a computer the ⛶ full-screen button is second from the top, under ◧.' }
     ]
   },
   {
@@ -18385,8 +18415,17 @@ function updatePuzzleCard() {
       (puzzleSolved || puzzleHintOpen ? '' : '<button class="pcBtn" type="button" data-act="hint" title="ជំនួយ — Hint">💡</button>') +
       (nextLv ? '<button class="pcBtn" type="button" data-act="lv" data-lv="' + nextLv.k + '">▶ ' + sp(nextLv.kh, nextLv.en, ' ') + '</button>' : '') +
       (daily ? '<button class="pcBtn" type="button" data-act="back" title="ត្រឡប់ — Back">↩</button>' : '') + '</span>';
-    el.innerHTML = line + '<span class="pcTitle" data-act="fold">' + title + '</span>' +
+    // a computer: two lines -- the same news as the phone's line, then the buttons (💡, ▶ next level, the three
+    // levels, ↩ back); tapping the first line folds the card to it
+    const l2 = (puzzleSolved || puzzleHintOpen ? '' : '<button class="pcBtn" type="button" data-act="hint">💡 ' + sp('ជំនួយ', 'Hint', ' ') + '</button>') +
+      (nextLv ? '<button class="pcBtn" type="button" data-act="lv" data-lv="' + nextLv.k + '">▶ ' + sp(nextLv.kh, nextLv.en, ' ') + '</button>' : '') +
+      (daily ? DAILY_LEVELS.map((x) => '<button class="pcBtn pcLv' + (x.k === dlv ? ' cur' : '') + (done[x.k] ? ' done' : '') +
+        '" type="button" data-act="lv" data-lv="' + x.k + '">' + sp(x.kh, x.en, ' ') + (done[x.k] ? ' ✔' : '') + '</button>').join('') +
+        '<button class="pcBtn pcBack" type="button" data-act="back" title="ត្រឡប់ — Back">↩</button>' : '');
+    const two = '<span class="pcL1" data-act="fold">' + lineText.replace('pcLineTxt', 'pcL1Txt') + '</span>' + (l2 ? '<span class="pcL2">' + l2 + '</span>' : '');
+    el.innerHTML = two + line + '<span class="pcTitle" data-act="fold">' + title + '</span>' +
       '<span class="pcTask">' + sp(ob.okh, ob.oen, ' ') + '</span>' + result + hint + dailyRow;
+    const l1 = el.querySelector('.pcL1'); l1.title = l1.textContent; // the whole text on hover, when it is cut short
     const sub = el.querySelector('.pcHintSub');
     if (sub && puzzleSubtitle(pz)) sub.textContent = ' (' + puzzleSubtitle(pz) + ')';
   }
@@ -18420,6 +18459,7 @@ function tickHud() {
   updateAiChip();
   updateTopViewBtn();
   updatePuzzleCard();
+  syncPlanDesk();
   if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
     const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
     if ([I.T, I.B, I.L, I.R].map(Math.round).join('/') !== planSig) resize();
@@ -18451,17 +18491,26 @@ function tickHud() {
       '<div class="stat"><span class="lbl">នាឡិកា ខ្មៅ<br>B clock</span><b' + (bLow ? ' style="color:#ff5a5a"' : '') + '>' + fmtClock(clockRemaining(E.BLACK)) + '</b></div>';
   }
   hud.innerHTML = html;
-  // the HUD is now three (or five, with chess clocks) stacked stats: keep the move list just below it -- and on a
-  // phone the level chip too, between the two
+  // the HUD is now three (or five, with chess clocks) stacked stats: keep the move list just below it
   let below = hud.offsetTop + hud.offsetHeight;
   const chip = document.getElementById('aiChip');
-  // on a phone the level chip sits just above the computer's player card (bottom right), clear of the board
+  // the level chip: on a phone, and on a computer in a Flat 2D theme, it sits on the computer's player card (just
+  // above it when the card is at the bottom, under it when at the top); on a computer in 3D, in the left-hand
+  // column, just below where the move list can reach
   const aiCard = document.getElementById(humanSide === E.WHITE ? 'scoreB' : 'scoreW');
-  if (PHONE_MQ.matches && chip.style.display === 'block' && aiCard && aiCard.offsetWidth && chip.offsetParent) {
-    const pr = chip.offsetParent.getBoundingClientRect(), cr = aiCard.getBoundingClientRect();
-    chip.style.top = Math.round(cr.top - pr.top - chip.offsetHeight - 6) + 'px';
-    chip.style.left = Math.round(Math.max(8, cr.right - pr.left - chip.offsetWidth)) + 'px';
-  } else if (chip.style.top || chip.style.left) chip.style.top = chip.style.left = '';
+  if (chip.style.display === 'block' && chip.offsetParent) {
+    const pr = chip.offsetParent.getBoundingClientRect();
+    if ((PHONE_MQ.matches || document.body.classList.contains('plan-desk')) && aiCard && aiCard.offsetWidth) {
+      const cr = aiCard.getBoundingClientRect(), low = (cr.top + cr.bottom) / 2 - pr.top > pr.height / 2;
+      chip.style.top = Math.round(low ? cr.top - pr.top - chip.offsetHeight - 4 : cr.bottom - pr.top + 4) + 'px';
+      const rightSide = (cr.left + cr.right) / 2 - pr.left > pr.width / 2;
+      chip.style.left = Math.round(rightSide ? Math.max(8, cr.right - pr.left - chip.offsetWidth) : cr.left - pr.left) + 'px';
+    } else {
+      chip.style.top = Math.round(below + 8 + 0.26 * window.innerHeight + 12) + 'px';
+      chip.style.left = '16px';
+    }
+    chip.style.transform = 'none';
+  } else if (chip.style.top || chip.style.left) chip.style.top = chip.style.left = chip.style.transform = '';
   const ml = document.getElementById('movelist');
   if (!ml) return;
   // an upright phone, once the first move is made: the move list takes the title's place at the top, between the
@@ -19662,6 +19711,10 @@ window.__ouk = {
 };
 
 // ---------- render loop ----------
+// a computer (not the phone layout) in a Flat 2D theme: the side-column layout of the plan view (CSS plan-desk)
+function syncPlanDesk() {
+  document.body.classList.toggle('plan-desk', !!theme().topDown && !window.matchMedia('(max-width: 820px), (max-height: 560px)').matches);
+}
 function resize() {
   const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
   if (pixelActive) {
@@ -19682,6 +19735,7 @@ function resize() {
   }
   camera.aspect = w / h;
   document.body.classList.toggle('scene-narrow', w < 1000);
+  syncPlanDesk();
   if (theme().topDown) {
     // plan view: centre the board in the part of the viewport no HUD element covers (see planLayout)
     const P = planLayout();
@@ -19844,6 +19898,20 @@ function planInsets(w, h, side) {
   const sr = sceneDiv.getBoundingClientRect();
   const vis = (id) => { const e = document.getElementById(id); if (!e || !e.offsetWidth || !e.offsetHeight) return null; const cs = getComputedStyle(e); return cs.display === 'none' || cs.visibility === 'hidden' ? null : e; };
   let T = 0, B = 0, L = 0, R = 0;
+  // a computer in a Flat 2D theme: everything (HUD, move list, title, cards, level chip, camera buttons) stands in a
+  // column at the left or right edge, so the board fills the height between them
+  if (document.body.classList.contains('plan-desk')) {
+    const pc = vis('puzzleCard'); // above the board (CSS): it pushes the board down instead
+    if (pc) T = pc.getBoundingClientRect().bottom - sr.top;
+    for (const id of ['hud', 'movelist', 'boardTitle', 'scoreW', 'scoreB', 'aiChip', 'camControls', 'panelToggle']) {
+      const e = vis(id); if (!e) continue;
+      let r = e.getBoundingClientRect();
+      if (id === 'movelist') r = { left: r.left, right: r.left + Math.min(r.width, 190) };
+      if ((r.left + r.right) / 2 - sr.left < w / 2) L = Math.max(L, r.right - sr.left); else R = Math.max(R, sr.right - r.left);
+    }
+    L = R = Math.min(Math.max(L, R) + 10, w * 0.3);
+    return { T: T ? T + 10 : 10, B: 10, L, R, desk: true };
+  }
   // vertical rule: an element in the upper half of the viewport pushes the board down, one in the lower half pushes it up
   const vertical = (r) => { if ((r.top + r.bottom) / 2 - sr.top < h / 2) T = Math.max(T, r.bottom - sr.top); else B = Math.max(B, sr.bottom - r.top); };
   for (const id of ['scoreW', 'scoreB', 'boardTitle', 'aiChip', 'puzzleCard']) {
@@ -19904,7 +19972,9 @@ function topViewFitDist() {
   // frame and the captured-piece strips may run under the HUD and the player cards); on any other upright screen
   // the frame (4.7 wide) spans edge to edge
   const phoneUp = !P.side && P.w <= 820;
-  const needH = P.side ? 4.95 : phoneUp ? 4.5 : 6.1, needW = P.side ? 6.5 : phoneUp ? 4.03 : 4.72;
+  // a computer (planInsets' desk layout): the frame fills the height, the captured-piece strips may reach into the
+  // side columns
+  const needH = P.I.desk ? (P.side ? 4.75 : 6.1) : P.side ? 4.95 : phoneUp ? 4.5 : 6.1, needW = P.I.desk ? 4.75 : P.side ? 6.5 : phoneUp ? 4.03 : 4.72;
   // vertical pixels per world unit at distance d is fullH / (2 d tanH); the same on x (the aspect is set to fullW/fullH)
   const d = Math.max(needH * P.fullH / (2 * tanH * P.Ah), needW * P.fullH / (2 * tanH * P.Aw));
   controls.maxDistance = Math.max(controls.maxDistance, d * 1.02);
