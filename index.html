@@ -220,8 +220,16 @@
   }
   /* floating camera controls, top-right of the board */
   #camControls {
-    position: absolute; top: 56px; right: 12px; z-index: 4; display: flex; flex-direction: column; gap: 6px;
+    position: absolute; top: 56px; right: 12px; z-index: 4; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
   }
+  /* the view button names the view it is showing -- 3D, 2D (a Flat 2D theme) or Top (3D from straight above) -- each
+     in a slightly different tone; a tap moves on to the next */
+  #camControls #topViewBtn { font-size: 13px; font-weight: 800; letter-spacing: .3px; }
+  #camControls #topViewBtn.mode-2d { background: color-mix(in srgb, #5aa9ff 26%, var(--panel-bg)) !important; color: #d6ebff; }
+  #camControls #topViewBtn.mode-top { background: color-mix(in srgb, #4fd88a 24%, var(--panel-bg)) !important; color: #d9ffe8; }
+  #camControls #topViewBtn.mode-3d { background: color-mix(in srgb, var(--accent) 20%, var(--panel-bg)) !important; color: var(--accent); }
+  /* full screen: a wider button with its name */
+  #camControls #fullscreenBtn { width: auto; padding: 0 12px; white-space: nowrap; font-size: 13px; font-weight: 600; }
   #camControls button {
     width: 44px; height: 40px; font-size: 16px; border-radius: 8px; border: 1px solid var(--accent-dim);
     background: color-mix(in srgb, var(--panel-bg) 82%, transparent); color: var(--panel-fg); cursor: pointer;
@@ -868,6 +876,8 @@
     }
     #camControls button { width: auto; min-width: 0; height: 30px; padding: 0; font-size: 14px; border-radius: 7px; }
     #camControls #settingsBtn { display: block; grid-column: 3; grid-row: 1; }
+    #camControls #topViewBtn { font-size: 11px; }
+    #camControls #fullscreenBtn { grid-column: span 2; width: auto; padding: 0 4px; font-size: 11px; }
     #boardTitle { font-size: 20px; top: 14px; }
   }
   @media (max-width: 400px) {
@@ -2534,10 +2544,10 @@
     <button id="zoomInBtn" title="Zoom In">＋</button>
     <button id="zoomOutBtn" title="Zoom Out">－</button>
     <button id="zoomResetBtn" title="Reset View">⟲</button>
-    <button id="topViewBtn" title="Top View">⬒</button>
+    <button id="topViewBtn" class="mode-3d" title="3D → 2D → Top">3D</button>
     <button id="sideViewBtn" title="ទិដ្ឋភាពចំហៀង — Side view">⇆</button>
     <button id="flipViewBtn" title="Flip Board View">⇅</button>
-    <button id="fullscreenBtn" title="ពេញអេក្រង់ — Full screen">⛶</button>
+    <button id="fullscreenBtn" title="ពេញអេក្រង់ — Full screen">⛶ <span class="t-kh">ពេញអេក្រង់</span><span class="t-en">Full screen</span></button>
     <button id="settingsBtn" title="ការកំណត់ — Settings">⚙</button>
   </div>
 </div>
@@ -15825,8 +15835,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.81';
+const APP_VERSION = '1.6.82';
 const WHATS_NEW = [
+  {
+    version: '1.6.82',
+    date: '2026-10-27',
+    title: { kh: 'ប៊ូតុង 3D / 2D / Top និងប៊ូតុងពេញអេក្រង់', en: 'A 3D / 2D / Top view button and a clearer full-screen button' },
+    items: [
+      { kh: 'ប៊ូតុងទិដ្ឋភាពបង្ហាញឥឡូវថាអ្នកកំពុងមើល 3D, 2D ឬ Top (មើលពីលើ) ដោយមានពណ៌ខុសគ្នាបន្តិចសម្រាប់នីមួយៗ។',
+        en: 'The view button now shows whether you are looking at 3D, 2D or Top (3D from straight above), with a slightly different colour for each.' },
+      { kh: 'ប៊ូតុងពេញអេក្រង់វែងជាងមុន ហើយមានពាក្យ «ពេញអេក្រង់»។',
+        en: 'The full-screen button is longer and says "ពេញអេក្រង់" (Full screen).' }
+    ]
+  },
   {
     version: '1.6.81',
     date: '2026-10-26',
@@ -18303,8 +18324,19 @@ document.getElementById('puzzleCard').onclick = (e) => {
   if (act === 'lv') { const k = dailyPuzzleFor(t.dataset.lv).key; if (!activePuzzle || activePuzzle.key !== k) loadPuzzle(k); return; }
   if (act === 'back') { showStartScreen(); }
 };
+function updateTopViewBtn() {
+  const b = document.getElementById('topViewBtn');
+  let m = '3d';
+  if (theme().topDown) m = '2d';
+  else { const d = camera.position.clone().sub(controls.target); if (Math.hypot(d.x, d.z) < 0.02 * d.length()) m = 'top'; }
+  if (b.dataset.mode === m) return;
+  b.dataset.mode = m;
+  b.className = 'mode-' + m;
+  b.textContent = m === 'top' ? 'Top' : m.toUpperCase();
+}
 function tickHud() {
   updateAiChip();
+  updateTopViewBtn();
   updatePuzzleCard();
   if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
     const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
