@@ -10115,6 +10115,70 @@ function rebuildPieces() {
   }
 }
 
+// ---------- ragdoll: a captured piece is knocked over ----------
+// The captured piece's own 3D figure is lifted out of pieceGroup before the move (so the rebuild after it leaves the
+// figure alone), then hit away from the attacker: it tips over, tumbles under gravity, bounces and skids on the
+// board (or drops off its edge), and shrinks away after a moment. Not in the Flat 2D themes, Modern Ops (it has its
+// own shoot/explode cinematic) or with reduced motion.
+const ragdollGroup = new THREE.Group();
+scene.add(ragdollGroup);
+let ragdolls = [], ragdollRaf = null, ragdollLast = 0;
+const RAGDOLL_LIFE = 1.9, RAGDOLL_FLOOR = -0.05, RAGDOLL_EDGE = 4.7;
+const _rdBox = new THREE.Box3(), _rdQ = new THREE.Quaternion(), _rdAxis = new THREE.Vector3();
+function grabRagdoll(toSq) {
+  if (theme().topDown || theme().modernFx || fxPrefersReducedMotion()) return null;
+  const g = pieceAt[toSq];
+  if (!g) return null;
+  ragdollGroup.add(g); // (removes it from pieceGroup)
+  return g;
+}
+function startRagdoll(g, fromSq, toSq) {
+  const a = sqPos(fromSq), b = sqPos(toSq);
+  const dir = new THREE.Vector3(b.x - a.x, 0, b.z - a.z);
+  if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+  dir.normalize();
+  const speed = 2.6 + Math.random() * 0.8;
+  const v = dir.clone().multiplyScalar(speed);
+  v.y = 3.4 + Math.random() * 0.8;
+  // tip forward, away from the attacker (axis up x dir turns the top towards dir), with a little twist
+  const w = new THREE.Vector3(0, 1, 0).cross(dir).multiplyScalar(8 + Math.random() * 3);
+  w.y = (Math.random() - 0.5) * 5;
+  ragdolls.push({ g, v, w, t: 0, s0: g.scale.clone() });
+  if (!ragdollRaf) { ragdollLast = performance.now(); ragdollRaf = requestAnimationFrame(ragdollStep); }
+}
+function ragdollStep(now) {
+  // real time, in small steps (so a slow frame neither slows the fall down nor lets the figure sink through the board)
+  const slow = window.__oukRagdollTimeScale || 1; // (Test-only: slow motion for screenshots)
+  const elapsed = Math.min(0.1, Math.max(0, (now - ragdollLast) / 1000)) * slow, n = Math.max(1, Math.ceil(elapsed / 0.016));
+  ragdollLast = now;
+  for (let k = 0; k < n; k++) ragdollTick(elapsed / n);
+  ragdolls = ragdolls.filter((r) => !r.done);
+  ragdollRaf = ragdolls.length ? requestAnimationFrame(ragdollStep) : null;
+}
+function ragdollTick(dt) {
+  for (const r of ragdolls) {
+    if (r.done) continue;
+    r.t += dt;
+    r.v.y -= 14 * dt; // gravity
+    r.g.position.addScaledVector(r.v, dt);
+    const ang = r.w.length();
+    if (ang > 1e-4) { _rdQ.setFromAxisAngle(_rdAxis.copy(r.w).divideScalar(ang), ang * dt); r.g.quaternion.premultiply(_rdQ); }
+    // the board: while over it, the figure's lowest point stays on top; each landing bounces less and drags
+    if (Math.abs(r.g.position.x) < RAGDOLL_EDGE && Math.abs(r.g.position.z) < RAGDOLL_EDGE) {
+      _rdBox.setFromObject(r.g);
+      if (_rdBox.min.y < RAGDOLL_FLOOR) {
+        r.g.position.y += RAGDOLL_FLOOR - _rdBox.min.y;
+        if (r.v.y < 0) { r.v.y = -r.v.y * 0.35; if (r.v.y < 0.8) r.v.y = 0; }
+        r.v.x *= 0.86; r.v.z *= 0.86;
+        r.w.multiplyScalar(0.82);
+      }
+    }
+    const fade = 0.35; // then it shrinks away
+    if (r.t > RAGDOLL_LIFE - fade) r.g.scale.copy(r.s0).multiplyScalar(Math.max(0.001, (RAGDOLL_LIFE - r.t) / fade));
+    if (r.t >= RAGDOLL_LIFE || r.g.position.y < -10) { ragdollGroup.remove(r.g); r.done = true; }
+  }
+}
+
 // ---------- captured-piece trays (top and bottom of the board) ----------
 const trayGroup = new THREE.Group();
 scene.add(trayGroup);
@@ -14445,6 +14509,7 @@ function applyMove(m) {
   // pieceGroup out from under them.
   const modernCaptureCue = (theme().modernFx && captured !== E.EMPTY && !fxPrefersReducedMotion())
     ? grabModernCaptureCue(m.from, m.to) : null;
+  const ragdollG = captured !== E.EMPTY ? grabRagdoll(m.to) : null; // the captured figure, knocked over below
   if (uiMode === 'play' && moveEntries.length === 0 && gameStartTs) {
     funnel('first_move', { mode, secs: Math.round((Date.now() - gameStartTs) / 1000) });
     if (accessTier === 'guest') bumpGuestGames();
@@ -14467,6 +14532,7 @@ function applyMove(m) {
   }
   clearMarkers();
   refreshAll();
+  if (ragdollG) startRagdoll(ragdollG, m.from, m.to);
   const isCheck = E.inCheck(state, state.turn);
   const mateStatus = E.gameStatus(state);
   const isCheckmate = !!(mateStatus && mateStatus.type === 'checkmate');
@@ -19492,6 +19558,7 @@ window.__ouk = {
   debugNewGame: () => newGame(),
   debugFlat2DSize: (setStyle, type) => (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type],
   debugApplyMove: (m) => applyMove(m),
+  debugRagdolls: () => ragdolls.map((r) => ({ t: +r.t.toFixed(2), p: r.g.position.toArray().map((x) => +x.toFixed(2)) })), // Test-only
   debugTrainMove: (m) => applyTrainingMove(m), // Test-only: a move made in Learn to Play (puzzles check it)
   debugLoadPuzzle: (key) => { if (!PUZZLES.some((p) => p.key === key)) throw new Error('no such puzzle'); loadPuzzle(key); }, // Test-only
   debugFxLog: () => window.__oukFxLog.slice(),
