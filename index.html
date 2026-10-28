@@ -15865,8 +15865,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.91';
+const APP_VERSION = '1.6.92';
 const WHATS_NEW = [
+  {
+    version: '1.6.92',
+    date: '2026-10-28',
+    title: { kh: 'ពេញអេក្រង់ ក្តារនៅតែពេញ', en: 'Full screen keeps the board fitted' },
+    items: [
+      { kh: 'ពេលបើក ឬបិទពេញអេក្រង់ (ប៊ូតុង ⛶) ក្តារ 3D ត្រឡប់មកទិដ្ឋភាពដើមដែលពេញអេក្រង់ ទោះបីអ្នកបានលេង ឬបង្វិលក្តាររួចហើយក៏ដោយ។ ការចុចលើក្តារដើម្បីដើរ លែងបញ្ឈប់ការពង្រីកតាមអេក្រង់ទៀតហើយ។',
+        en: 'Switching full screen on or off (⛶) brings the 3D board back to its fitted view, even after moves or turning the board. Tapping the board to play no longer stops it from following the screen size.' }
+    ]
+  },
   {
     version: '1.6.91',
     date: '2026-10-28',
@@ -18487,8 +18496,20 @@ function tickHud() {
   // the automatic 3D fit follows the scene's size until the player moves the camera: a computer's full screen or
   // panel, a phone going full screen (Android, from the Start pop-up) or its browser bars coming and going
   if (viewFitHeld && !theme().topDown && !viewAnimRaf && deskSig() !== viewFitSig) {
+    gestureFrom = null; // (this move of the camera is not the player's)
     resize(); // (the window's resize event may not have reached the camera yet: the fit needs its new aspect)
-    if (isDeskViewport()) deskDefaultView(); else fitCameraToBoard();
+    if (isDeskViewport()) deskDefaultView();
+    else {
+      // after a full-screen switch, from the default angle too (the player may have turned the board)
+      if (refitFromDefault && !sideViewMode) {
+        controls.enableDamping = false; controls.update(); controls.enableDamping = true; // use up a drag's leftover spin first
+        controls.target.set(0, 0, 0);
+        camera.position.set(0, DEFAULT_CAM_POS.y, viewSide === E.BLACK ? -DEFAULT_CAM_POS.z : DEFAULT_CAM_POS.z);
+        controls.update();
+      }
+      fitCameraToBoard();
+    }
+    refitFromDefault = false;
   }
   if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
     const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
@@ -19908,7 +19929,8 @@ function deskDefaultView() {
   if (!isDeskViewport() || theme().topDown || !sceneDiv.clientWidth) return false;
   if (sideViewMode !== 1) setSideView(1, false);
   if (viewAnimRaf) { cancelAnimationFrame(viewAnimRaf); viewAnimRaf = null; }
-  // the default height, from this seat's side
+  // the default height, from this seat's side (after using up any leftover spin from a drag)
+  controls.enableDamping = false; controls.update(); controls.enableDamping = true;
   controls.target.set(0, 0, 0);
   const elev = Math.atan2(DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z), az = viewAz();
   camera.position.set(Math.sin(az) * Math.cos(elev), Math.sin(elev), Math.cos(az) * Math.cos(elev)).multiplyScalar(DEFAULT_CAM_POS.length());
@@ -20369,7 +20391,18 @@ resize();
 newGame();
 deskDefaultView();
 try { if (sessionStorage.getItem(RESUME_KEY)) { sessionStorage.removeItem(RESUME_KEY); resumeAutosave(); } } catch (e) {}
-controls.addEventListener('start', () => { viewFitHeld = false; }); // the player orbits or zooms: keep their view
+// the player orbits or zooms: keep their view from then on. A tap on the board (to move a piece) also starts a
+// gesture, so only a gesture that actually moves the camera (or its damping tail just after) counts.
+let gestureFrom = null, gestureUntil = 0, refitFromDefault = false;
+controls.addEventListener('start', () => { gestureFrom = camera.position.clone(); gestureUntil = Infinity; });
+controls.addEventListener('end', () => { gestureUntil = performance.now() + 1500; });
+// switching full screen on or off (⛶, or the Start pop-up's buttons on Android) always brings back the default fit
+const refitOnFullscreen = () => { viewFitHeld = true; viewFitSig = ''; refitFromDefault = true; };
+document.addEventListener('fullscreenchange', refitOnFullscreen);
+document.addEventListener('webkitfullscreenchange', refitOnFullscreen);
+controls.addEventListener('change', () => {
+  if (gestureFrom && performance.now() < gestureUntil && camera.position.distanceTo(gestureFrom) > 0.02) { viewFitHeld = false; gestureFrom = null; }
+});
 funnel('start_view', { invite: pendingInviteCode ? 'yes' : 'no' });
 loop();
 </script>
