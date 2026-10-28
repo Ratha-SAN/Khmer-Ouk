@@ -343,7 +343,6 @@
   .themeCatBtn.hasSelection { background: color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
   /* the Start pop-up's secondary buttons: clearly lighter than the dark box, with bright labels */
   #startScreen .box #startLearnBtn { background: linear-gradient(160deg, #4b3b8f, #33276a) !important; color: #fff; }
-  #startScreen .box #continueBtn { background: linear-gradient(160deg, #8a6234, #5c3f22) !important; color: #fff3d6; } /* a warmer tone: the game waiting for you */
   #dailyRow { background: rgba(255,255,255,.05) !important; }
   #startScreen .box .dailyBtn { background: #4b3b8f !important; color: #fff; }
   #startScreen .box .dailyBtn:hover { background: #5a48a6 !important; }
@@ -676,14 +675,12 @@
     font-size: 13px; padding: 6px 14px; border-radius: 999px; background: var(--surface-2); color: var(--panel-fg);
     border: 1px solid var(--accent-dim); box-shadow: none; font-weight: 600;
   }
-  #startScreen .box #startLearnBtn, #startScreen .box #continueBtn {
+  #startScreen .box #startLearnBtn {
     display: block; width: 100%; margin-bottom: 12px; font-size: 15px; padding: 12px 8px;
     background: linear-gradient(160deg, rgba(50,30,90,.85), rgba(22,12,45,.9)); color: var(--panel-fg);
     border: 1px solid rgba(180,140,255,.35); box-shadow: none; font-weight: 600;
   }
-  /* coming back: Continue your game, the daily puzzle with the day streak, Add to Home Screen */
-  #startScreen .box #continueBtn { border-color: var(--accent); }
-  #continueBtn small { display: block; font-size: 12px; font-weight: 500; opacity: .8; margin-top: 3px; }
+  /* coming back: the daily puzzle with the day streak, Add to Home Screen */
   #dailyRow { margin-bottom: 12px; padding: 10px; border-radius: 12px; border: 1px solid rgba(180,140,255,.35);
     background: linear-gradient(160deg, rgba(50,30,90,.85), rgba(22,12,45,.9)); }
   .dailyHead { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--panel-fg); margin-bottom: 8px; }
@@ -2678,7 +2675,6 @@
     </div>
     <button id="playNowBtn" type="button"><span class="t-kh">លេងឥឡូវ</span><span class="t-sep"> ▸ </span><span class="t-en">PLAY NOW</span><small><span class="t-kh">ជាមួយកុំព្យូទ័រ កម្រិត ២</span><span class="t-sep"> — </span><span class="t-en">vs Computer, level 2</span></small></button>
     <p id="guestGamesNote" class="guestGamesNote"><span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ <b class="ggLeft">3</b> / 3 · ចូលគណនីដើម្បីលេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free games today: <b class="ggLeft">3</b> of 3 left · sign in for unlimited</span></p>
-    <button id="continueBtn" type="button" style="display:none">▶ <span class="t-kh">បន្តល្បែងមុន</span><span class="t-sep"> — </span><span class="t-en">Continue your game</span><small id="continueInfo"></small></button>
     <div id="dailyRow">
       <div class="dailyHead">🧩 <span class="t-kh">ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ</span><span class="t-sep"> — </span><span class="t-en">Daily puzzles</span><span id="streakBadge" class="streakBadge" style="display:none"></span></div>
       <div class="dailyBtns">
@@ -2705,21 +2701,14 @@
     if (/[?#&]join=[A-Za-z0-9]{6}\b/.test(location.search + location.hash)) document.getElementById('startInviteNote').style.display = 'block';
     if (/FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '')) document.getElementById('startIabHint').style.display = 'block';
   })();
-  // The Start pop-up's coming-back items, all read from this device's storage: Continue your game (the game in
-  // progress, autosaved after every move), the daily puzzle's done mark, the day streak, and Add to Home Screen.
+  // The Start pop-up's coming-back items, all read from this device's storage: the daily puzzle's done mark, the day
+  // streak, and Add to Home Screen.
   // Shown from the first frame (no pop-in); the game script calls it again whenever any of them changes.
   window.__oukRetentionUI = function () {
     var dk = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
     var read = function (k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
     var sp = function (kh, en, sep) { return '<span class="t-kh">' + kh + '</span><span class="t-sep">' + (sep || ' — ') + '</span><span class="t-en">' + en + '</span>'; };
     var today = dk(new Date()), y = new Date(); y.setDate(y.getDate() - 1); var yday = dk(y);
-    var a = read('oukAutosave'), cb = document.getElementById('continueBtn');
-    if (a && !a.gameOver && a.moveEntries && a.moveEntries.length && a.mode !== 'online') {
-      var m = /^ai(\d)$/.exec(a.mode || '');
-      document.getElementById('continueInfo').innerHTML = sp('ជើងទី ' + a.moveEntries.length + ' · ' + (m ? 'កុំព្យូទ័រ L' + m[1] : 'លេង ២ នាក់'),
-        'move ' + a.moveEntries.length + ' · ' + (m ? 'vs Computer L' + m[1] : '2 players'), ' ');
-      cb.style.display = 'block';
-    } else cb.style.display = 'none';
     var dp = read('oukDailyPuzzle'), done = dp && dp.d === today && dp.done ? dp.done : {};
     var rec = read('oukDailyRec'); // a signed-in player's level, from their stats (kept by the game script)
     var btns = document.querySelectorAll('#dailyRow .dailyBtn');
@@ -14062,7 +14051,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
 // Full screen for everyone -- phones, tablets and computers, in either orientation: requested by each tap of a
 // Start pop-up button (Play now, Learn to Play, Sign up / Sign in), since the Fullscreen API needs a live user
 // gesture. Where a browser has no fullscreen for pages (iPhone Safari, some in-app browsers) it quietly does nothing.
-['playNowBtn', 'startLearnBtn', 'startBtn', 'continueBtn'].forEach((id) => {
+['playNowBtn', 'startLearnBtn', 'startBtn'].forEach((id) => {
   document.getElementById(id).addEventListener('click', () => { window.__oukActions.requestFullscreen(); });
 });
 
@@ -15876,8 +15865,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.89';
+const APP_VERSION = '1.6.90';
 const WHATS_NEW = [
+  {
+    version: '1.6.90',
+    date: '2026-10-28',
+    title: { kh: 'ដកប៊ូតុង «បន្តល្បែងមុន» ចេញ', en: 'No more "Continue your game" button' },
+    items: [
+      { kh: 'ផ្ទាំងចាប់ផ្ដើមលែងមានប៊ូតុង «បន្តល្បែងមុន» ទៀតហើយ។ ពេលអ្នកចុចរបារ «មានកំណែថ្មី» ល្បែងដែលកំពុងលេងបន្តដោយខ្លួនឯងក្រោយធ្វើបច្ចុប្បន្នភាព។',
+        en: 'The Start pop-up no longer has a "Continue your game" button. When you tap the "new version" bar, the game you are playing carries on by itself after the update.' }
+    ]
+  },
   {
     version: '1.6.89',
     date: '2026-10-27',
@@ -17543,15 +17541,16 @@ setTimeout(checkForUpdate, 15000); // a copy opened from a stale cache learns of
 document.getElementById('updateBarGo').onclick = () => {
   trackEvent('update_reload', { to: document.getElementById('updateBar').dataset.v });
   autosaveGame();
+  try { if (uiMode === 'play' && moveEntries.length && !gameOver) sessionStorage.setItem(RESUME_KEY, '1'); } catch (e) {}
   location.reload();
 };
 document.getElementById('updateBarClose').onclick = () => {
   updateDismissed = document.getElementById('updateBar').dataset.v || '';
   document.getElementById('updateBar').style.display = 'none';
 };
-// ---------- coming back: Continue your game, the day streak, the daily puzzle, Add to Home Screen ----------
-// Continue: the game in progress (vs Computer or 2 players; not online) is autosaved after every move and offered
-// on the Start pop-up until it ends.
+// ---------- coming back: the game in progress, the day streak, the daily puzzle, Add to Home Screen ----------
+// The game in progress (vs Computer or 2 players; not online) is autosaved after every move, so the update bar's
+// reload can pick it up again by itself (there is no Continue button on the Start pop-up).
 const AUTOSAVE_KEY = 'oukAutosave';
 function autosaveGame() {
   if (uiMode !== 'play' || mode === 'online' || reviewMode) return;
@@ -17561,17 +17560,19 @@ function autosaveGame() {
   } catch (e) {}
 }
 function clearAutosave() { try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {} }
-document.getElementById('continueBtn').onclick = () => {
+// after the update bar's reload: the saved game is opened again straight away
+const RESUME_KEY = 'oukResumeAfterUpdate';
+function resumeAutosave() {
   let p = null;
   try { p = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null'); } catch (e) {}
-  if (!p) { window.__oukRetentionUI(); return; }
+  if (!p || p.gameOver || !(p.moveEntries || []).length) return;
   funnel('continue_game', { mode: p.mode, moves: (p.moveEntries || []).length });
   ensureGuest().then(() => {
     modeScreenOrigin = 'start';
     restoreSavePayload(p);
     gameEndTracked = false; // a game picked up again ends (and is recorded) as normal
   });
-};
+}
 // Day streak: the days in a row with a game played (its first move) or the daily puzzle solved.
 const STREAK_KEY = 'oukStreak';
 function dayKeyOf(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -20354,6 +20355,7 @@ applyTheme('wood');
 resize();
 newGame();
 deskDefaultView();
+try { if (sessionStorage.getItem(RESUME_KEY)) { sessionStorage.removeItem(RESUME_KEY); resumeAutosave(); } } catch (e) {}
 controls.addEventListener('start', () => { deskFitHeld = false; }); // the player orbits or zooms: keep their view
 funnel('start_view', { invite: pendingInviteCode ? 'yes' : 'no' });
 loop();
