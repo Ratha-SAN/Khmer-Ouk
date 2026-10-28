@@ -15865,8 +15865,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.90';
+const APP_VERSION = '1.6.91';
 const WHATS_NEW = [
+  {
+    version: '1.6.91',
+    date: '2026-10-28',
+    title: { kh: 'ក្តារ 3D ពេញអេក្រង់លើ Android', en: 'The 3D board fits full screen on Android' },
+    items: [
+      { kh: 'នៅលើទូរស័ព្ទ Android ពេលល្បែងបើកពេញអេក្រង់ (ឬរបារកម្មវិធីរុករកលេចចេញ/បាត់) ក្តារ 3D ពង្រីកតាមទំហំថ្មី លែងកាត់ចេញ — លុះត្រាតែអ្នកបានពង្រីក ឬបង្វិលវាដោយខ្លួនឯង។',
+        en: 'On Android, when the game goes full screen (or the browser bars come and go) the 3D board re-fits the new size instead of being cut off -- unless you have zoomed or turned it yourself.' }
+    ]
+  },
   {
     version: '1.6.90',
     date: '2026-10-28',
@@ -18475,8 +18484,12 @@ function tickHud() {
   updateTopViewBtn();
   updatePuzzleCard();
   syncPlanDesk();
-  // a computer's default 3D view follows the scene's size (full screen, the panel) until the player moves the camera
-  if (deskFitHeld && !theme().topDown && !viewAnimRaf && deskSig() !== deskFitSig) deskDefaultView();
+  // the automatic 3D fit follows the scene's size until the player moves the camera: a computer's full screen or
+  // panel, a phone going full screen (Android, from the Start pop-up) or its browser bars coming and going
+  if (viewFitHeld && !theme().topDown && !viewAnimRaf && deskSig() !== viewFitSig) {
+    resize(); // (the window's resize event may not have reached the camera yet: the fit needs its new aspect)
+    if (isDeskViewport()) deskDefaultView(); else fitCameraToBoard();
+  }
   if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
     const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
     if ([I.T, I.B, I.L, I.R].map(Math.round).join('/') !== planSig) resize();
@@ -19443,8 +19456,6 @@ window.__ouk = {
     showMarkers(); updateSquareTints();
   },
   selectedSq: () => selected,
-  // Test-only: play a legal move as if tapped (the AI then answers as usual)
-  debugApplyMove: (m) => applyMove(m),
   cameraPos: () => camera.position.toArray(),
   viewOffsetY: () => (camera.view ? camera.view.offsetY : 0),
   flatPlaneState: () => { for (const g of pieceGroup.children) if (g.userData.flat2dLying) return { rotX: g.userData.flat2dPlane.rotation.x, rotY: g.userData.flat2dPlane.rotation.y, groupRotY: g.rotation.y }; return null; },
@@ -19810,7 +19821,7 @@ function resetBoardShift() { if (boardShiftY) { boardShiftY = 0; applyBoardShift
 // target, so the board always stays centered no matter the zoom level) ----------
 const DEFAULT_CAM_POS = new THREE.Vector3(0, 10, 9.3);
 function zoomBy(factor) {
-  deskFitHeld = false;
+  viewFitHeld = false;
   const dir = camera.position.clone().sub(controls.target);
   const dist = dir.length() * factor;
   const clamped = Math.min(controls.maxDistance, Math.max(controls.minDistance, dist));
@@ -19880,7 +19891,7 @@ function projectedFitDist(h, xPts, xLim, yPts, top, bottom) {
 // size (full screen, the panel opened or closed) while the camera is still where this put it: the board turned so the
 // two trays stand left and right of it (side view 1), close in -- the front edge of the frame across the whole width,
 // its back edge just under the player cards and title.
-let deskFitHeld = false; // the camera is still at that fit (no zoom or orbit since)
+let viewFitHeld = false; // the camera is still at the automatic fit -- this one, or a phone's (no zoom or orbit since)
 function isDeskViewport() { return !(window.innerWidth <= 820 || window.innerHeight <= 560); }
 function deskFitDist() {
   const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, sr = sceneDiv.getBoundingClientRect();
@@ -19909,12 +19920,12 @@ function deskDefaultView() {
     camera.position.copy(controls.target).add(off);
     controls.update();
   }
-  deskFitHeld = true;
-  deskFitSig = deskSig();
+  viewFitHeld = true;
+  viewFitSig = deskSig();
   return true;
 }
 // what the fit depends on: the scene's size and how far down the player cards / title reach
-let deskFitSig = '';
+let viewFitSig = '';
 function deskSig() {
   const r = (id) => { const e = document.getElementById(id); return e && e.offsetWidth ? Math.round(e.getBoundingClientRect().bottom) : 0; };
   return [sceneDiv.clientWidth, sceneDiv.clientHeight, r('scoreW'), r('scoreB'), r('boardTitle')].join('/');
@@ -19927,6 +19938,7 @@ function applyUprightPhoneFit() {
   const off = camera.position.clone().sub(controls.target).setLength(d);
   camera.position.copy(controls.target).add(off);
   controls.update();
+  viewFitHeld = true; viewFitSig = deskSig();
   return true;
 }
 function fitCameraToBoard() {
@@ -19951,6 +19963,7 @@ function fitCameraToBoard() {
   dir.setLength(clamped);
   camera.position.copy(controls.target).add(dir);
   controls.update();
+  viewFitHeld = true; viewFitSig = deskSig();
 }
 function resetView() {
   if (theme().topDown) { topView(); return; }
@@ -20155,7 +20168,7 @@ document.getElementById('flipViewBtn').onclick = () => setViewSide(viewSide === 
 document.getElementById('sideViewBtn').onclick = () => {
   const next = (sideViewMode + 1) % 3;
   if (next === 1 && deskDefaultView()) return; // a computer: the trays-at-the-sides view is its default, close in
-  setSideView(next, true); deskFitHeld = false;
+  setSideView(next, true); viewFitHeld = false;
 };
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
@@ -20170,11 +20183,11 @@ function pickTheme(key) {
   refreshThemeCategoryUI();
 }
 document.getElementById('topViewBtn').onclick = () => {
-  deskFitHeld = false; // (back to 3D, tiltedView puts a computer's default view back)
+  viewFitHeld = false; // (back to 3D, tiltedView puts a computer's default view back)
   if (sideViewMode) setSideView(0, false);
   if (theme().topDown) { // 2D -> the 3D board from straight above
     pickTheme(THEMES[last3dThemeKey] && !THEMES[last3dThemeKey].topDown ? last3dThemeKey : 'wood');
-    deskFitHeld = false; if (sideViewMode) setSideView(0, false); // (the theme change put the default view back)
+    viewFitHeld = false; if (sideViewMode) setSideView(0, false); // (the theme change put the default view back)
     const tanV = Math.tan(camera.fov * Math.PI / 360), tanH = tanV * sceneDiv.clientWidth / Math.max(1, sceneDiv.clientHeight);
     const fit = Math.max(6.5 / tanV, 5.4 / tanH); // the frame's half-depth (with the trays) / half-width (with the labels)
     controls.maxDistance = Math.max(controls.maxDistance, fit * 1.02);
@@ -20356,7 +20369,7 @@ resize();
 newGame();
 deskDefaultView();
 try { if (sessionStorage.getItem(RESUME_KEY)) { sessionStorage.removeItem(RESUME_KEY); resumeAutosave(); } } catch (e) {}
-controls.addEventListener('start', () => { deskFitHeld = false; }); // the player orbits or zooms: keep their view
+controls.addEventListener('start', () => { viewFitHeld = false; }); // the player orbits or zooms: keep their view
 funnel('start_view', { invite: pendingInviteCode ? 'yes' : 'no' });
 loop();
 </script>
