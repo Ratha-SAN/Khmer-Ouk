@@ -2930,6 +2930,10 @@
       សញ្ញាជំហាន Step indicator (legal-move markers)
     </label>
     <label>
+      <input type="checkbox" id="ragdollChk">
+      ផ្ដួលកូនអុកដែលត្រូវស៊ី Ragdoll: captured pieces tumble and roll away
+    </label>
+    <label>
       <input type="checkbox" id="pieceNameChk">
       ឈ្មោះកូនអុក Show piece names above pieces
     </label>
@@ -10115,18 +10119,29 @@ function rebuildPieces() {
   }
 }
 
-// ---------- ragdoll: a captured piece is knocked over ----------
+// ---------- ragdoll: a captured piece is knocked over (an option, off by default) ----------
 // The captured piece's own 3D figure is lifted out of pieceGroup before the move (so the rebuild after it leaves the
-// figure alone), then hit away from the attacker: it tips over, tumbles under gravity, bounces and skids on the
-// board (or drops off its edge), and shrinks away after a moment. Not in the Flat 2D themes, Modern Ops (it has its
+// figure alone), then hit away from the attacker: it tips over, falls and bounces, then rolls on its side (a lying
+// figure rolls about its own long axis, with rolling friction) or slides if it lands upright or flat, and shrinks
+// away once it has come to rest -- or drops off the board's edge. Not in the Flat 2D themes, Modern Ops (it has its
 // own shoot/explode cinematic) or with reduced motion.
+const RAGDOLL_KEY = 'oukRagdoll';
+let ragdollOn = false;
+try { ragdollOn = localStorage.getItem(RAGDOLL_KEY) === '1'; } catch (e) {}
+document.getElementById('ragdollChk').checked = ragdollOn;
+document.getElementById('ragdollChk').onchange = (e) => {
+  ragdollOn = e.target.checked;
+  try { localStorage.setItem(RAGDOLL_KEY, ragdollOn ? '1' : '0'); } catch (err) {}
+  trackEvent('ragdoll_toggle', { on: ragdollOn });
+};
 const ragdollGroup = new THREE.Group();
 scene.add(ragdollGroup);
 let ragdolls = [], ragdollRaf = null, ragdollLast = 0;
-const RAGDOLL_LIFE = 1.9, RAGDOLL_FLOOR = -0.05, RAGDOLL_EDGE = 4.7;
-const _rdBox = new THREE.Box3(), _rdQ = new THREE.Quaternion(), _rdAxis = new THREE.Vector3();
+const RAGDOLL_FLOOR = -0.05, RAGDOLL_EDGE = 4.7, RAGDOLL_RADIUS = 0.3, RAGDOLL_MAX = 9, RAGDOLL_VANISH = 0.35;
+const _rdBox = new THREE.Box3(), _rdQ = new THREE.Quaternion(), _rdAxis = new THREE.Vector3(), _rdU = new THREE.Vector3();
+const _rdUp = new THREE.Vector3(0, 1, 0), _rdH = new THREE.Vector3(), _rdTip = new THREE.Vector3();
 function grabRagdoll(toSq) {
-  if (theme().topDown || theme().modernFx || fxPrefersReducedMotion()) return null;
+  if (!ragdollOn || theme().topDown || theme().modernFx || fxPrefersReducedMotion()) return null;
   const g = pieceAt[toSq];
   if (!g) return null;
   ragdollGroup.add(g); // (removes it from pieceGroup)
@@ -10137,17 +10152,17 @@ function startRagdoll(g, fromSq, toSq) {
   const dir = new THREE.Vector3(b.x - a.x, 0, b.z - a.z);
   if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
   dir.normalize();
-  const speed = 2.6 + Math.random() * 0.8;
-  const v = dir.clone().multiplyScalar(speed);
-  v.y = 3.4 + Math.random() * 0.8;
-  // tip forward, away from the attacker (axis up x dir turns the top towards dir), with a little twist
-  const w = new THREE.Vector3(0, 1, 0).cross(dir).multiplyScalar(8 + Math.random() * 3);
-  w.y = (Math.random() - 0.5) * 5;
-  ragdolls.push({ g, v, w, t: 0, s0: g.scale.clone() });
+  const v = dir.clone().multiplyScalar(2.4 + Math.random() * 0.8);
+  v.y = 3.2 + Math.random() * 0.8;
+  // it topples sideways (spinning about the line of the hit), so it lands on its side across that line and rolls on
+  // away from the attacker like a log; a little twist besides
+  const w = dir.clone().multiplyScalar((Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 3));
+  w.y = (Math.random() - 0.5) * 3;
+  ragdolls.push({ g, v, w, t: 0, rest: 0, vanish: -1, s0: g.scale.clone() });
   if (!ragdollRaf) { ragdollLast = performance.now(); ragdollRaf = requestAnimationFrame(ragdollStep); }
 }
 function ragdollStep(now) {
-  // real time, in small steps (so a slow frame neither slows the fall down nor lets the figure sink through the board)
+  // real time, in small steps (so a slow frame neither slows the motion down nor lets the figure sink into the board)
   const slow = window.__oukRagdollTimeScale || 1; // (Test-only: slow motion for screenshots)
   const elapsed = Math.min(0.1, Math.max(0, (now - ragdollLast) / 1000)) * slow, n = Math.max(1, Math.ceil(elapsed / 0.016));
   ragdollLast = now;
@@ -10159,23 +10174,57 @@ function ragdollTick(dt) {
   for (const r of ragdolls) {
     if (r.done) continue;
     r.t += dt;
+    if (r.vanish >= 0) { // at rest (or off the board): shrink away
+      r.vanish += dt;
+      r.g.scale.copy(r.s0).multiplyScalar(Math.max(0.001, 1 - r.vanish / RAGDOLL_VANISH));
+      if (r.vanish >= RAGDOLL_VANISH) { ragdollGroup.remove(r.g); r.done = true; }
+      continue;
+    }
     r.v.y -= 14 * dt; // gravity
     r.g.position.addScaledVector(r.v, dt);
     const ang = r.w.length();
     if (ang > 1e-4) { _rdQ.setFromAxisAngle(_rdAxis.copy(r.w).divideScalar(ang), ang * dt); r.g.quaternion.premultiply(_rdQ); }
-    // the board: while over it, the figure's lowest point stays on top; each landing bounces less and drags
+    let ground = false;
     if (Math.abs(r.g.position.x) < RAGDOLL_EDGE && Math.abs(r.g.position.z) < RAGDOLL_EDGE) {
       _rdBox.setFromObject(r.g);
-      if (_rdBox.min.y < RAGDOLL_FLOOR) {
+      if (_rdBox.min.y < RAGDOLL_FLOOR + 0.002) {
         r.g.position.y += RAGDOLL_FLOOR - _rdBox.min.y;
-        if (r.v.y < 0) { r.v.y = -r.v.y * 0.35; if (r.v.y < 0.8) r.v.y = 0; }
-        r.v.x *= 0.86; r.v.z *= 0.86;
-        r.w.multiplyScalar(0.82);
+        if (r.v.y < 0) { r.v.y = -r.v.y * 0.3; if (r.v.y < 0.7) r.v.y = 0; }
+        ground = true;
       }
     }
-    const fade = 0.35; // then it shrinks away
-    if (r.t > RAGDOLL_LIFE - fade) r.g.scale.copy(r.s0).multiplyScalar(Math.max(0.001, (RAGDOLL_LIFE - r.t) / fade));
-    if (r.t >= RAGDOLL_LIFE || r.g.position.y < -10) { ragdollGroup.remove(r.g); r.done = true; }
+    if (ground) {
+      _rdU.set(0, 1, 0).applyQuaternion(r.g.quaternion); // the figure's own long axis
+      _rdH.set(_rdU.x, 0, _rdU.z);
+      const lying = _rdH.length() > 0.9;
+      if (lying) {
+        // on its side: it rolls about its own axis; sliding along that axis dies away fast, rolling slowly
+        _rdH.normalize();
+        const along = r.v.x * _rdH.x + r.v.z * _rdH.z;
+        r.v.x -= _rdH.x * along * Math.min(1, 10 * dt); r.v.z -= _rdH.z * along * Math.min(1, 10 * dt);
+        // rolling resistance, which brings it to a stop in a few seconds
+        _rdAxis.set(r.v.x, 0, r.v.z);
+        const spd0 = _rdAxis.length(), spd = Math.max(0, spd0 * Math.exp(-0.5 * dt) - 0.9 * dt);
+        if (spd0 > 1e-6) { r.v.x *= spd / spd0; r.v.z *= spd / spd0; _rdAxis.multiplyScalar(spd / spd0); }
+        // rolling without slipping: spin = (up x v) / r, about the figure's axis
+        const sgn = spd > 1e-5 ? Math.sign(_rdTip.copy(_rdUp).cross(_rdAxis).dot(_rdH)) : 0;
+        r.w.copy(_rdH).multiplyScalar(sgn * spd / RAGDOLL_RADIUS);
+        // and settles fully onto its side (what is left of its tilt keeps falling)
+        r.w.addScaledVector(_rdTip.copy(_rdUp).cross(_rdH), 8 * _rdU.y);
+      } else {
+        // landed upright or flat: it slides to a stop; a part-tipped figure keeps falling over (gravity's pull)
+        const slide = Math.exp(-1.5 * dt);
+        r.v.x *= slide; r.v.z *= slide;
+        const tilt = Math.acos(Math.min(1, Math.abs(_rdU.y)));
+        if (tilt > 0.2 && _rdH.lengthSq() > 1e-6) r.w.addScaledVector(_rdTip.copy(_rdUp).cross(_rdH.normalize()), 22 * dt * Math.sign(_rdU.y || 1));
+        else r.w.multiplyScalar(Math.exp(-6 * dt));
+      }
+      // come to rest: no speed, no spin, for a moment
+      if (Math.hypot(r.v.x, r.v.z) < 0.06 && Math.abs(r.v.y) < 0.05 && r.w.length() < 0.5) r.rest += dt; else r.rest = 0;
+      if (r.rest > 0.2) r.vanish = 0;
+    }
+    if (r.g.position.y < -6) { ragdollGroup.remove(r.g); r.done = true; } // dropped off the board's edge, out of sight
+    else if (r.t > RAGDOLL_MAX) r.vanish = 0; // (a safety limit)
   }
 }
 
