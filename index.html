@@ -155,11 +155,36 @@
   #panel > * { flex-shrink: 0; }
   h1 { font-size: 20px; color: var(--accent); font-weight: 600; }
   h1 small { display: block; font-size: 12px; color: var(--text-muted); font-weight: 400; }
-  #langBtns button {
-    flex: 1; padding: 8px 0; font-size: 13px; border-radius: 8px;
-    border: 1px solid var(--accent-dim); background: var(--surface-1); color: var(--panel-fg); cursor: pointer;
+  /* the panel's title row: the title, and the one language button (ខ្មែរ -> English -> both) at its right */
+  #panelHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  #panelHead h1 { margin: 0; min-width: 0; }
+  #langCycleBtn {
+    flex: none; padding: 6px 10px; font-size: 12px; font-weight: 600; border-radius: 999px; white-space: nowrap;
+    border: 1px solid var(--accent-dim); background: var(--surface-1); color: var(--accent); cursor: pointer;
   }
-  #langBtns button.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  #changeModeBtn {
+    display: block; width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 700; border-radius: 10px; cursor: pointer;
+    background: color-mix(in srgb, var(--accent) 22%, var(--surface-1)); color: var(--panel-fg); border: 1px solid var(--accent-dim);
+  }
+  /* the Game section: three columns of small buttons, the save slot with 💾 / 📂 beside it, ticks in one row */
+  .gameGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .gameGrid > button, .gameGrid > select { min-width: 0; padding: 7px 4px; font-size: 12px; border-radius: 8px; line-height: 1.2; }
+  .gameGrid .span2 { grid-column: span 2; }
+  .gameGrid .span3 { grid-column: 1 / -1; }
+  .gameGrid .saveLoad { display: flex; gap: 6px; }
+  .gameGrid .saveLoad button { flex: 1; min-width: 0; padding: 7px 0; font-size: 14px; border-radius: 8px; }
+  .tickRow { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 6px; margin-top: 6px; }
+  .tickRow label { display: inline-flex !important; align-items: center; gap: 3px; margin: 0 !important; font-size: 11.5px; white-space: nowrap; min-width: 0; }
+  .tickRow input { margin: 0; flex: none; }
+  /* the Change Mode pop-up */
+  #modeBox { position: relative; text-align: left; padding: 22px 18px 18px; }
+  #modeBox .modeTitle { margin: 0 32px 12px 0; font-size: 18px; color: var(--accent); }
+  #modeBox details.acc { border: none; background: none; padding: 0; margin: 0; }
+  #modeBox details.acc > .acc-body { padding: 0; }
+  .popupClose {
+    position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; padding: 0; border-radius: 10px;
+    font-size: 16px; background: var(--surface-2); color: var(--panel-fg); border: 1px solid var(--accent-dim); cursor: pointer;
+  }
   #status {
     background: var(--surface-1); border: 1px solid var(--line); border-radius: 8px;
     padding: 10px 12px; font-size: 15px; line-height: 1.5;
@@ -360,13 +385,15 @@
      dropdown listing that category's themes -- replaces the old single
      long flat <select> (still present but hidden, as the source of truth
      every other piece of theme logic reads/writes). */
-  .themeCatRow { display: flex; flex-wrap: wrap; gap: 6px; margin: 3px 0; position: relative; }
+  .themeCatRow { display: flex; flex-wrap: nowrap; gap: 6px; margin: 3px 0; position: relative; }
+  .themeCatRow > div { flex: 1 1 0 !important; min-width: 0; }
   .themeCatBtn {
-    flex: 1 1 auto; min-width: 84px; font-size: 12px; padding: 7px 8px; text-align: center;
+    width: 100%; min-width: 0; font-size: 12px; padding: 7px 4px; text-align: center;
     display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.25;
   }
   .themeCatBtn .catLabel { font-weight: 600; }
-  .themeCatBtn .catCur { font-size: 10.5px; color: var(--text-muted); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .themeCatBtn .catLabel { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .themeCatBtn .catCur { font-size: 10.5px; color: var(--text-muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .themeCatBtn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .themeCatBtn.active .catCur { color: var(--on-accent); opacity: .85; }
   /* the category whose theme is actually in use right now (not just
@@ -893,6 +920,10 @@
     body:not(.panel-hidden) #panel { transform: translateY(0); }
     #panel, #panel select, #panel button, #panel input[type="range"] { font-size: 15px; }
     #panel button { padding: 11px 10px; min-height: 44px; }
+    /* the title row leaves room for the sheet's ✕; the Game grid stays compact */
+    #panelHead { padding-right: 48px; }
+    #panel #langCycleBtn { min-height: 0; padding: 7px 10px; font-size: 13px; }
+    #panel .gameGrid > button, #panel .gameGrid > select, #panel .gameGrid .saveLoad button { min-height: 40px; padding: 6px 4px; font-size: 13px; }
     details.acc > summary { padding: 13px 12px; font-size: 14px; }
     /* a compact 3-column grid (instead of the desktop single column) of small buttons, so the cluster covers
        little of the board; ⚙ (settings, phones only) takes the top-right cell and the rest flow around it */
@@ -2738,99 +2769,44 @@
 
 <div id="panel">
   <button id="panelCloseBtn" type="button" title="បិទ — Close" aria-label="Close">✕</button>
-  <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
+  <div id="panelHead">
+    <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
+    <button id="langCycleBtn" type="button" title="ភាសា — Language: ខ្មែរ → English → ខ្មែរ + English">ខ្មែរ</button>
+  </div>
   <span id="appVersionTag" class="appVersionTag" title="អ្វីថ្មី — What's New"></span>
 
-  <div id="currentModeReadout" style="font-size:13px;margin:2px 0 8px;color:var(--text-muted)">Current mode: <b id="currentModeReadoutText">—</b></div>
   <div id="guestGamesPanelNote" class="guestGamesNote" style="display:none"></div>
-  <details class="acc" id="modeAcc">
-    <summary id="changeModeBtn">ប្ដូររបៀបលេង Change Mode</summary>
-    <div class="acc-body">
-      <button id="modeProfileChip" type="button" title="គណនីរបស់អ្នក — Your profile">
-        <span id="modeProfileAvatar"><img id="modeProfileImg" alt="" style="display:none"><span id="modeProfileInitial"></span></span>
-        <span id="modeProfileText">
-          <span id="modeProfileName"></span>
-          <span id="modeProfileTier"></span>
-        </span>
-      </button>
-      <div class="bigpick">
-        <button id="pickAi"><span class="cardIcon">🤖</span><span>ជាមួយកុំព្យូទ័រ vs Computer</span></button>
-        <button id="pick2p"><span class="cardIcon">👥</span><span>លេង២នាក់ 2 Player</span></button>
-        <button id="pickOnline"><span class="cardIcon">🌐</span><span>លេងអនឡាញ Play Online</span></button>
-      </div>
-      <button id="pickInvite" type="button">👥 អញ្ជើញមិត្តភក្ដិ Invite a Friend</button>
-      <button id="pickLearn" type="button">📖 រៀនលេង Learn to Play</button>
-      <button id="playOptionsBtn" type="button">⚙ ជម្រើសបន្ថែម (ពេលវេលា កម្រិត ខាង) More options (time, level, side)</button>
-      <div id="playConfig" style="display:none">
-        <div id="clockPick" style="margin-top:14px">
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
-          <div class="btnrow" id="clockBtns"></div>
-        </div>
-        <div id="aiLevelPick" style="display:none">
-          <div style="font-size:13px;color:var(--text-muted);margin:14px 0 6px">🤖 កម្រិតកុំព្យូទ័រ Computer level</div>
-          <div class="levelgrid" id="levelBtns"></div>
-        </div>
-        <div id="sidePick">
-          <div style="font-size:13px;color:var(--text-muted);margin:14px 0 6px">♟ សំណុំអុក Chess set</div>
-          <div class="sidepick">
-            <button class="sidebtn active" data-side="0">ស White</button>
-            <button class="sidebtn" data-side="1">ខ្មៅ Black</button>
-          </div>
-        </div>
-        <div class="btnrow" style="margin-top:14px">
-          <button id="confirmPlay">លេង ▸ Play</button>
-        </div>
-      </div>
-    </div>
-  </details>
-  <div class="btnrow" id="langBtns">
-    <button data-lang="both" class="active">ខ្មែរ + English</button>
-    <button data-lang="kh">ខ្មែរ</button>
-    <button data-lang="en">English</button>
-  </div>
-
-  <div id="status">White to move</div>
+  <button id="changeModeBtn" type="button">🎮 ប្ដូររបៀបលេង Change Mode</button>
 
   <div id="countPanel"></div>
+
+  <div id="status" style="display:none">White to move</div>
 
   <div id="playPanel">
   <details class="acc" open>
     <summary>Game ល្បែង</summary>
     <div class="acc-body">
-    <div id="modeReadout" style="font-size:13px;margin:2px 0 4px;">Mode: <b id="modeReadoutText">—</b></div>
-    <div class="btnrow">
-      <button id="newBtn">New game ល្បែងថ្មី</button>
-      <button id="undoBtn">Undo ត្រឡប់</button>
-      <button id="hintBtn" title="Suggest a good move">💡 Hint ជំនួយ</button>
-    </div>
-    <div class="btnrow" style="margin-top:6px">
-      <select id="saveSlotSel" style="flex:1 1 100%">
+    <div id="modeReadout" style="display:none"><b id="modeReadoutText">—</b></div>
+    <div class="gameGrid">
+      <button id="newBtn">✚ ល្បែងថ្មី New</button>
+      <button id="undoBtn">↶ ត្រឡប់ Undo</button>
+      <button id="hintBtn" title="Suggest a good move">💡 ជំនួយ Hint</button>
+      <button id="rulesBtn">📜 ច្បាប់ Rules</button>
+      <button id="whatsNewBtn">✨ អ្វីថ្មី New<span id="whatsNewDot" class="verDot" style="display:none"></span></button>
+      <button id="cancelGameBtn">✕ បោះបង់ Cancel</button>
+      <select id="saveSlotSel" class="span2">
         <option value="1">Slot 1 — ទទេ empty</option>
         <option value="2">Slot 2 — ទទេ empty</option>
         <option value="3">Slot 3 — ទទេ empty</option>
       </select>
-      <button id="saveBtn">រក្សាទុក Save</button>
-      <button id="loadBtn">ផ្ទុក Load</button>
+      <div class="saveLoad"><button id="saveBtn" title="រក្សាទុក — Save">💾</button><button id="loadBtn" title="ផ្ទុក — Load">📂</button></div>
+      <button id="onlineEndBtn" type="button" class="span3" style="display:none">⏹ បញ្ចប់វគ្គ End Session</button>
     </div>
-    <div class="btnrow" style="margin-top:6px">
-      <button id="rulesBtn">Rules ច្បាប់</button>
-      <button id="whatsNewBtn">អ្វីថ្មី What's New<span id="whatsNewDot" class="verDot" style="display:none"></span></button>
+    <div id="saveStatus" style="font-size:12px;color:#b7a687;margin-top:4px;min-height:0;"></div>
+    <div class="tickRow">
+      <label><input type="checkbox" id="autoCountChk"> រាប់ស្វ័យប្រវត្តិ Auto-count</label>
+      <label><input type="checkbox" id="autoFlipChk"> បង្វិលតាមវេន Auto-rotate (2P)</label>
     </div>
-    <div class="btnrow" style="margin-top:6px">
-      <button id="cancelGameBtn">បោះបង់ Cancel Game</button>
-    </div>
-    <div class="btnrow" style="margin-top:6px">
-      <button id="onlineEndBtn" type="button" style="display:none">⏹ បញ្ចប់វគ្គ End Session</button>
-    </div>
-    <div id="saveStatus" style="font-size:12px;color:#b7a687;margin-top:4px;min-height:14px;"></div>
-    <label style="margin-top:8px">
-      <input type="checkbox" id="autoCountChk">
-      ចាប់ផ្ដើមរាប់ដោយស្វ័យប្រវត្តិ Auto-start counting when eligible
-    </label>
-    <label>
-      <input type="checkbox" id="autoFlipChk">
-      បង្វិលក្ដារតាមវេន Auto-rotate view each turn (2 Player)
-    </label>
     </div>
   </details>
   </div>
@@ -2907,36 +2883,23 @@
       <option value="okStone">Original Stone — ថ្មអង្គរ</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
-      <option value="auto" selected>Piece style: matches theme</option>
-      <option value="traditional">Piece style: Classic Turned</option>
-      <option value="khmer">Piece style: Khmer Traditional — ខ្មែរបុរាណ</option>
-      <option value="real1">Piece style: Real 1 — ពិតប្រាកដ ១</option>
-      <option value="real2">Piece style: Real 2 — ពិតប្រាកដ ២</option>
-      <option value="khmerorig">Piece style: Original Khmer — ខ្មែរដើម</option>
-      <option value="modern">Piece style: Modern Military — យោធាទំនើប</option>
-      <option value="2dkhmer">Piece style: 2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
-      <option value="2dflat">Piece style: Flat 2D tokens — រាបស្មើ 2D</option>
-      <option value="2dclassic">Piece style: 2D Classic — បុរាណ 2D</option>
-      <option value="2dminimal">Piece style: 2D Minimal — សាមញ្ញ 2D</option>
-      <option value="2dyantra">Piece style: 2D Sak Yantra — សាក់យន្ត 2D</option>
-      <option value="2dwarrior">Piece style: 2D Khmer Warrior — អ្នកចម្បាំង 2D</option>
+      <option value="auto" selected data-kh="កូនអុក៖ តាមរូបរាង" data-en="Pieces: match the theme">កូនអុក៖ តាមរូបរាង — Pieces: match the theme</option>
+      <option value="khmerorig" data-kh="កូនអុក៖ ខ្មែរដើម" data-en="Pieces: Original Khmer">កូនអុក៖ ខ្មែរដើម — Pieces: Original Khmer</option>
+      <option value="lowpoly" data-kh="កូនអុក៖ ឈើកាត់" data-en="Pieces: Low Poly">កូនអុក៖ ឈើកាត់ — Pieces: Low Poly</option>
+      <option value="gems" data-kh="កូនអុក៖ ត្បូងភ្លឺចាំង" data-en="Pieces: Gem Blitz">កូនអុក៖ ត្បូងភ្លឺចាំង — Pieces: Gem Blitz</option>
+      <option value="galactic" data-kh="កូនអុក៖ ចក្រវាឡ" data-en="Pieces: Galactic">កូនអុក៖ ចក្រវាឡ — Pieces: Galactic</option>
+      <option value="modern" data-kh="កូនអុក៖ យោធាទំនើប" data-en="Pieces: Modern Military">កូនអុក៖ យោធាទំនើប — Pieces: Modern Military</option>
+      <option value="tfbattle" data-kh="កូនអុក៖ Transformers" data-en="Pieces: Transformers">កូនអុក៖ Transformers — Pieces: Transformers</option>
+      <option value="2dkhmer" data-kh="កូនអុក៖ សិល្បៈខ្មែរ 2D" data-en="Pieces: 2D Khmer Art">កូនអុក៖ សិល្បៈខ្មែរ 2D — Pieces: 2D Khmer Art</option>
+      <option value="2dflat" data-kh="កូនអុក៖ រាបស្មើ 2D" data-en="Pieces: Flat 2D tokens">កូនអុក៖ រាបស្មើ 2D — Pieces: Flat 2D tokens</option>
+      <option value="2dyantra" data-kh="កូនអុក៖ សាក់យន្ត 2D" data-en="Pieces: 2D Sak Yantra">កូនអុក៖ សាក់យន្ត 2D — Pieces: 2D Sak Yantra</option>
     </select>
-    <label style="margin-top:6px">
-      <input type="checkbox" id="khmerBoardChk">
-      ក្តាអុកបែបបរទេស Checkered Board
-    </label>
-    <label>
-      <input type="checkbox" id="moveHintChk" checked>
-      សញ្ញាជំហាន Step indicator (legal-move markers)
-    </label>
-    <label>
-      <input type="checkbox" id="ragdollChk">
-      ផ្ដួលកូនអុកដែលត្រូវស៊ី Ragdoll: captured pieces tumble and roll away
-    </label>
-    <label>
-      <input type="checkbox" id="pieceNameChk">
-      ឈ្មោះកូនអុក Show piece names above pieces
-    </label>
+    <div class="tickRow">
+      <label title="ក្តាអុកបែបបរទេស — Checkered board"><input type="checkbox" id="khmerBoardChk"> ក្រឡាឆ្លាស់ Checkered</label>
+      <label title="សញ្ញាជំហាន — Legal-move markers"><input type="checkbox" id="moveHintChk" checked> សញ្ញាជំហាន Steps</label>
+      <label title="ឈ្មោះកូនអុក — Piece names above the pieces"><input type="checkbox" id="pieceNameChk"> ឈ្មោះ Names</label>
+      <label title="ផ្ដួលកូនអុកដែលត្រូវស៊ី — Captured pieces tumble and roll away"><input type="checkbox" id="ragdollChk"> ផ្ដួល Ragdoll</label>
+    </div>
     <div id="pieceNameOpts" style="margin-top:6px;display:none">
       <select id="pieceNamePosSel" style="margin-bottom:6px">
         <option value="tip" selected>Name position: at tip</option>
@@ -2948,6 +2911,20 @@
         <option value="en">Name language: Latin only</option>
       </select>
     </div>
+    </div>
+  </details>
+
+  <details class="acc" id="bgPanel">
+    <summary>ផ្ទៃខាងក្រោយ Background</summary>
+    <div class="acc-body">
+    <select id="bgSel"></select>
+    <label style="margin-top:6px">Softness​ ភាពស្រទន់
+      <input type="range" id="bgSoftness" min="0" max="16" step="1" value="2" style="width:100%">
+    </label>
+    <label>
+      <input type="checkbox" id="bgStrokeChk">
+      រូបគំនូរគូសដៃ Painting/sketch stroke texture
+    </label>
     </div>
   </details>
 
@@ -2977,19 +2954,6 @@
     </div>
   </details>
 
-  <details class="acc" id="bgPanel">
-    <summary>ផ្ទៃខាងក្រោយ Background</summary>
-    <div class="acc-body">
-    <select id="bgSel"></select>
-    <label style="margin-top:6px">Softness​ ភាពស្រទន់
-      <input type="range" id="bgSoftness" min="0" max="16" step="1" value="2" style="width:100%">
-    </label>
-    <label>
-      <input type="checkbox" id="bgStrokeChk">
-      រូបគំនូរគូសដៃ Painting/sketch stroke texture
-    </label>
-    </div>
-  </details>
 
   <details class="acc" id="sfxPanel">
     <summary>សំឡេងកូនអុក Sound Effects</summary>
@@ -3043,6 +3007,54 @@
     </div>
   </details>
 
+</div>
+
+<!-- Change Mode: a pop-up (opened from the panel's 🎮 button, or by anything that asks to change the mode) -->
+<div id="modePopup" class="fullOverlay" style="display:none;z-index:24">
+  <div class="box" id="modeBox">
+    <button id="modePopupClose" type="button" class="popupClose" aria-label="Close" title="បិទ — Close">✕</button>
+    <h2 class="modeTitle">🎮 ប្ដូររបៀបលេង Change Mode</h2>
+    <details class="acc" id="modeAcc" open>
+    <summary style="display:none">ប្ដូររបៀបលេង Change Mode</summary>
+    <div class="acc-body">
+      <button id="modeProfileChip" type="button" title="គណនីរបស់អ្នក — Your profile">
+        <span id="modeProfileAvatar"><img id="modeProfileImg" alt="" style="display:none"><span id="modeProfileInitial"></span></span>
+        <span id="modeProfileText">
+          <span id="modeProfileName"></span>
+          <span id="modeProfileTier"></span>
+        </span>
+      </button>
+      <div class="bigpick">
+        <button id="pickAi"><span class="cardIcon">🤖</span><span>ជាមួយកុំព្យូទ័រ vs Computer</span></button>
+        <button id="pick2p"><span class="cardIcon">👥</span><span>លេង២នាក់ 2 Player</span></button>
+        <button id="pickOnline"><span class="cardIcon">🌐</span><span>លេងអនឡាញ Play Online</span></button>
+      </div>
+      <button id="pickInvite" type="button">👥 អញ្ជើញមិត្តភក្ដិ Invite a Friend</button>
+      <button id="pickLearn" type="button">📖 រៀនលេង Learn to Play</button>
+      <button id="playOptionsBtn" type="button">⚙ ជម្រើសបន្ថែម (ពេលវេលា កម្រិត ខាង) More options (time, level, side)</button>
+      <div id="playConfig" style="display:none">
+        <div id="clockPick" style="margin-top:14px">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
+          <div class="btnrow" id="clockBtns"></div>
+        </div>
+        <div id="aiLevelPick" style="display:none">
+          <div style="font-size:13px;color:var(--text-muted);margin:14px 0 6px">🤖 កម្រិតកុំព្យូទ័រ Computer level</div>
+          <div class="levelgrid" id="levelBtns"></div>
+        </div>
+        <div id="sidePick">
+          <div style="font-size:13px;color:var(--text-muted);margin:14px 0 6px">♟ សំណុំអុក Chess set</div>
+          <div class="sidepick">
+            <button class="sidebtn active" data-side="0">ស White</button>
+            <button class="sidebtn" data-side="1">ខ្មៅ Black</button>
+          </div>
+        </div>
+        <div class="btnrow" style="margin-top:14px">
+          <button id="confirmPlay">លេង ▸ Play</button>
+        </div>
+      </div>
+    </div>
+    </details>
+  </div>
 </div>
 
 <div id="homeScreenPopup" class="fullOverlay" style="display:none;z-index:25">
@@ -10733,183 +10745,379 @@ function buildPaintingBackdrop() {
   return paintingBackdropCache;
 }
 
-// ---------- background picker: non-distracting Khmer-culture-themed
-// backdrops, independent of the board theme, with a brief fade on change.
-// These are simplified, stylized silhouettes/motifs (not literal
-// depictions of specific artworks or monuments), drawn as clear solid
-// shapes; the softness slider adds blur on top rather than the shapes
-// being undefined blobs to begin with, so the motif stays recognizable
-// even at low softness. ----------
-function skyGrad(ctx, c1, c2) {
-  const g = ctx.createLinearGradient(0, 0, 0, 288);
-  g.addColorStop(0, c1); g.addColorStop(1, c2);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 288);
+// ---------- background picker: Khmer-culture-themed backdrops, independent of the board theme, with a brief fade
+// on change. Each is painted once (1600 x 900) from layered gradients, glows, silhouettes and mist -- stylized
+// motifs, not literal depictions of specific artworks -- and cached; the softness slider blurs it, the sketch
+// option adds hand-drawn strokes on top. ----------
+const BG_W = 1600, BG_H = 900;
+function bgRng(seed) { // a small seeded random, so every backdrop paints the same each time
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
-function temple(ctx, cx, baseY, w, h, color) {
-  // a stepped, tapering tower: wide base, three shrinking tiers, pointed tip
-  ctx.fillStyle = color;
-  const tiers = 4;
-  for (let i = 0; i < tiers; i++) {
-    const t = i / tiers;
-    const tw = w * (1 - t * 0.72);
-    const ty = baseY - h * t;
-    const th = h / tiers + 2;
-    ctx.fillRect(cx - tw / 2, ty - th, tw, th);
+function bgLinear(ctx, x0, y0, x1, y1, stops) {
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  stops.forEach(([o, c]) => g.addColorStop(o, c));
+  return g;
+}
+function bgSky(ctx, stops, h) { ctx.fillStyle = bgLinear(ctx, 0, 0, 0, h || BG_H, stops); ctx.fillRect(0, 0, BG_W, h || BG_H); }
+function bgGlow(ctx, x, y, r, color, alpha) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.restore();
+}
+function bgStars(ctx, rnd, n, yMax, maxA) {
+  for (let i = 0; i < n; i++) {
+    const x = rnd() * BG_W, y = rnd() * yMax, r = rnd() < 0.08 ? 1.6 : 0.5 + rnd() * 0.9;
+    ctx.fillStyle = 'rgba(255,248,230,' + ((0.25 + rnd() * 0.75) * (maxA || 1) * (1 - y / yMax * 0.7)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
-  ctx.beginPath();
-  ctx.moveTo(cx - w * 0.09, baseY - h);
-  ctx.lineTo(cx, baseY - h * 1.22);
-  ctx.lineTo(cx + w * 0.09, baseY - h);
-  ctx.closePath();
-  ctx.fill();
 }
-function softBlob(ctx, x, y, rx, ry, color) {
-  // (blur is applied uniformly to the whole canvas by the softness slider,
-  // in backgroundTexture() below — not per-shape here.)
+function bgMist(ctx, y, h, color, alpha) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.fillStyle = bgLinear(ctx, 0, y - h, 0, y + h, [[0, 'rgba(0,0,0,0)'], [0.5, color], [1, 'rgba(0,0,0,0)']]);
+  ctx.fillRect(0, y - h, BG_W, h * 2); ctx.restore();
+}
+function bgVignette(ctx, strength) {
+  const g = ctx.createRadialGradient(BG_W / 2, BG_H * 0.48, BG_H * 0.35, BG_W / 2, BG_H * 0.5, BG_W * 0.72);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,' + strength + ')');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, BG_W, BG_H);
+}
+function bgGrain(ctx, rnd, amount) { // fine film grain, so the large gradients do not band
+  const img = ctx.getImageData(0, 0, BG_W, BG_H), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const n = (rnd() - 0.5) * amount; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+  ctx.putImageData(img, 0, 0);
+}
+function bgHills(ctx, rnd, baseY, amp, color, step) { // a soft, wavy ridge line filled down to the bottom
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, BG_H);
+  let y = baseY;
+  for (let x = 0; x <= BG_W + step; x += step) { y = baseY - amp * (0.5 + 0.5 * Math.sin(x * 0.004 + rnd() * 0.6)) - rnd() * amp * 0.25; ctx.lineTo(x, y); }
+  ctx.lineTo(BG_W, BG_H); ctx.closePath(); ctx.fill();
+}
+// a Khmer "corncob" tower: a broad base, stacked tiers narrowing in a gentle curve, and a lotus-bud tip
+function bgTower(ctx, cx, baseY, w, h, color) {
   ctx.fillStyle = color;
-  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(cx - w * 0.62, baseY - h * 0.16, w * 1.24, h * 0.16); // plinth
+  ctx.fillRect(cx - w * 0.5, baseY - h * 0.24, w, h * 0.09);
+  const tiers = 9, prof = (t) => w * 0.42 * Math.pow(1 - t, 0.8) * (1 - 0.18 * Math.sin(t * Math.PI)) + w * 0.04;
+  for (let i = 0; i < tiers; i++) {
+    const t = i / tiers, t2 = (i + 1) / tiers;
+    const y0 = baseY - h * (0.24 + 0.62 * t), y1 = baseY - h * (0.24 + 0.62 * t2);
+    const w0 = prof(t), w1 = prof(t2) * 0.9;
+    ctx.beginPath();
+    ctx.moveTo(cx - w0, y0); ctx.lineTo(cx - w1 * 1.08, y1 + (y0 - y1) * 0.3); ctx.lineTo(cx - w1, y1);
+    ctx.lineTo(cx + w1, y1); ctx.lineTo(cx + w1 * 1.08, y1 + (y0 - y1) * 0.3); ctx.lineTo(cx + w0, y0); ctx.closePath(); ctx.fill();
+  }
+  ctx.beginPath(); // the lotus-bud finial
+  ctx.moveTo(cx - w * 0.07, baseY - h * 0.86);
+  ctx.quadraticCurveTo(cx - w * 0.05, baseY - h * 0.98, cx, baseY - h);
+  ctx.quadraticCurveTo(cx + w * 0.05, baseY - h * 0.98, cx + w * 0.07, baseY - h * 0.86);
+  ctx.closePath(); ctx.fill();
+}
+// the sugar palm (thnot), the tree of the Cambodian countryside: a slim trunk and a round burst of fronds
+function bgPalm(ctx, x, baseY, h, color, rnd) {
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(2, h * 0.025); ctx.lineCap = 'round';
+  const lean = (rnd() - 0.5) * h * 0.08, tx = x + lean, ty = baseY - h;
+  ctx.beginPath(); ctx.moveTo(x, baseY); ctx.quadraticCurveTo(x + lean * 0.3, baseY - h * 0.5, tx, ty); ctx.stroke();
+  const fr = h * 0.2;
+  for (let i = 0; i < 26; i++) {
+    const a = Math.PI + (i / 25) * Math.PI + (rnd() - 0.5) * 0.15, r = fr * (0.75 + rnd() * 0.35);
+    ctx.lineWidth = Math.max(1, h * 0.008);
+    ctx.beginPath(); ctx.moveTo(tx, ty);
+    ctx.quadraticCurveTo(tx + Math.cos(a) * r * 0.6, ty + Math.sin(a) * r * 0.6 - r * 0.15, tx + Math.cos(a) * r, ty + Math.sin(a) * r * 0.75 + r * 0.25);
+    ctx.stroke();
+  }
+  ctx.beginPath(); ctx.arc(tx, ty, h * 0.035, 0, Math.PI * 2); ctx.fill();
+}
+function bgLotus(ctx, cx, cy, s, rot) { // layered petals, pink at the tips and pale at the heart
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot || 0);
+  for (const [n, len, wid, off] of [[8, 1.0, 0.36, 0], [8, 0.82, 0.32, Math.PI / 8], [6, 0.6, 0.26, 0]]) {
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (i - (n - 1) / 2) * (Math.PI * 0.95 / n) + off * 0.2;
+      ctx.save(); ctx.rotate(a + Math.PI / 2);
+      const g = ctx.createLinearGradient(0, 0, 0, -s * len);
+      g.addColorStop(0, '#fff3f6'); g.addColorStop(0.55, '#f7b9cd'); g.addColorStop(1, '#d9558a');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(-s * wid, -s * len * 0.35, -s * wid * 0.55, -s * len * 0.85, 0, -s * len);
+      ctx.bezierCurveTo(s * wid * 0.55, -s * len * 0.85, s * wid, -s * len * 0.35, 0, 0);
+      ctx.fill(); ctx.restore();
+    }
+  }
+  bgGlow(ctx, 0, -s * 0.15, s * 0.3, 'rgba(255,220,120,0.9)', 0.8);
+  ctx.restore();
+}
+function bgLilyPad(ctx, x, y, r, color) {
+  ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.32, 0, 0.25, Math.PI * 2 - 0.05); ctx.lineTo(x, y); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(x, y, r * 0.98, r * 0.3, 0, Math.PI * 1.05, Math.PI * 1.85); ctx.stroke();
+}
+function bgRipples(ctx, rnd, y0, y1, color, n) {
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  for (let i = 0; i < n; i++) {
+    const y = y0 + rnd() * (y1 - y0), x = rnd() * BG_W, w = 30 + rnd() * 140 * ((y - y0) / (y1 - y0) + 0.3);
+    ctx.globalAlpha = 0.25 + rnd() * 0.5;
+    ctx.beginPath(); ctx.moveTo(x - w / 2, y); ctx.lineTo(x + w / 2, y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 const BACKGROUNDS = {
-  angkor: { label: 'អង្គរវត្ត Angkor Silhouette', paint(ctx) {
-    skyGrad(ctx, '#1b2a3d', '#6b7f72');
-    softBlob(ctx, 420, 60, 46, 46, 'rgba(255,224,180,0.5)'); // moon
-    temple(ctx, 256, 236, 150, 128, '#12181f');
-    temple(ctx, 140, 236, 90, 78, '#161d24');
-    temple(ctx, 372, 236, 90, 78, '#161d24');
-    ctx.fillStyle = '#0d1218';
-    ctx.fillRect(0, 232, 512, 56);
+  angkor: { label: 'អង្គរវត្ត Angkor at Dusk', paint(ctx) {
+    const rnd = bgRng(11);
+    bgSky(ctx, [[0, '#0b1030'], [0.35, '#2a2350'], [0.58, '#8a4a6a'], [0.7, '#e3895a'], [0.76, '#f6c27a']]);
+    bgStars(ctx, rnd, 260, BG_H * 0.45, 0.9);
+    bgGlow(ctx, BG_W * 0.5, BG_H * 0.72, BG_W * 0.55, 'rgba(255,170,90,0.55)', 1);
+    bgGlow(ctx, BG_W * 0.8, BG_H * 0.18, 70, 'rgba(255,240,215,1)', 0.95); // the moon
+    bgGlow(ctx, BG_W * 0.8, BG_H * 0.18, 260, 'rgba(255,220,180,0.35)', 1);
+    bgHills(ctx, rnd, BG_H * 0.73, 26, '#3b2c46', 40);
+    const H = BG_H * 0.735, col = '#1a1424';
+    bgTower(ctx, BG_W * 0.5, H, 230, 330, col); // the five towers, the tallest in the middle
+    bgTower(ctx, BG_W * 0.36, H, 170, 245, col); bgTower(ctx, BG_W * 0.64, H, 170, 245, col);
+    bgTower(ctx, BG_W * 0.25, H, 130, 185, '#211a2c'); bgTower(ctx, BG_W * 0.75, H, 130, 185, '#211a2c');
+    ctx.fillStyle = col; ctx.fillRect(BG_W * 0.18, H - 34, BG_W * 0.64, 34); // the gallery
+    for (let x = BG_W * 0.19; x < BG_W * 0.81; x += 26) ctx.fillRect(x, H - 50, 14, 16);
+    [[90, 230], [210, 190], [1380, 220], [1500, 250], [40, 180], [1560, 170]].forEach(([x, h]) => bgPalm(ctx, x, H + 6, h, '#120d18', rnd));
+    // the moat: the sky and the temple mirrored, darker, with light ripples
+    ctx.save(); ctx.translate(0, H * 2); ctx.scale(1, -1); ctx.globalAlpha = 0.45;
+    ctx.drawImage(ctx.canvas, 0, H - BG_H * 0.4, BG_W, BG_H * 0.4, 0, H - BG_H * 0.4, BG_W, BG_H * 0.4);
+    ctx.restore();
+    ctx.fillStyle = bgLinear(ctx, 0, H, 0, BG_H, [[0, 'rgba(20,12,30,0.35)'], [1, 'rgba(8,6,14,0.92)']]);
+    ctx.fillRect(0, H, BG_W, BG_H - H);
+    bgRipples(ctx, rnd, H + 6, BG_H, 'rgba(255,190,130,0.35)', 160);
+    bgMist(ctx, H - 10, 40, 'rgba(255,190,150,1)', 0.18);
+    bgVignette(ctx, 0.55); bgGrain(ctx, rnd, 7);
   } },
-  lotus: { label: 'ផ្កាឈូក Lotus Pond', paint(ctx) {
-    skyGrad(ctx, '#284b46', '#9db98f');
-    const cx = 256, cy = 200;
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      ctx.save();
-      ctx.translate(cx, cy); ctx.rotate(a);
-      ctx.fillStyle = i % 2 ? '#e8a6c0' : '#f2c2d6';
-      ctx.beginPath();
-      ctx.ellipse(0, -48, 24, 52, 0, 0, Math.PI * 2);
-      ctx.fill();
+  lotus: { label: 'ផ្កាឈូក Lotus Pond at Dawn', paint(ctx) {
+    const rnd = bgRng(23);
+    bgSky(ctx, [[0, '#f3d9d4'], [0.35, '#e7c1c8'], [0.55, '#a9c7c1'], [1, '#2c5a55']]);
+    bgGlow(ctx, BG_W * 0.3, BG_H * 0.25, 420, 'rgba(255,240,220,0.9)', 0.8);
+    bgHills(ctx, rnd, BG_H * 0.45, 30, 'rgba(120,160,150,0.55)', 50);
+    bgHills(ctx, rnd, BG_H * 0.5, 20, 'rgba(80,125,115,0.6)', 40);
+    ctx.fillStyle = bgLinear(ctx, 0, BG_H * 0.5, 0, BG_H, [[0, '#7fa9a1'], [0.5, '#3f6e66'], [1, '#1c3c39']]);
+    ctx.fillRect(0, BG_H * 0.5, BG_W, BG_H * 0.5);
+    bgRipples(ctx, rnd, BG_H * 0.52, BG_H, 'rgba(255,255,255,0.35)', 140);
+    for (let i = 0; i < 26; i++) { // lily pads, larger as they come nearer
+      const y = BG_H * (0.55 + rnd() * 0.42), k = (y - BG_H * 0.5) / (BG_H * 0.5);
+      bgLilyPad(ctx, rnd() * BG_W, y, 30 + 120 * k * (0.6 + rnd() * 0.5), rnd() < 0.5 ? '#3f7a4a' : '#4f8c55');
+    }
+    [[0.22, 0.7, 70], [0.5, 0.78, 110], [0.78, 0.66, 60], [0.66, 0.86, 90], [0.1, 0.88, 80]].forEach(([fx, fy, s]) => {
+      ctx.strokeStyle = '#2f5c36'; ctx.lineWidth = 4;
+      bgLotus(ctx, BG_W * fx, BG_H * fy, s, (rnd() - 0.5) * 0.2);
+    });
+    for (let i = 0; i < 16; i++) bgGlow(ctx, rnd() * BG_W, rnd() * BG_H * 0.5, 30 + rnd() * 50, 'rgba(255,250,235,0.6)', 0.12 + rnd() * 0.12); // drifting light
+    bgMist(ctx, BG_H * 0.52, 60, 'rgba(255,245,240,1)', 0.35);
+    bgVignette(ctx, 0.35); bgGrain(ctx, rnd, 6);
+  } },
+  naga: { label: 'នាគ Golden Naga', paint(ctx) {
+    const rnd = bgRng(37);
+    bgSky(ctx, [[0, '#120706'], [0.5, '#3a1410'], [1, '#170806']]);
+    bgGlow(ctx, BG_W * 0.5, BG_H * 0.5, BG_W * 0.5, 'rgba(200,90,40,0.35)', 1);
+    // a faint carved lattice behind
+    ctx.strokeStyle = 'rgba(214,160,80,0.07)'; ctx.lineWidth = 2;
+    for (let y = 40; y < BG_H; y += 80) for (let x = 40; x < BG_W; x += 80) { ctx.beginPath(); ctx.arc(x, y, 26, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - 40, y); ctx.lineTo(x, y - 40); ctx.lineTo(x + 40, y); ctx.lineTo(x, y + 40); ctx.closePath(); ctx.stroke(); }
+    // the naga's body: a long golden curve with a scaled sheen
+    const pts = [[-60, 760], [300, 520], [620, 760], [940, 470], [1220, 640], [1440, 430]];
+    const path = new Path2D(); path.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; path.bezierCurveTo((x0 + x1) / 2, y0, (x0 + x1) / 2, y1, x1, y1); }
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 92; ctx.save(); ctx.translate(10, 18); ctx.stroke(path); ctx.restore();
+    ctx.strokeStyle = bgLinear(ctx, 0, 380, 0, 800, [[0, '#ffe08a'], [0.5, '#c8902e'], [1, '#6e4614']]); ctx.lineWidth = 80; ctx.stroke(path);
+    ctx.strokeStyle = 'rgba(255,240,190,0.55)'; ctx.lineWidth = 14; ctx.save(); ctx.translate(0, -18); ctx.stroke(path); ctx.restore();
+    ctx.setLineDash([2, 22]); ctx.strokeStyle = 'rgba(90,50,10,0.55)'; ctx.lineWidth = 60; ctx.stroke(path); ctx.setLineDash([]);
+    // the seven-headed hood, fanned out at the end
+    const hx = 1440, hy = 430;
+    for (let i = 0; i < 7; i++) {
+      const a = -Math.PI / 2 + (i - 3) * 0.32, r = 150 - Math.abs(i - 3) * 14;
+      const x = hx + Math.cos(a) * r, y = hy + Math.sin(a) * r;
+      ctx.strokeStyle = '#b07a26'; ctx.lineWidth = 34; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.quadraticCurveTo((hx + x) / 2 + 10, (hy + y) / 2, x, y); ctx.stroke();
+      ctx.fillStyle = bgLinear(ctx, x, y - 40, x, y + 30, [[0, '#ffe7a0'], [1, '#a46b1c']]);
+      ctx.beginPath(); ctx.ellipse(x, y, 30, 40, a + Math.PI / 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffdf6a'; ctx.beginPath(); ctx.moveTo(x, y - 52); ctx.lineTo(x - 8, y - 36); ctx.lineTo(x + 8, y - 36); ctx.closePath(); ctx.fill(); // crest
+      bgGlow(ctx, x, y + 6, 10, 'rgba(255,90,40,1)', 0.9); // ember eyes
+    }
+    bgGlow(ctx, hx, hy - 80, 320, 'rgba(255,200,110,0.35)', 1);
+    for (let i = 0; i < 70; i++) bgGlow(ctx, rnd() * BG_W, rnd() * BG_H, 2 + rnd() * 5, 'rgba(255,200,110,1)', 0.4 + rnd() * 0.5); // embers
+    bgVignette(ctx, 0.7); bgGrain(ctx, rnd, 8);
+  } },
+  krama: { label: 'ក្រម Krama Weave', paint(ctx) {
+    const rnd = bgRng(41);
+    ctx.fillStyle = '#7d1f1a'; ctx.fillRect(0, 0, BG_W, BG_H);
+    const cell = 64;
+    for (let y = 0; y < BG_H; y += cell) for (let x = 0; x < BG_W; x += cell) {
+      const light = ((x / cell + y / cell) | 0) % 2 === 0;
+      ctx.fillStyle = light ? '#ece2cf' : '#8f2a22';
+      ctx.fillRect(x, y, cell, cell);
+      // threads: fine warp and weft lines in each square
+      ctx.strokeStyle = light ? 'rgba(150,110,80,0.18)' : 'rgba(40,5,5,0.25)'; ctx.lineWidth = 1;
+      for (let k = 3; k < cell; k += 4) { ctx.beginPath(); ctx.moveTo(x + k, y); ctx.lineTo(x + k, y + cell); ctx.stroke(); }
+      ctx.strokeStyle = light ? 'rgba(255,255,255,0.25)' : 'rgba(255,150,130,0.08)';
+      for (let k = 1; k < cell; k += 4) { ctx.beginPath(); ctx.moveTo(x, y + k); ctx.lineTo(x + cell, y + k); ctx.stroke(); }
+    }
+    // the darker stripes woven through every few rows, as on a real krama
+    for (let y = 0; y < BG_H; y += cell * 4) { ctx.fillStyle = 'rgba(40,8,10,0.55)'; ctx.fillRect(0, y + cell * 2 - 6, BG_W, 12); }
+    for (let x = 0; x < BG_W; x += cell * 4) { ctx.fillStyle = 'rgba(40,8,10,0.45)'; ctx.fillRect(x + cell * 2 - 6, 0, 12, BG_H); }
+    // a soft fold of light across the cloth
+    ctx.fillStyle = bgLinear(ctx, 0, 0, BG_W, BG_H, [[0, 'rgba(255,240,220,0.18)'], [0.4, 'rgba(0,0,0,0)'], [0.65, 'rgba(0,0,0,0.25)'], [1, 'rgba(255,230,210,0.1)']]);
+    ctx.fillRect(0, 0, BG_W, BG_H);
+    bgVignette(ctx, 0.6); bgGrain(ctx, rnd, 10);
+  } },
+  apsara: { label: 'ក្បាច់ Kbach Sandstone Carving', paint(ctx) {
+    const rnd = bgRng(53);
+    bgSky(ctx, [[0, '#7a5434'], [0.5, '#b0824f'], [1, '#5a3a22']]);
+    for (let i = 0; i < 1100; i++) { ctx.fillStyle = rnd() < 0.5 ? 'rgba(60,35,15,0.05)' : 'rgba(255,225,175,0.05)'; ctx.beginPath(); ctx.arc(rnd() * BG_W, rnd() * BG_H, 3 + rnd() * 34, 0, Math.PI * 2); ctx.fill(); }
+    // a kbach phni tes leaf: a flame-like curl, carved as a shadowed shape with a lit edge
+    const leaf = (x, y, s, rot, flip) => {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(flip ? -s : s, s);
+      const p = new Path2D();
+      p.moveTo(0, 0); p.bezierCurveTo(-24, -16, -22, -52, -4, -80); // the outer edge, up to the tip
+      p.bezierCurveTo(-10, -60, 2, -50, 12, -60); // the tip curls back in
+      p.bezierCurveTo(10, -40, 22, -20, 0, 0); p.closePath();
+      const vein = new Path2D(); vein.moveTo(2, -6); vein.bezierCurveTo(-8, -22, -8, -44, 0, -62);
+      ctx.save(); ctx.translate(3, 4); ctx.fillStyle = 'rgba(40,22,8,0.45)'; ctx.fill(p); ctx.restore();
+      ctx.fillStyle = bgLinear(ctx, 0, 0, 0, -80, [[0, '#a8794a'], [1, '#d9ad74']]); ctx.fill(p);
+      ctx.strokeStyle = 'rgba(70,40,15,0.55)'; ctx.lineWidth = 2.2 / s; ctx.stroke(vein);
+      ctx.strokeStyle = 'rgba(255,228,175,0.65)'; ctx.lineWidth = 1.6 / s; ctx.stroke(p);
       ctx.restore();
+    };
+    // the central rosette: rings of curling leaves around a lotus heart
+    const cx = BG_W / 2, cy = BG_H / 2;
+    for (const [n, r, sc] of [[24, 250, 1.5], [16, 165, 1.25], [10, 90, 1.0]]) {
+      for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; leaf(cx + Math.cos(a) * r, cy + Math.sin(a) * r, sc, a + Math.PI / 2, i % 2 === 1); }
+      ctx.strokeStyle = 'rgba(60,35,15,0.45)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(cx, cy, r - 30 * sc, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,225,170,0.3)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx - 1, cy - 2, r - 30 * sc, 0, Math.PI * 2); ctx.stroke();
     }
-    ctx.fillStyle = '#f7dfe8';
-    ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(30,60,45,0.85)';
-    ctx.fillRect(0, 256, 512, 32);
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2;
-    for (let x = -20; x < 512; x += 70) { ctx.beginPath(); ctx.ellipse(x, 264, 26, 5, 0, 0, Math.PI * 2); ctx.stroke(); }
-  } },
-  naga: { label: 'នាគ Naga Motif', paint(ctx) {
-    skyGrad(ctx, '#221609', '#5a3a18');
-    ctx.strokeStyle = '#c99a4a'; ctx.lineWidth = 22; ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(60, 250);
-    ctx.bezierCurveTo(140, 120, 220, 320, 300, 160);
-    ctx.bezierCurveTo(350, 60, 420, 140, 460, 90);
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(40,25,10,0.55)'; ctx.lineWidth = 4;
-    for (let t = 0.1; t < 0.95; t += 0.08) {
-      const x = 60 + t * 400, y = 250 - Math.sin(t * 7) * 90;
-      ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI); ctx.stroke();
+    bgLotus(ctx, cx, cy + 30, 60, 0);
+    // friezes of leaf scrolls along the top and bottom, mirrored
+    for (const fy of [80, BG_H - 80]) {
+      ctx.fillStyle = 'rgba(50,28,10,0.35)'; ctx.fillRect(0, fy - 50, BG_W, 100);
+      for (let x = 0; x < BG_W + 60; x += 60) { leaf(x, fy + 30, 0.9, 0.25, false); leaf(x + 30, fy + 30, 0.9, -0.25, true); }
     }
-    ctx.fillStyle = '#c99a4a';
-    ctx.beginPath(); ctx.moveTo(460, 90); ctx.lineTo(500, 70); ctx.lineTo(492, 110); ctx.closePath(); ctx.fill();
-    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(472 + i * 8, 82 - i * 6); ctx.lineTo(480 + i * 8, 60 - i * 6); ctx.lineTo(486 + i * 8, 84 - i * 6); ctx.closePath(); ctx.fill(); }
+    // corner flourishes
+    for (const [x, y, r] of [[0, BG_H / 2, 0], [BG_W, BG_H / 2, Math.PI]]) for (let i = 0; i < 9; i++) leaf(x, y, 2.2 - i * 0.12, r + Math.PI / 2 + (i - 4) * 0.28, i % 2 === 0);
+    bgGlow(ctx, BG_W * 0.8, BG_H * 0.1, BG_W * 0.55, 'rgba(255,205,140,0.35)', 1); // late sun across the stone
+    bgVignette(ctx, 0.6); bgGrain(ctx, rnd, 10);
   } },
-  krama: { label: 'ក្រម Krama Pattern', paint(ctx) {
-    ctx.fillStyle = '#7a2a20'; ctx.fillRect(0, 0, 512, 288);
-    const cell = 32;
-    for (let y = 0; y < 288; y += cell) for (let x = 0; x < 512; x += cell) {
-      if (((x / cell + y / cell) | 0) % 2 === 0) { ctx.fillStyle = '#e8dcc8'; ctx.fillRect(x, y, cell, cell); }
-    }
-    ctx.strokeStyle = 'rgba(40,15,10,0.4)'; ctx.lineWidth = 2;
-    for (let x = 0; x <= 512; x += cell) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 288); ctx.stroke(); }
-    for (let y = 0; y <= 288; y += cell) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke(); }
-  } },
-  apsara: { label: 'អប្សរា Apsara Motif', paint(ctx) {
-    skyGrad(ctx, '#3a2413', '#a06a3a');
-    const cx = 256;
-    ctx.fillStyle = '#1c130a';
-    ctx.beginPath(); ctx.arc(cx, 92, 22, 0, Math.PI * 2); ctx.fill(); // head
-    ctx.beginPath(); ctx.ellipse(cx, 84, 26, 30, 0, Math.PI, Math.PI * 2); ctx.fill(); // headdress point
-    ctx.beginPath(); // torso
-    ctx.moveTo(cx - 16, 112); ctx.quadraticCurveTo(cx, 150, cx - 10, 200);
-    ctx.lineTo(cx + 14, 200); ctx.quadraticCurveTo(cx + 18, 150, cx + 16, 112);
-    ctx.closePath(); ctx.fill();
-    ctx.lineWidth = 14; ctx.strokeStyle = '#1c130a'; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(cx - 14, 118); ctx.quadraticCurveTo(cx - 70, 100, cx - 92, 60); ctx.stroke(); // raised arm
-    ctx.beginPath(); ctx.moveTo(cx + 14, 130); ctx.quadraticCurveTo(cx + 55, 160, cx + 40, 205); ctx.stroke(); // other arm
-    ctx.beginPath(); ctx.moveTo(cx - 8, 198); ctx.quadraticCurveTo(cx - 40, 230, cx - 30, 270); ctx.stroke(); // bent leg
-    ctx.beginPath(); ctx.moveTo(cx + 6, 198); ctx.lineTo(cx + 10, 270); ctx.stroke();
-    ctx.fillStyle = 'rgba(20,14,8,0.7)'; ctx.fillRect(0, 262, 512, 26);
-  } },
-  bamboo: { label: 'ព្រៃឫស្សី Bamboo Grove', paint(ctx) {
-    skyGrad(ctx, '#1c3320', '#7a9a5e');
-    const stalks = [40, 110, 175, 250, 320, 390, 460];
-    stalks.forEach((x, i) => {
-      const h = 150 + (i % 3) * 40, w = 16;
-      ctx.fillStyle = '#3a5a2c';
-      ctx.fillRect(x - w / 2, 288 - h, w, h);
-      ctx.strokeStyle = 'rgba(20,35,15,0.6)'; ctx.lineWidth = 3;
-      for (let y = 288 - 20; y > 288 - h; y -= 26) { ctx.beginPath(); ctx.moveTo(x - w / 2, y); ctx.lineTo(x + w / 2, y); ctx.stroke(); }
-      ctx.fillStyle = '#5c8a44';
-      ctx.beginPath(); ctx.ellipse(x - 14, 288 - h + 6, 22, 8, -0.4, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(x + 16, 288 - h + 16, 22, 8, 0.4, 0, Math.PI * 2); ctx.fill();
+  bamboo: { label: 'ព្រៃឫស្សី Misty Bamboo Grove', paint(ctx) {
+    const rnd = bgRng(61);
+    bgSky(ctx, [[0, '#e5efd8'], [0.5, '#a7c194'], [1, '#3a5a35']]);
+    bgGlow(ctx, BG_W * 0.62, BG_H * 0.12, 500, 'rgba(255,252,225,1)', 0.9);
+    // light shafts through the canopy
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 6; i++) { const x = BG_W * (0.4 + rnd() * 0.5); ctx.fillStyle = bgLinear(ctx, x, 0, x - 260, BG_H, [[0, 'rgba(255,250,210,0.18)'], [1, 'rgba(255,250,210,0)']]); ctx.beginPath(); ctx.moveTo(x - 20, 0); ctx.lineTo(x + 40, 0); ctx.lineTo(x - 200, BG_H); ctx.lineTo(x - 320, BG_H); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+    // three depths of stalks: far ones pale in the mist, near ones dark and wide
+    [[0.35, 26, 10, 'rgba(110,140,95,0.55)'], [0.6, 18, 18, 'rgba(70,105,58,0.8)'], [1, 9, 34, '#2d4a26']].forEach(([fog, n, wid, col], layer) => {
+      for (let i = 0; i < n; i++) {
+        const x = rnd() * BG_W, w = wid * (0.7 + rnd() * 0.6), lean = (rnd() - 0.5) * 60;
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.moveTo(x - w / 2, BG_H); ctx.lineTo(x + lean - w / 2, -20); ctx.lineTo(x + lean + w / 2, -20); ctx.lineTo(x + w / 2, BG_H); ctx.closePath(); ctx.fill();
+        if (layer === 2) { ctx.fillStyle = 'rgba(255,255,220,0.15)'; ctx.fillRect(x - w / 2 + 3, 0, 4, BG_H); }
+        ctx.fillStyle = 'rgba(0,0,0,' + (0.12 + layer * 0.08) + ')';
+        for (let y = BG_H - 60 - rnd() * 60; y > 0; y -= 110 + rnd() * 50) ctx.fillRect(x + lean * (1 - y / BG_H) - w / 2 - 2, y, w + 4, 5); // nodes
+        // leaves: slim tapering blades fanning from the nodes
+        for (let k = 0; k < 3 + layer * 2; k++) {
+          const ly = rnd() * BG_H * 0.7, lx = x + lean * (1 - ly / BG_H), dir = rnd() < 0.5 ? -1 : 1, L = 40 + layer * 30 + rnd() * 40;
+          ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(lx, ly);
+          ctx.quadraticCurveTo(lx + dir * L * 0.5, ly - 10, lx + dir * L, ly + 14); ctx.quadraticCurveTo(lx + dir * L * 0.5, ly + 6, lx, ly + 3); ctx.fill();
+        }
+      }
+      if (layer < 2) bgMist(ctx, BG_H * (0.55 + layer * 0.15), 220, 'rgba(235,245,225,1)', 0.35);
     });
+    bgVignette(ctx, 0.45); bgGrain(ctx, rnd, 6);
   } },
-  paddy: { label: 'វាលស្រែ Rice Paddy Sunset', paint(ctx) {
-    skyGrad(ctx, '#5a3d2a', '#e8a24b');
-    ctx.fillStyle = 'rgba(255,214,140,0.8)';
-    ctx.beginPath(); ctx.arc(256, 150, 40, 0, Math.PI * 2); ctx.fill();
-    const bands = ['#8a6a2a', '#a3822f', '#bd9a36', '#d6b23e'];
-    bands.forEach((c, i) => {
-      const y = 190 + i * 26;
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.moveTo(0, y + 20);
-      ctx.quadraticCurveTo(256, y - 10, 512, y + 20);
-      ctx.lineTo(512, 288); ctx.lineTo(0, 288); ctx.closePath(); ctx.fill();
-    });
-  } },
-  silk: { label: 'សូត្រ Silk Weave', paint(ctx) {
-    // a genuine diagonal basket-weave (distinct from Krama's axis-aligned
-    // checker), alternating ribbon direction band by band
-    skyGrad(ctx, '#2a2436', '#6a5586');
-    const band = 30;
-    for (let i = -10; i < 20; i++) {
-      ctx.strokeStyle = i % 2 ? 'rgba(216,196,232,0.5)' : 'rgba(120,96,150,0.5)';
-      ctx.lineWidth = band * 0.7;
-      ctx.beginPath();
-      if (i % 2) { ctx.moveTo(i * band, -20); ctx.lineTo(i * band + 320, 308); }
-      else { ctx.moveTo(i * band, 308); ctx.lineTo(i * band + 320, -20); }
-      ctx.stroke();
+  paddy: { label: 'វាលស្រែ Rice Fields at Sunset', paint(ctx) {
+    const rnd = bgRng(73);
+    bgSky(ctx, [[0, '#2a2758'], [0.3, '#8a4d7a'], [0.5, '#f08a5d'], [0.6, '#ffc970']]);
+    bgGlow(ctx, BG_W * 0.55, BG_H * 0.56, 90, 'rgba(255,248,215,1)', 1); // the sun
+    bgGlow(ctx, BG_W * 0.55, BG_H * 0.56, 520, 'rgba(255,170,90,0.6)', 1);
+    for (let i = 0; i < 7; i++) { // long thin clouds lit from below
+      const y = BG_H * (0.12 + rnd() * 0.35), x = rnd() * BG_W, w = 200 + rnd() * 400;
+      ctx.fillStyle = bgLinear(ctx, 0, y - 10, 0, y + 14, [[0, 'rgba(120,60,110,0.35)'], [1, 'rgba(255,170,120,0.55)']]);
+      ctx.beginPath(); ctx.ellipse(x, y, w, 10 + rnd() * 8, 0, 0, Math.PI * 2); ctx.fill();
     }
+    bgHills(ctx, rnd, BG_H * 0.6, 22, '#5a3a55', 40);
+    // the fields: shining terraces of water reflecting the sky, edged by darker dykes
+    const H = BG_H * 0.6;
+    for (let i = 0; i < 9; i++) {
+      const y0 = H + Math.pow(i / 9, 1.6) * (BG_H - H), y1 = H + Math.pow((i + 1) / 9, 1.6) * (BG_H - H);
+      ctx.fillStyle = bgLinear(ctx, 0, y0, 0, y1, [[0, i % 2 ? '#e9a46a' : '#f3c27a'], [1, i % 2 ? '#8b5a4a' : '#a86d50']]);
+      ctx.fillRect(0, y0, BG_W, y1 - y0 + 1);
+      ctx.fillStyle = '#3b2a2c'; ctx.fillRect(0, y0, BG_W, 2 + i * 0.8);
+      ctx.fillStyle = 'rgba(70,110,50,0.55)'; // rows of young rice
+      for (let x = (i * 37) % 30; x < BG_W; x += 22 + i * 4) ctx.fillRect(x, y0 + (y1 - y0) * 0.35, 2 + i * 0.4, (y1 - y0) * 0.4);
+    }
+    bgGlow(ctx, BG_W * 0.55, BG_H * 0.75, 260, 'rgba(255,230,170,0.6)', 1); // the sun on the water
+    [[160, 260], [290, 200], [1250, 280], [1400, 220], [1520, 250], [760, 150]].forEach(([x, h]) => bgPalm(ctx, x, H + 4, h, '#24162a', rnd));
+    ctx.strokeStyle = 'rgba(40,20,40,0.8)'; ctx.lineWidth = 2.5; // a few birds heading home
+    for (let i = 0; i < 9; i++) { const x = BG_W * (0.3 + rnd() * 0.3), y = BG_H * (0.2 + rnd() * 0.15), s = 8 + rnd() * 8; ctx.beginPath(); ctx.moveTo(x - s, y); ctx.quadraticCurveTo(x - s / 2, y - s / 2, x, y); ctx.quadraticCurveTo(x + s / 2, y - s / 2, x + s, y); ctx.stroke(); }
+    bgVignette(ctx, 0.45); bgGrain(ctx, rnd, 7);
   } },
-  templegate: { label: 'ទ្វារវត្ត Temple Gate', paint(ctx) {
-    skyGrad(ctx, '#231a10', '#8a6a3a');
-    ctx.fillStyle = '#140f09';
-    ctx.fillRect(60, 60, 40, 200); ctx.fillRect(412, 60, 40, 200); // pillars
-    ctx.fillRect(40, 40, 432, 30); // lintel
-    ctx.beginPath(); // arch doorway
-    ctx.moveTo(170, 260); ctx.lineTo(170, 140);
-    ctx.quadraticCurveTo(170, 80, 256, 80);
-    ctx.quadraticCurveTo(342, 80, 342, 140);
-    ctx.lineTo(342, 260); ctx.closePath();
-    ctx.fillStyle = '#3a2c18'; ctx.fill();
-    ctx.fillStyle = 'rgba(20,15,9,0.7)'; ctx.fillRect(0, 250, 512, 38);
+  silk: { label: 'សូត្រ Royal Silk', paint(ctx) {
+    const rnd = bgRng(83);
+    bgSky(ctx, [[0, '#240f3a'], [1, '#4a1e5c']]);
+    // satin drapes: broad folds, each with a dark valley and a bright sheen on its crest
+    for (let i = 0; i < 14; i++) {
+      const x = -200 + i * 140 + rnd() * 40, w = 160 + rnd() * 80;
+      const g = ctx.createLinearGradient(x, 0, x + w, 0);
+      g.addColorStop(0, 'rgba(30,8,45,0.6)'); g.addColorStop(0.45, 'rgba(160,80,190,0.55)'); g.addColorStop(0.55, 'rgba(255,215,255,0.55)'); g.addColorStop(1, 'rgba(30,8,45,0.6)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x, -20);
+      ctx.bezierCurveTo(x + 80, BG_H * 0.3, x - 60, BG_H * 0.7, x + 40, BG_H + 20); ctx.lineTo(x + 40 + w, BG_H + 20);
+      ctx.bezierCurveTo(x - 60 + w, BG_H * 0.7, x + 80 + w, BG_H * 0.3, x + w, -20); ctx.closePath(); ctx.fill();
+    }
+    // a gold sampot border woven along the bottom
+    ctx.fillStyle = bgLinear(ctx, 0, BG_H - 120, 0, BG_H, [[0, '#7a4d10'], [0.5, '#e6b850'], [1, '#6a400c']]); ctx.fillRect(0, BG_H - 110, BG_W, 80);
+    ctx.strokeStyle = 'rgba(90,40,10,0.7)'; ctx.lineWidth = 3;
+    for (let x = 0; x < BG_W; x += 40) { ctx.beginPath(); ctx.moveTo(x, BG_H - 70); ctx.lineTo(x + 20, BG_H - 100); ctx.lineTo(x + 40, BG_H - 70); ctx.lineTo(x + 20, BG_H - 40); ctx.closePath(); ctx.stroke(); }
+    bgGlow(ctx, BG_W * 0.3, BG_H * 0.25, 600, 'rgba(255,190,255,0.25)', 1);
+    bgVignette(ctx, 0.6); bgGrain(ctx, rnd, 6);
+  } },
+  templegate: { label: 'ទ្វារបាយ័ន Bayon Gate', paint(ctx) {
+    const rnd = bgRng(97);
+    bgSky(ctx, [[0, '#2b3a4a'], [0.5, '#8a8a7a'], [1, '#c7a77a']]);
+    bgGlow(ctx, BG_W * 0.5, BG_H * 0.6, 480, 'rgba(255,230,180,1)', 0.9); // light beyond the gate
+    for (let i = 0; i < 4; i++) bgHills(ctx, rnd, BG_H * (0.62 + i * 0.03), 40, ['rgba(70,90,70,0.4)', 'rgba(50,70,50,0.55)', 'rgba(35,52,36,0.7)', 'rgba(25,38,26,0.85)'][i], 30);
+    // the gate: a stone tower with a serene face on each side, over an arched passage
+    const cx = BG_W * 0.5, base = BG_H * 0.9, col = '#3a3428';
+    ctx.fillStyle = col;
+    ctx.fillRect(cx - 360, base - 300, 720, 300); // the walls
+    bgTower(ctx, cx, base - 280, 300, 420, col);
+    const face = (fx, fy, s) => { // eyes half closed, a calm smile, carved shadows
+      ctx.strokeStyle = 'rgba(20,16,10,0.75)'; ctx.lineWidth = 6 * s; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(fx - 50 * s, fy); ctx.quadraticCurveTo(fx - 32 * s, fy + 10 * s, fx - 14 * s, fy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx + 14 * s, fy); ctx.quadraticCurveTo(fx + 32 * s, fy + 10 * s, fx + 50 * s, fy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx, fy + 6 * s); ctx.lineTo(fx - 8 * s, fy + 44 * s); ctx.lineTo(fx + 8 * s, fy + 48 * s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx - 34 * s, fy + 70 * s); ctx.quadraticCurveTo(fx, fy + 92 * s, fx + 34 * s, fy + 70 * s); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,220,170,0.25)'; ctx.lineWidth = 3 * s;
+      ctx.beginPath(); ctx.moveTo(fx - 34 * s, fy + 66 * s); ctx.quadraticCurveTo(fx, fy + 86 * s, fx + 34 * s, fy + 66 * s); ctx.stroke();
+    };
+    face(cx, base - 520, 1.2);
+    // the arched passage, glowing with the light beyond
+    const arch = new Path2D(); arch.moveTo(cx - 90, base); arch.lineTo(cx - 90, base - 150); arch.lineTo(cx - 50, base - 230); arch.lineTo(cx, base - 260); arch.lineTo(cx + 50, base - 230); arch.lineTo(cx + 90, base - 150); arch.lineTo(cx + 90, base); arch.closePath();
+    ctx.fillStyle = bgLinear(ctx, 0, base - 260, 0, base, [[0, '#ffe7b5'], [1, '#f2b46a']]); ctx.fill(arch);
+    for (let y = base - 300; y < base; y += 22) { ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(cx - 360, y, 720, 2); } // block courses
+    // gods and demons on the causeway rail, as a row of silhouettes holding the naga
+    ctx.fillStyle = '#2a251c';
+    for (const side of [-1, 1]) for (let i = 0; i < 9; i++) { const x = cx + side * (130 + i * 52), y = base + 4 - i * 2, h = 70 - i * 3; ctx.beginPath(); ctx.ellipse(x, y - h, 14, 16, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillRect(x - 13, y - h, 26, h); }
+    ctx.fillStyle = '#4a3a20'; ctx.fillRect(0, base, BG_W, BG_H - base); // the causeway
+    bgMist(ctx, base - 20, 60, 'rgba(255,235,200,1)', 0.25);
+    bgVignette(ctx, 0.55); bgGrain(ctx, rnd, 8);
   } },
   plain: { label: 'ស្រទន់ Soft Gradient (minimal)', paint(ctx) {
-    skyGrad(ctx, '#171310', '#2c241a');
+    const rnd = bgRng(5);
+    bgSky(ctx, [[0, '#1d1814'], [1, '#2e251b']]);
+    bgGlow(ctx, BG_W * 0.5, BG_H * 0.35, BG_W * 0.6, 'rgba(255,210,150,0.12)', 1);
+    bgVignette(ctx, 0.5); bgGrain(ctx, rnd, 5);
   } }
 };
 // A light hatching pass standing in for a painting/sketch stroke texture:
 // short randomized diagonal strokes at low opacity over the whole scene.
 function drawPaintingStroke(ctx) {
   ctx.save();
+  ctx.scale(BG_W / 512, BG_H / 288);
   ctx.globalAlpha = 0.16;
   ctx.strokeStyle = '#000';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 260; i++) {
+  ctx.lineWidth = 0.6;
+  for (let i = 0; i < 900; i++) {
     const x = Math.random() * 512, y = Math.random() * 288;
     const len = 6 + Math.random() * 10, ang = -0.7 + Math.random() * 0.3;
     ctx.beginPath();
@@ -10919,7 +11127,7 @@ function drawPaintingStroke(ctx) {
   }
   ctx.globalAlpha = 0.1;
   ctx.strokeStyle = '#fff';
-  for (let i = 0; i < 140; i++) {
+  for (let i = 0; i < 500; i++) {
     const x = Math.random() * 512, y = Math.random() * 288;
     const len = 5 + Math.random() * 8, ang = -0.7 + Math.random() * 0.3;
     ctx.beginPath();
@@ -10929,21 +11137,32 @@ function drawPaintingStroke(ctx) {
   }
   ctx.restore();
 }
-const bgTexCache = {};
+const bgTexCache = {}, bgArtCache = {};
 function backgroundTexture(key, blur, stroke) {
   const cacheKey = key + '_' + blur + '_' + (stroke ? 1 : 0);
   if (bgTexCache[cacheKey]) return bgTexCache[cacheKey];
   const def = BACKGROUNDS[key];
   if (!def) return null;
-  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
+  if (!bgArtCache[key]) { // the painting itself, done once per backdrop
+    const art = document.createElement('canvas'); art.width = BG_W; art.height = BG_H;
+    def.paint(art.getContext('2d'));
+    bgArtCache[key] = art;
+  }
+  const cv = document.createElement('canvas'); cv.width = BG_W; cv.height = BG_H;
   const ctx = cv.getContext('2d');
-  ctx.filter = blur > 0 ? 'blur(' + blur + 'px)' : 'none';
-  def.paint(ctx);
+  ctx.filter = blur > 0 ? 'blur(' + (blur * BG_W / 512).toFixed(1) + 'px)' : 'none';
+  ctx.drawImage(bgArtCache[key], 0, 0);
   ctx.filter = 'none';
   if (stroke) drawPaintingStroke(ctx);
   const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
   bgTexCache[cacheKey] = tex;
   return tex;
+}
+// a "ខ្មែរ English" list label: its two halves, so the language setting can show either or both (see applyLangPref)
+function langSplitOption(opt) {
+  const m = /^(.*?[\u1780-\u17FF][^A-Za-z]*?)\s+([A-Za-z].*)$/.exec(opt.textContent);
+  if (m) { opt.dataset.kh = m[1]; opt.dataset.en = m[2]; }
 }
 function populateBackgroundSelect() {
   const sel = document.getElementById('bgSel');
@@ -10953,6 +11172,7 @@ function populateBackgroundSelect() {
   Object.keys(BACKGROUNDS).forEach(key => {
     const opt = document.createElement('option');
     opt.value = key; opt.textContent = BACKGROUNDS[key].label;
+    langSplitOption(opt);
     sel.appendChild(opt);
   });
   sel.value = 'auto';
@@ -11381,7 +11601,7 @@ function ensureAudio() {
     musicGain.gain.value = +document.getElementById('musicVolumeSlider').value;
     musicGain.connect(audioCtx.destination);
   }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (audioCtx.state === 'suspended' && !(window.OfflineAudioContext && audioCtx instanceof OfflineAudioContext)) audioCtx.resume();
   return audioCtx;
 }
 function envOsc({ freq, type = 'sine', dur = 0.12, gain = 0.3, freqTo, delay = 0, bus, filterHz, attack = 0.008, detune = 0 }) {
@@ -11423,68 +11643,6 @@ function noiseBurst({ dur = 0.1, filterFreq = 1000, q = 1, gain = 0.25, delay = 
   src.start(t0);
 }
 
-// ---- instrument "voices" for background music: distinct Web Audio
-// synthesis techniques standing in for different MIDI-style timbres, since
-// real instrument samples/soundfonts can't be fetched in this environment.
-// Each has the same (freq, dur, gain, filterHz, detune) signature so tracks
-// can mix and match; unused parameters are simply ignored by a given voice.
-function voicePad(freq, dur, gain, filterHz, detune) {
-  envOsc({ freq, type: 'triangle', dur, gain, bus: musicGain, filterHz, attack: dur * 0.35, detune: detune || 0 });
-  envOsc({ freq: freq * 0.5, type: 'triangle', dur: dur * 1.4, gain: gain * 0.4, bus: musicGain, filterHz: (filterHz || 1500) * 0.6, attack: dur * 0.5 });
-}
-function voiceFlute(freq, dur, gain, filterHz) {
-  envOsc({ freq, type: 'sine', dur, gain, bus: musicGain, filterHz: filterHz || 2600, attack: dur * 0.3 });
-  envOsc({ freq, type: 'sine', dur, gain: gain * 0.45, bus: musicGain, filterHz: filterHz || 2600, attack: dur * 0.34, detune: 9 });
-}
-function voicePiano(freq, dur, gain) {
-  envOsc({ freq, type: 'triangle', dur, gain, bus: musicGain, attack: 0.004, filterHz: 4200 });
-  envOsc({ freq: freq * 2, type: 'sine', dur: dur * 0.5, gain: gain * 0.22, bus: musicGain, attack: 0.003, filterHz: 6000 });
-  envOsc({ freq, type: 'sine', dur, gain: gain * 0.55, bus: musicGain, attack: 0.004, detune: 6 });
-}
-function voiceBell(freq, dur, gain) {
-  // FM-style inharmonic partials with a fast decay for a mallet/gong shimmer
-  envOsc({ freq, type: 'sine', dur, gain, bus: musicGain, attack: 0.003 });
-  envOsc({ freq: freq * 2.41, type: 'sine', dur: dur * 0.6, gain: gain * 0.32, bus: musicGain, attack: 0.002 });
-  envOsc({ freq: freq * 3.9, type: 'sine', dur: dur * 0.35, gain: gain * 0.16, bus: musicGain, attack: 0.002 });
-}
-function voicePluck(freq, dur, gain, filterHz) {
-  noiseBurst({ dur: Math.min(dur * 0.3, 0.08), filterFreq: freq * 2, q: 8, gain: gain * 0.6, bus: musicGain });
-  envOsc({ freq, type: 'triangle', dur, gain, bus: musicGain, attack: 0.004, filterHz: filterHz || 2500 });
-}
-function voiceGuitar(freq, dur, gain, filterHz) {
-  // Nylon-string-style pluck: a brief pick-noise transient, a sawtooth
-  // fundamental darkened by a low-pass for warmth, and a quiet detuned
-  // octave partial for body -- softer and more harmonic than voicePluck's
-  // brighter mallet transient, so it reads as a strummed/plucked guitar.
-  noiseBurst({ dur: Math.min(dur * 0.15, 0.04), filterFreq: freq * 3, q: 4, gain: gain * 0.35, bus: musicGain });
-  envOsc({ freq, type: 'sawtooth', dur, gain, bus: musicGain, attack: 0.006, filterHz: filterHz || 1800 });
-  envOsc({ freq: freq * 2.003, type: 'sine', dur: dur * 0.7, gain: gain * 0.18, bus: musicGain, attack: 0.008 });
-}
-function voiceChip(freq, dur, gain, filterHz) {
-  // A clean square wave with a near-instant attack -- the classic 8-bit
-  // "console pulse channel" timbre, plucky and bright rather than any of
-  // the softer/slower voices above, for the Mario theme's arcade track.
-  envOsc({ freq, type: 'square', dur, gain, bus: musicGain, attack: 0.002, filterHz: filterHz || 6000 });
-}
-function voiceDrum(freq, dur, gain) {
-  // A war-drum hit, not a pitched note -- a low tom thump (a fast downward
-  // sine sweep) plus a short bandpass noise crack for the stick attack,
-  // ignoring `freq` entirely since this is percussion carrying the march's
-  // rhythm, not its melody (see arcade5's drum+guitar mix).
-  envOsc({ freq: 95, type: 'sine', dur: Math.min(dur, 0.22), gain, bus: musicGain, attack: 0.002, freqTo: 42 });
-  noiseBurst({ dur: Math.min(dur * 0.35, 0.05), filterFreq: 1500, q: 1.3, gain: gain * 0.55, bus: musicGain });
-}
-function voiceSralai(freq, dur, gain, filterHz, detune) {
-  // Sralai: the piercing double-reed oboe that leads a Pinpeat/Kun Khmer
-  // ringside band -- a buzzy sawtooth core plus a second, slightly
-  // detuned sawtooth layer standing in for a reed's characteristic
-  // beating "sour" edge, narrower and brighter than voiceFlute's pure
-  // breathy sine so it cuts through the drum underneath it.
-  envOsc({ freq, type: 'sawtooth', dur, gain, bus: musicGain, filterHz: filterHz || 2200, attack: dur * 0.1, detune: detune || 0 });
-  envOsc({ freq, type: 'sawtooth', dur, gain: gain * 0.65, bus: musicGain, filterHz: (filterHz || 2200) * 0.9, attack: dur * 0.12, detune: (detune || 0) + 13 });
-  envOsc({ freq: freq * 2, type: 'sine', dur: dur * 0.55, gain: gain * 0.22, bus: musicGain, attack: dur * 0.08 });
-}
-const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck, guitar: voiceGuitar, chip: voiceChip, drum: voiceDrum, sralai: voiceSralai };
 // One sound palette per board-theme style: wood thump, stone knock, soft
 // electronic tick, 8-bit blip — move/capture/check for each.
 const SFX = {
@@ -13873,159 +14031,367 @@ setInterval(() => {
   } catch (e) { /* ambient sparkle only -- never let it break anything */ }
 }, 1100);
 
-// ---- background music: 10 soft, slow, procedurally-generated looping
-// tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
-// pentatonic scale) — not literal recordings, synthesized so nothing needs
-// to be fetched. Kept quiet, slow-attacked, and free of harsh timbres so
-// they stay unobtrusive. A local-file queue covers real recordings.
-// Each track differs in more than just pitch: tempo (noteLen), timbre
-// (filterHz brightness + optional detune chorus), envelope (attack: slow
-// swell vs. plucky), texture (pad sub-tone on/off), and melodic shape
-// (drone, arpeggio, sparse-with-rests, skip pattern) — notes use `null`
-// for a silent beat.
-const MUSIC_TRACKS = {
-  relax1: { label: 'ភ្លេងសណ្ឋាគារ១ Lobby Lounge I (piano, solo)', instrument: 'piano', noteLen: 1450, gain: 0.09,
-    sustain: 0.3,
-    notes: [261.63, 293.66, 329.63, 293.66] },
-  relax2: { label: 'ភ្លេងសណ្ឋាគារ២ Lobby Lounge II (guitar, solo)', instrument: 'guitar', noteLen: 460, gain: 0.09,
-    filterHz: 2000,
-    notes: [220.00, 261.63, 293.66, 329.63, 392.00, 440.00, null, null] },
-  relax3: { label: 'ភ្លេងសណ្ឋាគារ៣ Quiet Terrace (piano, solo)', instrument: 'piano', noteLen: 900, gain: 0.1,
-    sustain: 0.32,
-    notes: [392.00, null, 329.63, null, 349.23, null, 293.66, null] },
-  relax4: { label: 'ភ្លេងសណ្ឋាគារ៤ Evening Spa (piano + guitar mix)', instrument: 'piano', instrument2: 'guitar', noteLen: 1150, gain: 0.08,
-    filterHz: 1600,
-    notes: [349.23, 329.63, 293.66, 261.63] },
-  relax5: { label: 'ភ្លេងសណ្ឋាគារ៥ Still Water (guitar, solo)', instrument: 'guitar', noteLen: 1700, gain: 0.08,
-    filterHz: 1400,
-    notes: [329.63, 329.63, 392.00, 349.23] },
-  // An original slow acoustic guitar-and-pad piece for the Mountain
-  // Valley theme -- an open, breathing outdoor feel (unhurried, wide
-  // filter) rather than the indoor "lobby lounge" mood of relax1-5, not a
-  // transcription of any existing melody.
-  relax6: { label: 'ជ្រលងភ្នំ Mountain Air (guitar + pad mix)', instrument: 'guitar', instrument2: 'pad', noteLen: 1550, gain: 0.08,
-    filterHz: 2000, sustain: 0.4,
-    notes: [246.94, 293.66, 329.63, null, 392.00, 329.63, 293.66, null] },
-  khmer1: { label: 'ភ្លេងខ្មែរ១ Khmer Roneat (bell, solo)', instrument: 'bell', noteLen: 560, gain: 0.09,
-    notes: [293.66, 349.23, 392.00, 440.00, 523.25, 440.00, 392.00, 349.23] },
-  khmer2: { label: 'ភ្លេងខ្មែរ២ Khmer Kong Vong (pad, solo)', instrument: 'pad', noteLen: 1350, gain: 0.08,
-    filterHz: 950, detune: 5,
-    notes: [196.00, 220.00, 261.63] },
-  khmer3: { label: 'ភ្លេងខ្មែរ៣ Khmer Plucked String (pluck, solo)', instrument: 'pluck', noteLen: 640, gain: 0.1,
-    filterHz: 2200, sustain: 0.42,
-    notes: [220.00, null, 293.66, 261.63, null, 392.00, 329.63, null] },
-  khmer4: { label: 'ភ្លេងខ្មែរ៤ Mallet Ensemble (bell + pluck mix)', instrument: 'bell', instrument2: 'pluck', noteLen: 500, gain: 0.08,
-    filterHz: 2600,
-    notes: [329.63, 587.33, 392.00, 493.88, 349.23, 440.00] },
-  khmer5: { label: 'ភ្លេងខ្មែរ៥ Gong & Drone (pad + bell mix)', instrument: 'pad', instrument2: 'bell', noteLen: 1600, gain: 0.07,
-    filterHz: 900, detune: 6,
-    notes: [261.63, 293.66, 349.23] },
-  // An original fast, driving Sralai-and-drum piece for the Sak Yantra
-  // theme -- evoking the piercing reed melody and pounding Skor Yaul drum
-  // of a Pinpeat ringside band, the traditional music that accompanies a
-  // Kun Khmer (Pradal Serey) boxing match -- the same sacred art the
-  // yantra tattoo comes from. A brisk driving tempo (twice as fast as
-  // khmer1-5's slower "temple ensemble" feel) with a wailing, ornamented
-  // line, not a transcription of any existing recording.
-  khmer6: { label: 'ភ្លេងប្រដាល់ខ្មែរ Pradal Serey Ringside (sralai + drum mix)', instrument: 'sralai', instrument2: 'drum', noteLen: 165, gain: 0.09,
-    filterHz: 2400, sustain: 0.85,
-    notes: [440.00, 493.88, 523.25, 493.88, 440.00, 392.00, 440.00, null, 587.33, 523.25, 493.88, 440.00, 392.00, 349.23, 392.00, null] },
-  // An original bouncy 8-bit arpeggio for the Mario theme -- an upbeat
-  // chiptune *feel* (square-wave voice, staccato skip pattern), not a
-  // transcription of any specific existing melody.
-  arcade1: { label: 'អាឃិត Arcade Hop (chiptune, solo)', instrument: 'chip', noteLen: 180, gain: 0.08,
-    notes: [392.00, 392.00, null, 392.00, null, 329.63, 392.00, null, 440.00, null, null, null, 220.00, null, null, null] },
-  // An original driving, tense minor-key arpeggio for the Contra theme --
-  // faster tempo and a darker scale than Arcade Hop's major-key bounce,
-  // evoking action-game urgency without transcribing any existing melody.
-  arcade2: { label: 'ចម្បាំង Contra Assault (chiptune, solo)', instrument: 'chip', noteLen: 140, gain: 0.08,
-    notes: [220.00, 220.00, 261.63, 220.00, 196.00, 220.00, 293.66, 261.63, 220.00, null, 174.61, null] },
-  // An original bright, bouncy major-key riff for the Plants vs Zombies
-  // theme -- upbeat and a little comedic (skipping octave jumps), evoking
-  // a cheerful backyard-defense feel without transcribing any existing
-  // melody.
-  arcade3: { label: 'ចម្ការការពារ Lawn Defense (chiptune, solo)', instrument: 'chip', noteLen: 170, gain: 0.08,
-    notes: [349.23, 349.23, 440.00, 349.23, null, 293.66, null, 261.63, 349.23, null, 440.00, 523.25, null, null, null, null] },
-  // An original fast, glittering major-key arpeggio for the Gem Blitz
-  // theme -- rapid cascading runs (the quickest tempo of any track here)
-  // with bell doubling for sparkle, evoking a match-3 arcade's constant
-  // shimmer without transcribing any existing game's score.
-  arcade4: { label: 'ត្បូងភ្លឺ Gem Rush (chiptune + bell mix)', instrument: 'chip', instrument2: 'bell', noteLen: 130, gain: 0.07,
-    filterHz: 3200,
-    notes: [523.25, 659.26, 783.99, 1046.50, 783.99, 659.26, 523.25, null, 587.33, 739.99, 880.00, 1174.66, 880.00, 739.99, null, null] },
-  // An original slow, spacious pad+bell drone for the Avatar-vibe theme --
-  // a mystical, ambient night-forest feel (not a chiptune loop like the
-  // other theme tracks), evoking Pandora's bioluminescent canopy without
-  // transcribing any existing score.
-  cine1: { label: 'ព្រៃពន្លឺរស្មី Bioluminescent Canopy (pad + bell mix)', instrument: 'pad', instrument2: 'bell', noteLen: 1900, gain: 0.07,
-    filterHz: 1100, detune: 4,
-    notes: [220.00, 246.94, 293.66, 329.63, null, 246.94] },
-  // An original driving, propulsive minor-key synth arpeggio for the
-  // Sci-Fi Frontier theme -- a fast chiptune pulse (like Contra Assault's
-  // urgency) but built on a wider, more angular interval pattern to read
-  // as "console/spacecraft" rather than "ground combat", not a
-  // transcription of any existing score.
-  synth1: { label: 'ជីពចរអវកាស Cosmic Pulse (chiptune, solo)', instrument: 'chip', noteLen: 150, gain: 0.08,
-    filterHz: 2400,
-    notes: [293.66, 293.66, 440.00, 293.66, 349.23, null, 293.66, 220.00, null, 349.23, 440.00, 523.25, null, null, null, null] },
-  // An original slow pentatonic flute-and-pluck theme for Avatar: The Last
-  // Airbender -- evoking the four nations' folk-instrument feel without
-  // transcribing any existing score.
-  world1: { label: 'បួនធាតុ Four Nations (flute + pluck mix)', instrument: 'flute', instrument2: 'pluck', noteLen: 620, gain: 0.09,
-    filterHz: 1800, sustain: 0.5,
-    notes: [293.66, 349.23, 392.00, null, 440.00, 392.00, 349.23, null] },
-  // An original slow, tense pad-and-piano theme for the Star Wars theme --
-  // a spacious, ominous cinematic feel (paired with Avatar-vibe's
-  // Bioluminescent Canopy in the Cinematic group) evoking galactic-scale
-  // stakes without transcribing any existing film score.
-  cine2: { label: 'កងទ័ពផ្កាយ Galactic Overture (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 1400, gain: 0.08,
-    filterHz: 1300, detune: 3,
-    notes: [174.61, 207.65, 220.00, null, 196.00, 174.61, null, null] },
-  // An original, dignified marching-tempo instrumental for the Kingdom of
-  // Wonder theme -- a rising-then-resolving major-key phrase evoking
-  // national-anthem conventions (steady cadence, a proud arc up and back
-  // down to the tonic). This is a NEW composition, not a transcription of
-  // Cambodia's actual national anthem ("Nokoreach") -- the same
-  // "inspired by, never a transcription of an existing score" approach
-  // used for every other track in this game (Mario/Contra/Star Wars/etc).
-  anthem1: { label: 'មោទនភាពជាតិ National Pride (piano + pad mix)', instrument: 'piano', instrument2: 'pad', noteLen: 560, gain: 0.09,
-    sustain: 0.55,
-    notes: [220.00, 246.94, 293.66, 329.63, 392.00, 329.63, 293.66, 246.94] },
-  // An original driving, dark synthwave arpeggio for the ANNO Mutationem
-  // vibe theme -- a fast chiptune pulse layered under a low pad drone,
-  // built on a chromatic, unresolved interval pattern to read as
-  // "neon-lit dystopian city at night" rather than Sci-Fi Frontier's
-  // brighter, more heroic "console/spacecraft" pulse, not a transcription
-  // of any existing game's score.
-  synth2: { label: 'ចង្វាក់ទីក្រុងអនាគត Neon Pulse (chiptune + pad mix)', instrument: 'chip', instrument2: 'pad', noteLen: 145, gain: 0.08,
-    filterHz: 2800,
-    notes: [293.66, 349.23, 440.00, 349.23, 392.00, null, 349.23, 293.66, null, 392.00, 440.00, 523.25, null, null, 349.23, null] },
-  // An original driving, triumphant major-key pad+piano theme for the
-  // Transformers vibe theme -- a punchier, faster-marching cousin of
-  // Star Wars' Galactic Overture (paired with it and Avatar-vibe's
-  // Bioluminescent Canopy in the Cinematic group), a rising-then-falling
-  // "hero" phrase evoking a blockbuster action-movie score without
-  // transcribing any existing film's actual theme.
-  cine3: { label: 'កងទ័ពដែក Iron Legion (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 480, gain: 0.08,
-    filterHz: 1600, detune: 2, sustain: 0.6,
-    notes: [261.63, null, 329.63, 392.00, 440.00, 392.00, null, 329.63] },
-  // An original driving minor-key war march for the Modern Ops theme --
-  // a pounding low war-drum (voiceDrum) carrying the marching-drill beat
-  // under a tense, gritty guitar line, heavier and more percussive than
-  // Contra Assault's brighter run-and-gun chiptune urgency or any other
-  // theme's arcade/cinematic feel, not a transcription of any existing
-  // score.
-  arcade5: { label: 'ចម្បាំងទំនើប Iron Front (drum + guitar mix)', instrument: 'drum', instrument2: 'guitar', noteLen: 260, gain: 0.1,
-    filterHz: 1400,
-    notes: [130.81, null, 130.81, null, 155.56, 130.81, null, null, 116.54, null, 116.54, null, 130.81, 116.54, null, null] },
-  // An original bright, bouncy bell-and-chip skip-tune for the Orbs
-  // (Playful/Kids) theme -- cheerful and squarely "kid magic orb" in
-  // feel, a gentler, slower cousin of Gem Blitz's own faster glittering
-  // cascade above, not a transcription of any existing melody.
-  arcade6: { label: 'កូនកែវល្អឹមល្អែម Twinkle Orbit (chiptune + bell mix)', instrument: 'chip', instrument2: 'bell', noteLen: 220, gain: 0.08,
-    filterHz: 2600,
-    notes: [523.25, 659.26, 523.25, 392.00, null, 659.26, 783.99, 659.26, 523.25, null, null, null] }
+// ---- background music: a small generative composer. Each track is a short score recipe -- key and scale, tempo,
+// a chord progression, how the chords are played (arpeggio, block chords, broken piano chords, a drone, a pulse),
+// which instruments carry the melody, the harmony and the bass, and an optional drum pattern. From it the composer
+// writes a melody built from a one-bar motif repeated and sequenced over the chords, with a cadence at each phrase
+// end, in an A A' B A form; each time round the B section and small details change, so it never loops note for
+// note. Everything is synthesized (Web Audio) and scheduled ahead of time on the audio clock, through a soft
+// compressor and a room reverb. A local-file queue covers real recordings.
+const MUS_SCALES = {
+  major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10], dorian: [0, 2, 3, 5, 7, 9, 10],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10], harmonicMinor: [0, 2, 3, 5, 7, 8, 11]
 };
+const MUSIC_TRACKS = {
+  relax1: { label: 'ភ្លេងសណ្ឋាគារ១ Lobby Lounge I (piano)', root: 60, scale: 'major', bpm: 72, prog: [0, 5, 3, 4],
+    sevenths: true, comp: 'broken', compInstr: 'piano', lead: 'piano', bass: 'bass', density: 0.45, rev: 0.4 },
+  relax2: { label: 'ភ្លេងសណ្ឋាគារ២ Lobby Lounge II (guitar)', root: 57, scale: 'minor', bpm: 84, prog: [0, 5, 2, 6],
+    sevenths: true, comp: 'arp', compInstr: 'guitar', lead: 'epiano', bass: 'bass', density: 0.4, rev: 0.35 },
+  relax3: { label: 'ភ្លេងសណ្ឋាគារ៣ Quiet Terrace (piano)', vol: 1.6, root: 55, scale: 'major', bpm: 64, prog: [0, 3, 1, 4],
+    sevenths: true, comp: 'arp', compInstr: 'piano', lead: 'piano', bass: null, density: 0.3, rev: 0.5 },
+  relax4: { label: 'ភ្លេងសណ្ឋាគារ៤ Evening Spa (electric piano + guitar)', root: 53, scale: 'major', bpm: 70, prog: [0, 2, 3, 4],
+    sevenths: true, comp: 'block', compInstr: 'pad', lead: 'epiano', lead2: 'guitar', bass: 'bass', density: 0.35, rev: 0.45 },
+  relax5: { label: 'ភ្លេងសណ្ឋាគារ៥ Still Water (guitar + pad)', vol: 1.3, root: 52, scale: 'minor', bpm: 60, prog: [0, 3, 5, 4],
+    sevenths: true, comp: 'arp', compInstr: 'guitar', pad: true, lead: 'flute', bass: null, density: 0.28, rev: 0.55 },
+  relax6: { label: 'ជ្រលងភ្នំ Mountain Air (guitar + flute)', root: 50, scale: 'major', bpm: 76, prog: [0, 4, 5, 3],
+    comp: 'arp', compInstr: 'guitar', pad: true, lead: 'flute', bass: 'bass', density: 0.4, rev: 0.5 },
+  khmer1: { label: 'ភ្លេងខ្មែរ១ Roneat (roneat + kong + skor)', root: 62, scale: 'major', penta: [0, 2, 4, 7, 9], bpm: 96, prog: [0, 0, 4, 0],
+    comp: 'drone', compInstr: 'pad', lead: 'roneat', hetero: 'gong', bass: null, perc: 'skor', density: 0.7, rev: 0.35 },
+  khmer2: { label: 'ភ្លេងខ្មែរ២ Kong Vong (gong circle + drone)', vol: 1.4, root: 55, scale: 'major', penta: [0, 2, 4, 7, 9], bpm: 62, prog: [0, 3, 0, 4],
+    comp: 'drone', compInstr: 'pad', lead: 'gong', bass: null, perc: 'chhing', density: 0.45, rev: 0.6 },
+  khmer3: { label: 'ភ្លេងខ្មែរ៣ Chapei (plucked strings)', root: 57, scale: 'major', penta: [0, 2, 4, 7, 9], bpm: 88, prog: [0, 0, 3, 4],
+    comp: 'drone', compInstr: 'pad', lead: 'pluck', hetero: 'pluck', bass: 'bass', perc: null, density: 0.55, rev: 0.4 },
+  khmer4: { label: 'ភ្លេងខ្មែរ៤ Mallet Ensemble (roneat + gong + chhing)', root: 64, scale: 'major', penta: [0, 2, 4, 7, 9], bpm: 108, prog: [0, 4, 0, 3],
+    comp: 'drone', compInstr: 'pad', lead: 'roneat', hetero: 'gong', bass: null, perc: 'skor', density: 0.75, rev: 0.35 },
+  khmer5: { label: 'ភ្លេងខ្មែរ៥ Gong & Drone (gong + pad)', vol: 1.4, root: 48, scale: 'major', penta: [0, 2, 4, 7, 9], bpm: 54, prog: [0, 3, 0, 4],
+    comp: 'drone', compInstr: 'pad', lead: 'gong', bass: null, perc: 'chhing', density: 0.35, rev: 0.7 },
+  khmer6: { label: 'ភ្លេងប្រដាល់ខ្មែរ Pradal Serey Ringside (sralai + skor)', root: 57, scale: 'major', penta: [0, 2, 4, 7, 9], bpm: 150, prog: [0, 0, 4, 0],
+    comp: 'drone', compInstr: 'pad', lead: 'sralai', bass: null, perc: 'skorFast', density: 0.8, rev: 0.25 },
+  arcade1: { label: 'អាឃិត Arcade Hop (chiptune)', root: 60, scale: 'major', bpm: 132, prog: [0, 4, 5, 3],
+    comp: 'arp', compInstr: 'chip', lead: 'chip', bass: 'chipBass', perc: 'chip', density: 0.65, rev: 0.15 },
+  arcade2: { label: 'ចម្បាំង Contra Assault (chiptune)', root: 57, scale: 'minor', bpm: 150, prog: [0, 5, 6, 4],
+    comp: 'pulse', compInstr: 'chipBass', lead: 'chip', bass: null, perc: 'chipDrive', density: 0.7, rev: 0.12 },
+  arcade3: { label: 'ចម្ការការពារ Lawn Defense (chiptune)', root: 53, scale: 'major', bpm: 124, prog: [0, 3, 4, 0],
+    comp: 'arp', compInstr: 'chip', lead: 'chip', bass: 'chipBass', perc: 'chip', density: 0.6, rev: 0.15 },
+  arcade4: { label: 'ត្បូងភ្លឺ Gem Rush (chiptune + bells)', root: 60, scale: 'major', bpm: 140, prog: [0, 5, 3, 4],
+    comp: 'arp', compInstr: 'bell', lead: 'chip', bass: 'chipBass', perc: 'chip', density: 0.7, rev: 0.25 },
+  arcade5: { label: 'ចម្បាំងទំនើប Iron Front (drums + guitar)', root: 48, scale: 'minor', bpm: 112, prog: [0, 5, 6, 0],
+    comp: 'pulse', compInstr: 'heavy', lead: 'heavy', bass: 'bass', perc: 'march', density: 0.5, rev: 0.25 },
+  arcade6: { label: 'កូនកែវល្អឹមល្អែម Twinkle Orbit (bells + chiptune)', root: 67, scale: 'major', bpm: 104, prog: [0, 3, 4, 0],
+    comp: 'arp', compInstr: 'bell', lead: 'chip', bass: 'bass', perc: 'soft', density: 0.55, rev: 0.35 },
+  cine1: { label: 'ព្រៃពន្លឺរស្មី Bioluminescent Canopy (pad + bells)', vol: 1.4, root: 57, scale: 'dorian', bpm: 60, prog: [0, 3, 6, 4],
+    sevenths: true, comp: 'block', compInstr: 'pad', lead: 'bell', bass: null, density: 0.3, rev: 0.7 },
+  synth1: { label: 'ជីពចរអវកាស Cosmic Pulse (synth)', root: 62, scale: 'minor', bpm: 120, prog: [0, 5, 6, 4],
+    comp: 'arp', compInstr: 'chip', pad: true, lead: 'saw', bass: 'chipBass', perc: 'soft', density: 0.5, rev: 0.35 },
+  world1: { label: 'បួនធាតុ Four Nations (flute + plucked strings)', root: 62, scale: 'minor', penta: [0, 3, 5, 7, 10], bpm: 84, prog: [0, 3, 4, 0],
+    comp: 'arp', compInstr: 'pluck', lead: 'flute', bass: 'bass', perc: null, density: 0.45, rev: 0.45 },
+  cine2: { label: 'កងទ័ពផ្កាយ Galactic Overture (strings + brass)', root: 53, scale: 'minor', bpm: 72, prog: [0, 5, 2, 6],
+    comp: 'block', compInstr: 'pad', lead: 'saw', bass: 'bass', perc: 'timpani', density: 0.35, rev: 0.6 },
+  anthem1: { label: 'មោទនភាពជាតិ National Pride (piano + strings)', root: 57, scale: 'major', bpm: 84, prog: [0, 3, 4, 0, 5, 3, 4, 0],
+    comp: 'block', compInstr: 'pad', lead: 'piano', bass: 'bass', perc: 'timpani', density: 0.45, rev: 0.5 },
+  synth2: { label: 'ចង្វាក់ទីក្រុងអនាគត Neon Pulse (synth)', root: 50, scale: 'minor', bpm: 116, prog: [0, 3, 5, 4],
+    comp: 'pulse', compInstr: 'chipBass', pad: true, lead: 'chip', bass: null, perc: 'chipDrive', density: 0.55, rev: 0.3 },
+  cine3: { label: 'កងទ័ពដែក Iron Legion (strings + brass + drums)', root: 48, scale: 'major', bpm: 100, prog: [0, 4, 5, 3],
+    comp: 'block', compInstr: 'pad', lead: 'saw', bass: 'bass', perc: 'march', density: 0.45, rev: 0.45 }
+};
+// ----- the sound: a bus with a compressor and a generated room reverb; one channel per part -----
+const MUS = { out: null, send: null, noise: null };
+function musBus() {
+  const c = ensureAudio();
+  if (MUS.out) return MUS;
+  const out = c.createGain();
+  const comp = c.createDynamicsCompressor();
+  comp.threshold.value = -20; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.3;
+  out.connect(comp); comp.connect(musicGain);
+  const len = Math.floor(c.sampleRate * 2.8), ir = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.5); }
+  const conv = c.createConvolver(); conv.buffer = ir;
+  const send = c.createGain(); send.gain.value = 0.9;
+  send.connect(conv); conv.connect(comp);
+  if (!MUS.noise) {
+    MUS.noise = c.createBuffer(1, c.sampleRate, c.sampleRate);
+    const d = MUS.noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  MUS.out = out; MUS.send = send;
+  return MUS;
+}
+function musChannel(level, rev, pan) {
+  const c = audioCtx, g = c.createGain(); g.gain.value = level;
+  let node = g;
+  if (c.createStereoPanner && pan) { const p = c.createStereoPanner(); p.pan.value = pan; g.connect(p); node = p; }
+  node.connect(MUS.out);
+  const s = c.createGain(); s.gain.value = rev; node.connect(s); s.connect(MUS.send);
+  return g;
+}
+const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+function mOsc(type, f, t, end, dest, detune) {
+  const o = audioCtx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
+  if (detune) o.detune.value = detune;
+  o.connect(dest); o.start(t); o.stop(end); return o;
+}
+function mGain(dest, t, attack, peak, end, curve) { // an envelope: rise to peak, then fall away to silence by `end`
+  const g = audioCtx.createGain(); g.connect(dest);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t + attack);
+  if (curve === 'hold') { g.gain.setValueAtTime(peak, Math.max(t + attack, end - 0.35)); g.gain.exponentialRampToValueAtTime(0.0001, end); }
+  else g.gain.exponentialRampToValueAtTime(0.0001, end);
+  return g;
+}
+function mFilter(dest, type, f, q) { const b = audioCtx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q || 0.7; b.connect(dest); return b; }
+function mNoise(t, end, dest) { const s = audioCtx.createBufferSource(); s.buffer = MUS.noise; s.loop = true; s.connect(dest); s.start(t); s.stop(end); }
+function mVibrato(osc, t, rate, depth, delay) {
+  const l = audioCtx.createOscillator(), lg = audioCtx.createGain();
+  l.frequency.value = rate; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(depth, t + delay);
+  l.connect(lg); lg.connect(osc.frequency); l.start(t); l.stop(t + 30);
+  return l;
+}
+const MUS_VOICES = {
+  piano(t, f, d, v, ch) {
+    const end = t + Math.min(4, 0.6 + d * 1.8);
+    const lp = mFilter(ch, 'lowpass', 900 + 3200 * v);
+    const g = mGain(lp, t, 0.004, 0.3 * v, end);
+    mOsc('triangle', f, t, end, g); mOsc('sine', f * 2, t, end, mGain(g, t, 0.004, 0.35, t + 0.9)); mOsc('sine', f * 3.01, t, end, mGain(g, t, 0.003, 0.12, t + 0.35));
+  },
+  epiano(t, f, d, v, ch) { // a soft bell-tine: FM sine with a quick-fading bright edge
+    const end = t + Math.min(3.5, 0.8 + d * 1.6);
+    const g = mGain(ch, t, 0.005, 0.28 * v, end);
+    const car = mOsc('sine', f, t, end, g);
+    const mod = audioCtx.createOscillator(), mg = audioCtx.createGain();
+    mod.frequency.value = f; mg.gain.setValueAtTime(f * 1.6 * v, t); mg.gain.exponentialRampToValueAtTime(f * 0.05, t + 0.7);
+    mod.connect(mg); mg.connect(car.frequency); mod.start(t); mod.stop(end);
+  },
+  guitar(t, f, d, v, ch) { // nylon string: a bright attack that mellows as it rings
+    const end = t + Math.min(3, 0.5 + d * 1.3);
+    const lp = mFilter(ch, 'lowpass', 3500 * v + 500, 1.2);
+    lp.frequency.setValueAtTime(3500 * v + 600, t); lp.frequency.exponentialRampToValueAtTime(700, t + 0.5);
+    const g = mGain(lp, t, 0.003, 0.22 * v, end);
+    mOsc('sawtooth', f, t, end, g); mOsc('triangle', f, t, end, g, 6);
+  },
+  pluck(t, f, d, v, ch) { // chapei / takhe: a twangy short string
+    const end = t + Math.min(2, 0.35 + d);
+    const bp = mFilter(ch, 'lowpass', 2800, 3);
+    bp.frequency.setValueAtTime(4200, t); bp.frequency.exponentialRampToValueAtTime(900, t + 0.25);
+    const g = mGain(bp, t, 0.002, 0.24 * v, end);
+    mOsc('sawtooth', f, t, end, g); mOsc('square', f * 2, t, end, mGain(g, t, 0.002, 0.2, t + 0.2));
+  },
+  pad(t, f, d, v, ch) { // warm strings: two detuned saws and a soft sub, slow in and slow out
+    const end = t + d + 1.2;
+    const lp = mFilter(ch, 'lowpass', 1100 + 500 * v, 0.6);
+    const g = mGain(lp, t, Math.min(0.9, d * 0.4), 0.09 * v, end, 'hold');
+    mOsc('sawtooth', f, t, end, g, -7); mOsc('sawtooth', f, t, end, g, 7); mOsc('triangle', f / 2, t, end, g);
+  },
+  saw(t, f, d, v, ch) { // a brass-like lead: the filter opens as the note swells
+    const end = t + d + 0.25;
+    const lp = mFilter(ch, 'lowpass', 600, 1);
+    lp.frequency.setValueAtTime(500, t); lp.frequency.exponentialRampToValueAtTime(1800 + 1600 * v, t + 0.18);
+    const g = mGain(lp, t, 0.06, 0.16 * v, end, 'hold');
+    const o1 = mOsc('sawtooth', f, t, end, g, -4); mOsc('sawtooth', f, t, end, g, 5);
+    mVibrato(o1, t, 5, f * 0.006, 0.3);
+  },
+  flute(t, f, d, v, ch) {
+    const end = t + d + 0.15;
+    const g = mGain(ch, t, 0.07, 0.2 * v, end, 'hold');
+    const o = mOsc('sine', f, t, end, g); mOsc('triangle', f * 2, t, end, mGain(g, t, 0.05, 0.08, end, 'hold'));
+    mVibrato(o, t, 5.2, f * 0.007, 0.25);
+    mNoise(t, t + 0.12, mGain(mFilter(g, 'bandpass', f * 2, 2), t, 0.01, 0.15, t + 0.12)); // a breath at the start
+  },
+  sralai(t, f, d, v, ch) { // the Khmer oboe: nasal, with a scoop up into the note and a wide vibrato
+    const end = t + d + 0.08;
+    const bp = mFilter(mFilter(ch, 'lowpass', 3200), 'peaking', f * 3, 2);
+    bp.gain && (bp.gain.value = 8);
+    const g = mGain(bp, t, 0.025, 0.14 * v, end, 'hold');
+    const o = audioCtx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f * 0.94, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.06);
+    o.connect(g); o.start(t); o.stop(end);
+    mVibrato(o, t, 6.2, f * 0.012, 0.12);
+  },
+  roneat(t, f, d, v, ch) { // the Khmer xylophone: a woody knock and a short ring
+    const end = t + 0.9;
+    const g = mGain(ch, t, 0.002, 0.3 * v, end);
+    const car = mOsc('sine', f, t, end, g);
+    const mod = audioCtx.createOscillator(), mg = audioCtx.createGain();
+    mod.frequency.value = f * 3.98; mg.gain.setValueAtTime(f * 2.2, t); mg.gain.exponentialRampToValueAtTime(1, t + 0.12);
+    mod.connect(mg); mg.connect(car.frequency); mod.start(t); mod.stop(end);
+    mOsc('triangle', f * 2, t, t + 0.12, mGain(g, t, 0.001, 0.3, t + 0.1));
+  },
+  gong(t, f, d, v, ch) { // kong vong: a small tuned gong, bright strike and a long shimmering tail
+    const end = t + 2.6;
+    const g = mGain(ch, t, 0.003, 0.22 * v, end);
+    const car = mOsc('sine', f, t, end, g);
+    const mod = audioCtx.createOscillator(), mg = audioCtx.createGain();
+    mod.frequency.value = f * 1.414; mg.gain.setValueAtTime(f * 1.4, t); mg.gain.exponentialRampToValueAtTime(f * 0.08, t + 1.2);
+    mod.connect(mg); mg.connect(car.frequency); mod.start(t); mod.stop(end);
+  },
+  bell(t, f, d, v, ch) {
+    const end = t + 2.2;
+    const g = mGain(ch, t, 0.002, 0.16 * v, end);
+    const car = mOsc('sine', f, t, end, g);
+    const mod = audioCtx.createOscillator(), mg = audioCtx.createGain();
+    mod.frequency.value = f * 3.5; mg.gain.setValueAtTime(f * 1.8, t); mg.gain.exponentialRampToValueAtTime(f * 0.1, t + 1);
+    mod.connect(mg); mg.connect(car.frequency); mod.start(t); mod.stop(end);
+  },
+  chip(t, f, d, v, ch) {
+    const end = t + Math.max(0.08, d * 0.9);
+    const g = mGain(mFilter(ch, 'lowpass', 5000), t, 0.003, 0.09 * v, end, 'hold');
+    mOsc('square', f, t, end, g);
+  },
+  chipBass(t, f, d, v, ch) {
+    const end = t + Math.max(0.08, d * 0.85);
+    mOsc('triangle', f, t, end, mGain(ch, t, 0.003, 0.28 * v, end, 'hold'));
+  },
+  bass(t, f, d, v, ch) {
+    const end = t + d * 0.95 + 0.1;
+    const lp = mFilter(ch, 'lowpass', 520);
+    const g = mGain(lp, t, 0.01, 0.34 * v, end);
+    mOsc('triangle', f, t, end, g); mOsc('sine', f, t, end, g);
+  },
+  heavy(t, f, d, v, ch) { // a gritty guitar: square and saw through a closing filter
+    const end = t + d + 0.1;
+    const lp = mFilter(ch, 'lowpass', 1400, 2);
+    lp.frequency.setValueAtTime(2600, t); lp.frequency.exponentialRampToValueAtTime(900, t + 0.2);
+    const g = mGain(lp, t, 0.004, 0.13 * v, end, 'hold');
+    mOsc('sawtooth', f, t, end, g, -9); mOsc('square', f, t, end, g, 9);
+  },
+  // ---- percussion
+  kick(t, v, ch) { const o = audioCtx.createOscillator(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.14); o.connect(mGain(ch, t, 0.002, 0.7 * v, t + 0.32)); o.start(t); o.stop(t + 0.35); },
+  snare(t, v, ch) { mNoise(t, t + 0.2, mGain(mFilter(ch, 'bandpass', 1900, 0.8), t, 0.002, 0.35 * v, t + 0.18)); mOsc('triangle', 190, t, t + 0.1, mGain(ch, t, 0.002, 0.25 * v, t + 0.09)); },
+  hat(t, v, ch) { mNoise(t, t + 0.06, mGain(mFilter(ch, 'highpass', 7500), t, 0.001, 0.12 * v, t + 0.05)); },
+  skorLow(t, v, ch) { const o = audioCtx.createOscillator(); o.frequency.setValueAtTime(105, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.3); o.connect(mGain(ch, t, 0.003, 0.6 * v, t + 0.45)); o.start(t); o.stop(t + 0.5); },
+  skorHigh(t, v, ch) { const o = audioCtx.createOscillator(); o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(190, t + 0.1); o.connect(mGain(ch, t, 0.002, 0.35 * v, t + 0.14)); o.start(t); o.stop(t + 0.16); mNoise(t, t + 0.03, mGain(mFilter(ch, 'bandpass', 1200), t, 0.001, 0.15 * v, t + 0.03)); },
+  chhing(t, v, ch, open) { // the small finger cymbals: an open "chhing" or a damped "chhap"
+    const end = t + (open ? 0.6 : 0.07), hp = mFilter(ch, 'highpass', 3000);
+    const g = mGain(hp, t, 0.001, 0.07 * v, end);
+    mOsc('square', 2950, t, end, g); mOsc('square', 4270, t, end, g); mOsc('sine', 6100, t, end, g);
+  },
+  timpani(t, v, ch, f) { const o = audioCtx.createOscillator(); o.frequency.setValueAtTime(f || 98, t); o.connect(mGain(mFilter(ch, 'lowpass', 600), t, 0.004, 0.5 * v, t + 1.1)); o.start(t); o.stop(t + 1.2); mNoise(t, t + 0.05, mGain(mFilter(ch, 'lowpass', 900), t, 0.001, 0.2 * v, t + 0.05)); }
+};
+// drum patterns: one bar of 16 sixteenth-note steps per instrument (a digit is the step's loudness, 1 to 9)
+const MUS_PERC = {
+  soft: { kick: '7.......5.......', hat: '..3...3...3...3.' },
+  chip: { kick: '8.......8.......', snare: '....7.......7...', hat: '3.3.3.3.3.3.3.3.' },
+  chipDrive: { kick: '8...8...8...8...', snare: '....8.......8..5', hat: '4343434343434343' },
+  march: { kick: '8.......8.......', snare: '....8..4....8.44', hat: '3...3...3...3...' },
+  timpani: { timpani: '7...............' },
+  skor: { skorLow: '8.......6...5...', skorHigh: '....6.....5...4.', chhingOpen: '7.......7.......', chhing: '....5.......5...' },
+  skorFast: { skorLow: '8..5..8.6..5..6.', skorHigh: '..6...5...6.5..5', chhingOpen: '7...6...7...6...', chhing: '..5...5...5...5.' },
+  chhing: { chhingOpen: '6...............', chhing: '........4.......' }
+};
+// ----- the composer -----
+function musRng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function musCompose(T, key, cycle) {
+  const sc = MUS_SCALES[T.scale] || MUS_SCALES.major, n = sc.length;
+  const deg2midi = (d) => T.root + 12 * Math.floor(d / n) + sc[((d % n) + n) % n]; // a scale step (any octave) to a MIDI note
+  const allowed = (d) => !T.penta || T.penta.includes(sc[((d % n) + n) % n]); // the pentatonic tracks avoid the 4th and 7th
+  const snap = (d) => { for (let k = 0; k < 4; k++) { if (allowed(d + k)) return d + k; if (allowed(d - k)) return d - k; } return d; };
+  const chordOf = (deg) => T.sevenths ? [deg, deg + 2, deg + 4, deg + 6] : [deg, deg + 2, deg + 4];
+  const P = T.prog.length, ev = [];
+  const add = (beat, part, midi, dur, vel) => ev.push({ beat, part, f: mtof(midi), dur, vel });
+  const seedBase = [...key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  // a one-bar motif: a rhythm (eighth-note onsets) and scale steps relative to the chord root
+  const makeMotif = (rnd) => {
+    const steps = [], rhythm = [];
+    let pos = 0, d = [0, 2, 4][Math.floor(rnd() * 3)];
+    while (pos < 8) {
+      const strong = pos % 2 === 0;
+      if (rnd() < (strong ? T.density + 0.25 : T.density - 0.1) || pos === 0) {
+        const len = rnd() < 0.3 && pos < 6 ? 2 : rnd() < 0.15 && pos < 4 ? 3 : 1;
+        rhythm.push([pos, len]); steps.push(d);
+        d += rnd() < 0.65 ? (rnd() < 0.5 ? 1 : -1) : (rnd() < 0.5 ? 2 : -2);
+        d = Math.max(-2, Math.min(7, d));
+        pos += len;
+      } else pos += 1;
+    }
+    return { rhythm, steps };
+  };
+  // one pass through the progression: the motif, sequenced onto each chord, with a cadence in the last bar
+  const phrase = (startBar, motif, rnd, cadenceToTonic, vary) => {
+    for (let b = 0; b < P; b++) {
+      const deg = T.prog[b], bar0 = (startBar + b) * 4, last = b === P - 1;
+      if (last) {
+        const target = cadenceToTonic ? 7 : deg + (rnd() < 0.5 ? 2 : 4); // home, or a chord tone a little up
+        add(bar0, 'lead', deg2midi(snap(target)) + 12 * (T.leadOct || 0), 3, 0.7);
+        if (rnd() < 0.6) add(bar0 + 3, 'lead', deg2midi(snap(target + (rnd() < 0.5 ? 1 : -1))) + 12 * (T.leadOct || 0), 1, 0.45);
+        continue;
+      }
+      motif.rhythm.forEach(([pos, len], i) => {
+        let d = deg + motif.steps[i];
+        if (vary && rnd() < 0.3) d += rnd() < 0.5 ? 1 : -1;
+        if (pos % 2 === 0 && pos === 0) d = deg + [0, 2, 4][Math.floor(rnd() * 3)] * (rnd() < 0.7 ? 1 : 0); // the downbeat on a chord tone
+        const vel = (pos % 4 === 0 ? 0.75 : 0.55) + rnd() * 0.15;
+        add(bar0 + pos / 2, 'lead', deg2midi(snap(d + 7)) + 12 * (T.leadOct || 0), len / 2 * 0.95, vel);
+      });
+    }
+  };
+  const rA = musRng(seedBase), motifA = makeMotif(rA);
+  const rB = musRng(seedBase * 7 + cycle * 101), motifB = makeMotif(rB);
+  phrase(0, motifA, musRng(seedBase + 1), false, false);                       // A
+  phrase(P, motifA, musRng(seedBase + 2 + cycle), true, true);                  // A' (a little changed, ends home)
+  phrase(2 * P, motifB, musRng(seedBase + 3 + cycle * 13), false, true);        // B (new each time round)
+  phrase(3 * P, motifA, musRng(seedBase + 4 + cycle), true, cycle % 2 === 1);   // A again
+  const bars = 4 * P;
+  // the accompaniment and the bass, chord by chord
+  for (let bar = 0; bar < bars; bar++) {
+    const deg = T.prog[bar % P], chord = chordOf(deg), b0 = bar * 4;
+    const tone = (d, oct) => deg2midi(d) + 12 * oct;
+    if (T.comp === 'arp') {
+      const seq = [0, 1, 2, chord.length > 3 ? 3 : 1, 2, 1, 0, 2].map((i) => chord[i]);
+      seq.forEach((d, i) => add(b0 + i / 2, 'comp', tone(d, i >= 4 && i < 6 ? 0 : -1), 0.5, 0.42 + (i % 2 ? 0 : 0.1)));
+    } else if (T.comp === 'broken') {
+      add(b0, 'comp', tone(deg, -2), 1.5, 0.5);
+      [1, 2, 3].forEach((bt) => chord.slice(1).forEach((d) => add(b0 + bt, 'comp', tone(d, -1), 0.9, 0.3)));
+    } else if (T.comp === 'block') {
+      chord.forEach((d) => add(b0, 'comp', tone(d, -1), 4, 0.55));
+    } else if (T.comp === 'drone') {
+      if (bar % 2 === 0) { add(b0, 'comp', tone(0, -2), 8, 0.5); add(b0, 'comp', tone(4, -2), 8, 0.4); }
+    } else if (T.comp === 'pulse') {
+      for (let i = 0; i < 8; i++) add(b0 + i / 2, 'comp', tone(deg, i % 4 === 3 ? -1 : -2), 0.45, i % 2 ? 0.45 : 0.65);
+    }
+    if (T.pad) chord.slice(0, 3).forEach((d) => add(b0, 'pad', tone(d, -1), 4, 0.4));
+    if (T.bass) {
+      add(b0, 'bass', tone(deg, -2), 1.8, 0.7);
+      add(b0 + 2, 'bass', tone(deg + (bar % 2 ? 4 : 0), -2), 1.6, 0.55);
+    }
+  }
+  // a heterophonic second line (Khmer ensemble style): the melody shadowed an octave down, lightly, a beat behind
+  if (T.hetero) ev.filter((e) => e.part === 'lead' && Math.abs(e.beat % 1) < 0.01).forEach((e) => ev.push({ beat: e.beat + 0.5, part: 'hetero', f: e.f / 2, dur: e.dur, vel: e.vel * 0.6 }));
+  if (T.perc) {
+    const pat = MUS_PERC[T.perc];
+    for (let bar = 0; bar < bars; bar++) for (const inst in pat) [...pat[inst]].forEach((c, i) => {
+      if (c === '.') return;
+      const lastBar = bar % P === P - 1;
+      if (lastBar && inst !== 'timpani' && i > 11 && cycle % 2 === 0) return; // a breath before each phrase
+      ev.push({ beat: bar * 4 + i / 4, part: 'perc', inst, vel: (+c) / 9 });
+    });
+    if (T.perc === 'timpani') for (let bar = P - 1; bar < bars; bar += P) for (let k = 0; k < 4; k++) ev.push({ beat: bar * 4 + 3 + k / 4, part: 'perc', inst: 'timpani', vel: 0.35 + k * 0.1 });
+  }
+  ev.sort((a, b) => a.beat - b.beat);
+  return { beats: bars * 4, events: ev };
+}
+// ----- playback: schedule ahead on the audio clock -----
+let musPlay = null;
+function musScheduler(until) {
+  const P = musPlay; if (!P) return;
+  const now = audioCtx.currentTime, ahead = until || now + (document.hidden ? 1.6 : 0.4);
+  for (;;) {
+    const e = P.piece.events[P.idx];
+    if (!e) { P.t0 += P.piece.beats * P.spb; P.cycle++; P.piece = musCompose(P.T, P.key, P.cycle); P.idx = 0; continue; }
+    let t = P.t0 + e.beat * P.spb + (Math.random() - 0.5) * 0.012; // a touch of human timing
+    if (t > ahead) break;
+    P.idx++;
+    if (t < now) continue; // (fell behind, e.g. a hidden tab: skip rather than pile up)
+    try {
+      if (e.part === 'perc') {
+        const inst = e.inst === 'chhingOpen' ? 'chhing' : e.inst;
+        MUS_VOICES[inst](t, e.vel, P.ch.perc, e.inst === 'chhingOpen' ? true : P.timpF);
+      } else {
+        const instr = e.part === 'lead' ? P.T.lead : e.part === 'comp' ? P.T.compInstr : e.part === 'pad' ? 'pad' : e.part === 'bass' ? P.T.bass : P.T.hetero;
+        MUS_VOICES[instr](t, e.f, e.dur * P.spb, e.vel, P.ch[e.part]);
+        if (e.part === 'lead' && P.T.lead2) MUS_VOICES[P.T.lead2](t + 0.01, e.f / 2, e.dur * P.spb, e.vel * 0.55, P.ch.lead2);
+      }
+    } catch (err) { /* one bad note must never stop the music */ }
+  }
+}
+
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
   const groups = sel.querySelectorAll('optgroup');
@@ -14034,31 +14400,60 @@ function populateMusicSelect() {
     const t = MUSIC_TRACKS[key];
     const opt = document.createElement('option');
     opt.value = key; opt.textContent = t.label;
+    langSplitOption(opt);
     (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : key.startsWith('cine') ? cineGroup : key.startsWith('synth') ? synthGroup : key.startsWith('world') ? worldGroup : key.startsWith('anthem') ? nationalGroup : relaxGroup).appendChild(opt);
   });
   sel.value = 'khmer1';
 }
 populateMusicSelect();
 
+function musBegin(T, key, t0) {
+  musBus();
+  const rev = T.rev || 0.4, v = T.vol || 1; // (vol: the gentlest tracks are lifted to sit level with the rest)
+  const ch = {
+    lead: musChannel(1 * v, rev, 0.08), lead2: musChannel(0.8 * v, rev, -0.25), comp: musChannel(0.85 * v, rev, -0.15),
+    pad: musChannel(0.8 * v, rev * 1.2, 0.2), bass: musChannel(1 * v, rev * 0.3, 0), hetero: musChannel(0.8 * v, rev, -0.3), perc: musChannel(0.9 * v, rev * 0.5, 0)
+  };
+  musPlay = { T, key, ch, spb: 60 / T.bpm, t0, cycle: 0, idx: 0, piece: musCompose(T, key, 0), timpF: mtof(T.root - 24) };
+}
+// Test-only: render a track offline (no speakers) and hand back a 16-bit WAV, to listen to or to check its levels
+async function musRenderOffline(key, secs) {
+  const saved = { audioCtx, musicGain, out: MUS.out, send: MUS.send, noise: MUS.noise, play: musPlay };
+  const off = new OfflineAudioContext(2, Math.floor(44100 * secs), 44100);
+  try {
+    audioCtx = off; musicGain = off.createGain(); musicGain.gain.value = 0.6; musicGain.connect(off.destination);
+    MUS.out = null; MUS.noise = null;
+    musBegin(MUSIC_TRACKS[key], key, 0.05);
+    musScheduler(secs);
+    const buf = await off.startRendering();
+    const n = buf.length, L = buf.getChannelData(0), R = buf.getChannelData(1), dv = new DataView(new ArrayBuffer(44 + n * 4));
+    const w = (o, str) => [...str].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+    w(0, 'RIFF'); dv.setUint32(4, 36 + n * 4, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true);
+    dv.setUint32(24, 44100, true); dv.setUint32(28, 44100 * 4, true); dv.setUint16(32, 4, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n * 4, true);
+    let peak = 0, sum = 0;
+    for (let i = 0; i < n; i++) for (const [k, ch] of [[0, L], [1, R]]) { const x = Math.max(-1, Math.min(1, ch[i])); peak = Math.max(peak, Math.abs(x)); sum += x * x; dv.setInt16(44 + i * 4 + k * 2, x * 32767, true); }
+    let bin = ''; const bytes = new Uint8Array(dv.buffer);
+    for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768));
+    return { wav: btoa(bin), peak, rms: Math.sqrt(sum / (n * 2)) };
+  } finally {
+    audioCtx = saved.audioCtx; musicGain = saved.musicGain; MUS.out = saved.out; MUS.send = saved.send; MUS.noise = saved.noise; musPlay = saved.play;
+  }
+}
 let musicTimer = null, musicStopFlag = true, musicPlaying = false, currentMusicKey = 'none';
 let playSource = 'builtin'; // 'builtin' | 'queue'
-function playTrackStep(track, idx) {
-  if (musicStopFlag) return;
-  const freq = track.notes[idx % track.notes.length];
-  if (freq) { // null = a silent beat, for tracks with a sparser rhythm
-    const sustain = track.sustain || 0.9;
-    const dur = track.noteLen * sustain / 1000;
-    VOICES[track.instrument](freq, dur, track.gain, track.filterHz, track.detune);
-    if (track.instrument2) VOICES[track.instrument2](freq, dur, track.gain * 0.7, track.filterHz, track.detune);
-  }
-  musicTimer = setTimeout(() => playTrackStep(track, idx + 1), track.noteLen);
-}
 function updateMusicButton() {
   document.getElementById('musicPlayBtn').textContent = musicPlaying ? '⏸ Pause' : '▶ Play';
 }
 function stopMusic() {
   musicStopFlag = true;
-  if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
+  if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+  musPlay = null;
+  if (MUS.out) { // fade out what is still ringing, then drop the old bus (a new one is built on the next start)
+    const out = MUS.out, t = audioCtx.currentTime;
+    out.gain.setValueAtTime(out.gain.value, t); out.gain.linearRampToValueAtTime(0, t + 0.4);
+    setTimeout(() => { try { out.disconnect(); } catch (e) {} }, 600);
+    MUS.out = null; MUS.send = null;
+  }
   if (queueAudioEl) queueAudioEl.pause();
   musicPlaying = false;
   updateMusicButton();
@@ -14069,10 +14464,12 @@ function startMusic(key) {
   currentMusicKey = key;
   if (key === 'none') return;
   ensureAudio();
-  const track = MUSIC_TRACKS[key];
-  if (!track) return;
+  const T = MUSIC_TRACKS[key];
+  if (!T) return;
+  musBegin(T, key, audioCtx.currentTime + 0.15);
   musicStopFlag = false;
-  playTrackStep(track, 0);
+  musScheduler();
+  musicTimer = setInterval(musScheduler, 80);
   musicPlaying = true;
   updateMusicButton();
 }
@@ -17278,12 +17675,7 @@ function refreshModeReadout() {
   const playModeText = mode === 'hotseat' ? '2 Player ២នាក់'
     : mode === 'online' ? 'Online vs ' + (onlineOpponentName || 'Opponent') + ' (' + (humanSide === E.WHITE ? 'White' : 'Black') + ')'
     : 'vs Computer L' + mode.slice(2) + ' (' + (humanSide === E.WHITE ? 'White' : 'Black') + ')';
-  document.getElementById('modeReadoutText').textContent = playModeText;
-  // top-of-panel readout (above Change Mode) additionally reflects Training
-  // mode, which the Game-accordion readout never needs to since that
-  // accordion is itself hidden while in Training.
-  document.getElementById('currentModeReadoutText').textContent =
-    uiMode === 'train' ? 'Learn to Play រៀនលេង' : playModeText;
+  document.getElementById('modeReadoutText').textContent = playModeText; // (hidden: kept for the review export)
   document.getElementById('onlineEndBtn').style.display = mode === 'online' ? '' : 'none';
 }
 
@@ -17368,9 +17760,8 @@ let pendingInviteCode = parseInviteCode(location.search, location.hash);
 // the same mode/game instead of dropping into mode selection.
 let loginMidSession = false;
 // Mode choices (vs Computer / 2 Player / Online / Invite / Learn, plus the optional time / level / side config)
-// live in the settings panel's collapsible "Change Mode" section (#modeAcc) -- there is no separate pop-up for
-// them. openModeScreen() is the old entry point every "let me change the mode" path still calls; it now just
-// opens that section (and the panel itself where it is a slide-up sheet).
+// live in the Change Mode pop-up (#modePopup, opened by the panel's 🎮 button). openModeScreen() is the entry point
+// every "let me change the mode" path calls.
 // Resets the 2 Player / vs Computer picker back to its unselected state
 // -- neither bigpick button highlighted, no time-control/level/chess-set
 // config shown yet -- so reopening the wizard (Change Mode, or Back-ing
@@ -17398,19 +17789,23 @@ function selectPlayMode(m) {
 }
 function panelIsOpen() { return !!(window.__oukActions && window.__oukActions.isPanelOpen && window.__oukActions.isPanelOpen()); }
 function openModeAccordion() {
-  const acc = document.getElementById('modeAcc');
   hideAiNotice();
   resetPlayModeStep();
-  acc.open = true;
-  if (!panelIsOpen() && window.__oukActions && window.__oukActions.togglePanel) window.__oukActions.togglePanel();
-  try { acc.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+  funnel('mode_section_open');
+  updateModeProfileChip();
+  // on a phone the panel is a sheet over the board: the pop-up takes its place
+  if (document.body.classList.contains('is-mobile') && panelIsOpen()) window.__oukActions.togglePanel();
+  const pop = document.getElementById('modePopup');
+  pop.style.display = 'flex';
+  pop.querySelector('.box').scrollTop = 0;
 }
 function closeModeAccordion() {
-  document.getElementById('modeAcc').open = false;
+  document.getElementById('modePopup').style.display = 'none';
   resetPlayModeStep();
-  // on a phone the panel is a sheet over the board: a started game should show the board again
-  if (document.body.classList.contains('is-mobile') && panelIsOpen()) window.__oukActions.togglePanel();
 }
+document.getElementById('changeModeBtn').onclick = () => openModeScreen();
+document.getElementById('modePopupClose').onclick = () => closeModeAccordion();
+document.getElementById('modePopup').addEventListener('click', (e) => { if (e.target.id === 'modePopup') closeModeAccordion(); });
 function openModeScreen() {
   funnel('mode_screen_shown', { origin: modeScreenOrigin });
   if (mode === 'online') leaveOnlineMatch();
@@ -17875,10 +18270,6 @@ if (IN_APP_BROWSER) {
   funnel('iab_hint_shown');
 }
 
-document.getElementById('modeAcc').addEventListener('toggle', (e) => {
-  if (e.target.open) { funnel('mode_section_open'); updateModeProfileChip(); }
-  else resetPlayModeStep(); // folding the section away forgets a half-made choice (and the options switch)
-});
 // mode_access analytics: which top-level mode a visit actually reaches --
 // Learn to Play, Play -> 2 Player, or Play -> vs Computer (with the chosen
 // level) -- fired at the moment the choice is confirmed (not just hovered/
@@ -19474,7 +19865,8 @@ function refreshThemeCategoryUI() {
     if (!wrap) return;
     const btn = wrap.querySelector('.themeCatBtn');
     const isCur = curCat === cat;
-    btn.querySelector('.catLabel').textContent = cat.label;
+    const [lkh, len] = cat.label.split(/ (?=[A-Z])/);
+    btn.querySelector('.catLabel').innerHTML = '<span class="t-kh">' + lkh + '</span><span class="t-sep"> </span><span class="t-en">' + (len || lkh) + '</span>';
     btn.querySelector('.catCur').textContent = isCur ? (labelByValue[curValue] || '').replace(/\s*🔒$/, '') : '';
     btn.classList.toggle('hasSelection', isCur);
     btn.classList.toggle('active', openThemeCatKey === cat.key);
@@ -19607,6 +19999,9 @@ window.__ouk = {
   debugNewGame: () => newGame(),
   debugFlat2DSize: (setStyle, type) => (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type],
   debugApplyMove: (m) => applyMove(m),
+  debugRenderMusic: (key, secs) => musRenderOffline(key, secs), // Test-only
+  debugBgArt: (key) => { backgroundTexture(key, 0, false); return bgArtCache[key].toDataURL('image/jpeg', 0.85); }, // Test-only
+  debugPieceStyle: () => pieceStyle(), // Test-only: the piece style in use
   debugRagdolls: () => ragdolls.map((r) => ({ t: +r.t.toFixed(2), p: r.g.position.toArray().map((x) => +x.toFixed(2)) })), // Test-only
   debugTrainMove: (m) => applyTrainingMove(m), // Test-only: a move made in Learn to Play (puzzles check it)
   debugLoadPuzzle: (key) => { if (!PUZZLES.some((p) => p.key === key)) throw new Error('no such puzzle'); loadPuzzle(key); }, // Test-only
@@ -20419,7 +20814,7 @@ function wrapLangRuns(root) {
   const skipEl = (el) => {
     const tag = el.tagName;
     if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'SELECT' || tag === 'OPTION' || tag === 'TEXTAREA') return true;
-    if (['modal', 'movelist', 'status', 'lessonText', 'boardTitle', 'langBtns', 'startLangRow', 'aiChip', 'aiNotice'].includes(el.id)) return true;
+    if (['modal', 'movelist', 'status', 'lessonText', 'boardTitle', 'langCycleBtn', 'startLangRow', 'aiChip', 'aiNotice'].includes(el.id)) return true;
     if (el.classList.contains('t-kh') || el.classList.contains('t-en') || el.classList.contains('t-sep')) return true;
     return false;
   };
@@ -20465,6 +20860,10 @@ function applyLangPref(v) {
   document.body.classList.toggle('lang-kh', v === 'kh');
   document.body.classList.toggle('lang-en', v === 'en');
   try { localStorage.setItem(LANG_PREF_KEY, v); } catch (e) {}
+  // list options cannot hold the language spans: those with both names get the chosen one (or both)
+  document.querySelectorAll('option[data-kh]').forEach((o) => {
+    o.textContent = v === 'kh' ? o.dataset.kh : v === 'en' ? o.dataset.en : o.dataset.kh + ' — ' + o.dataset.en;
+  });
   // Keep the Rules and What's New modals' own (Khmer/Latin-only) language
   // in sync with this app-wide choice too -- without this, picking
   // English here still left both modals defaulting back to Khmer on their
@@ -20483,19 +20882,26 @@ function applyLangPref(v) {
   wrapLangRuns(document.getElementById('loginScreen'));
   wrapLangRuns(document.getElementById('levelMenu'));
   wrapLangRuns(document.getElementById('reviewBar'));
-  const langBtns = document.querySelectorAll('#langBtns button');
+  wrapLangRuns(document.getElementById('modePopup'));
+  const langBtn = document.getElementById('langCycleBtn');
+  const LANG_NAMES = { kh: 'ខ្មែរ', en: 'English', both: 'ខ្មែរ + EN' };
   const startLangToggle = document.getElementById('startLangToggle');
   // a first-time visitor sees Khmer only (English is one tap away); an explicit earlier choice is kept
   let saved = 'kh';
   try { saved = localStorage.getItem(LANG_PREF_KEY) || 'kh'; } catch (e) {}
   const markActive = (v) => {
-    langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === v));
+    langBtn.dataset.lang = v;
+    langBtn.textContent = '🌐 ' + LANG_NAMES[v];
     // one button showing only the OTHER language: it reads "English" while the UI is in Khmer and "ខ្មែរ" once in English
     startLangToggle.innerHTML = '🌐 ' + (v === 'en' ? 'ខ្មែរ' : 'English');
   };
   markActive(saved);
   applyLangPref(saved);
-  langBtns.forEach(b => b.onclick = () => { markActive(b.dataset.lang); applyLangPref(b.dataset.lang); });
+  // one button steps through the three: ខ្មែរ -> English -> ខ្មែរ + English -> ខ្មែរ
+  langBtn.onclick = () => {
+    const to = { kh: 'en', en: 'both', both: 'kh' }[langBtn.dataset.lang] || 'kh';
+    markActive(to); applyLangPref(to); funnel('lang_change', { to });
+  };
   startLangToggle.onclick = () => {
     const to = document.body.classList.contains('lang-en') ? 'kh' : 'en';
     markActive(to); applyLangPref(to); funnel('lang_change', { to });
