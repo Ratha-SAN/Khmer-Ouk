@@ -8742,7 +8742,7 @@ function buildGemPiece(g, add, type, promoted, color) {
 // a red spired Sdach, a clear flared vase for the Neang, a yellow faceted ball for the Koul, an orange horse,
 // a purple lidded urn for the Touk, a green ringed octagon for the Trey and a blue octagonal ring once promoted.
 // Each body is turned from a profile with only 8 sides, alternate rings offset by half a side, so the faces
-// break into triangular facets like a cut stone; thin white lines trace the facet edges. White wears the
+// break into triangular facets like a cut stone. White wears the
 // bright end of each crystal's colour, Black the deep end.
 const CRYSTAL_SET = {
   //            white     black     profile: [radius, height, offset] -- offset 1 turns that ring half a side
@@ -8754,7 +8754,7 @@ const CRYSTAL_SET = {
   PAWN:     { w: 0x1fd24c, b: 0x075a1c, p: [[0, 0], [0.28, 0], [0.28, 0.1], [0.245, 0.125], [0.2, 0.125], [0.17, 0.16], [0.125, 0.16], [0.095, 0.195], [0.05, 0.195], [0, 0.215]] },
   PROMOTED: { w: 0x2f72ff, b: 0x0c2a90, p: [[0.13, 0], [0.285, 0], [0.285, 0.1], [0.245, 0.14], [0.17, 0.14], [0.13, 0.1], [0.13, 0]] }
 };
-const crystalGeoCache = {}, crystalEdgeCache = {}, crystalMatCache = {};
+const crystalGeoCache = {}, crystalMatCache = {};
 // a flat-shaded (non-indexed) turned solid with `n` sides; profile rings with offset 1 are turned half a side
 function crystalLathe(profile, n) {
   const pos = [];
@@ -8809,30 +8809,21 @@ function crystalMaterial(name, color) {
   }
   return crystalMatCache[key];
 }
-const crystalEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.42, depthWrite: false });
 function buildGemCrystalPiece(g, add, type, promoted, color) {
   const name = (promoted && type === E.QUEEN) ? 'PROMOTED'
     : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
   const mat = crystalMaterial(name, color);
-  let mesh, geo, edgeKey = name;
+  let mesh, geo;
   if (name === 'KNIGHT') {
     // the low-poly horse (already cut in flat facets), in orange crystal
     geo = typeof LOWPOLY_WOOD !== 'undefined' ? bkGeometry('LOWPOLY_WOOD', 'KNIGHT', 30) : okGeometry('KNIGHT');
-    edgeKey = typeof LOWPOLY_WOOD !== 'undefined' ? 'KNIGHT_LP' : 'KNIGHT_OK';
     mesh = add(geo, 0, mat);
-    if (edgeKey === 'KNIGHT_LP') { mesh.scale.setScalar(4.0); mesh.rotation.y = Math.PI; }
+    if (typeof LOWPOLY_WOOD !== 'undefined') { mesh.scale.setScalar(4.0); mesh.rotation.y = Math.PI; }
     else { mesh.scale.setScalar(4.2); mesh.rotation.y = -Math.PI / 2; }
   } else {
     geo = crystalGeoCache[name] || (crystalGeoCache[name] = crystalLathe(CRYSTAL_SET[name].p, 8));
     mesh = add(geo, 0, mat);
     mesh.rotation.y = Math.PI / 8; // a flat face toward each side of the square
-  }
-  if (edgeKey !== 'KNIGHT_OK') { // facet lines (skipped on the smooth fallback horse, where they would be a mesh of hairlines)
-    const eg = crystalEdgeCache[edgeKey] || (crystalEdgeCache[edgeKey] = new THREE.EdgesGeometry(geo, 18));
-    const lines = new THREE.LineSegments(eg, crystalEdgeMat);
-    lines.scale.copy(mesh.scale); lines.rotation.copy(mesh.rotation); lines.position.copy(mesh.position);
-    lines.renderOrder = 2;
-    g.add(lines);
   }
   if (name === 'PROMOTED') g.userData.labelTopY = 0.16;
   if (name === 'PAWN') g.userData.labelTopY = 0.22;
