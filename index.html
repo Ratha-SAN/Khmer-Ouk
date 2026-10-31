@@ -73,7 +73,11 @@
     background: var(--surface-deep); color: var(--panel-fg); display: flex;
   }
   #scene { flex: 1 1 auto; position: relative; min-width: 0; }
-  #scene canvas { display: block; }
+  #scene canvas { display: block; transition: opacity .17s ease-in, transform .17s ease-in; transform-origin: 50% 55%; }
+  #scene.sceneOut canvas { opacity: 0; }
+  #scene.tx-fade.sceneOut canvas { transform: scale(.965); }
+  #scene.tx-flip.sceneOut canvas { transform: perspective(1200px) rotateX(16deg) scale(.93); }
+  #scene.sceneIn canvas { transition: opacity .38s ease-out, transform .38s cubic-bezier(.2,.8,.25,1); }
   #scene canvas.pixelated {
     image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated;
   }
@@ -3765,7 +3769,9 @@
   //     exist rather than just being weak. Deliberately a much smaller
   //     capture bias than level 2's own (35% vs 75%) so it stays clearly
   //     the easiest level, not a near-duplicate of it.
-  //  2: random legal move, weighted toward captures.
+  //  2: about 80% of level 3's strength: most moves (7 in 10) are level 3's own (the same depth-2 search); the
+  //     rest are plausible but not the best -- picked at random from the few moves that look nearly as good two
+  //     plies ahead -- so it plays soundly and rarely throws pieces away, yet stays a step below level 3.
   //  3: fixed shallow search (depth 2), small time budget.
   //  4: iterative-deepening alpha-beta, moderate time budget (~0.9s).
   //  5: iterative-deepening alpha-beta, full time budget (~1.7s, hardest).
@@ -3778,14 +3784,25 @@
       var pool1 = (caps1.length && Math.random() < 0.35) ? caps1 : legal;
       return pool1[(Math.random() * pool1.length) | 0];
     }
-    if (level === 2) {
-      var caps = legal.filter(function (m) { return S.board[m.to] !== EMPTY; });
-      var pool = (caps.length && Math.random() < 0.75) ? caps : legal;
-      return pool[(Math.random() * pool.length) | 0];
-    }
-    // levels 3-5 search on a working copy: a mid-search timeout must
+    // levels 2-5 search on a working copy: a mid-search timeout must
     // never leave the real game state mutated
     var W = toJSON(S);
+    if (level === 2) {
+      _deadline = Date.now() + 1100;
+      try {
+        if (Math.random() < 0.7) { var r2 = searchRoot(W, 2, null).move; return r2 || legal[0]; }
+        var color = W.turn, scored = [];
+        for (var k = 0; k < legal.length; k++) {
+          var u2 = makeMove(W, legal[k]);
+          scored.push({ m: legal[k], sc: -search(W, 1, -Infinity, Infinity, 1 - color, 1) });
+          unmakeMove(W, u2);
+        }
+        scored.sort(function (a, b) { return b.sc - a.sc; });
+        var near = scored.filter(function (x, i) { return i < 5 && x.sc >= scored[0].sc - 200; }); // close to the best
+        return near[(Math.random() * near.length) | 0].m;
+      } catch (e) { return legal[(Math.random() * legal.length) | 0]; }
+      finally { _deadline = 0; }
+    }
     if (level === 3) {
       _deadline = Date.now() + 1200;
       try { var r3 = searchRoot(W, 2, null).move; return r3 || legal[0]; }
@@ -5426,6 +5443,33 @@ function buildStudioEnvironment() {
   pmrem.dispose();
   return envRT.texture;
 }
+// A jeweller's showroom for the gem pieces alone: a dark room hung with many small bright spotlights and softboxes
+// (a few warm, a few cool). Reflected in flat facets it gives the hard light-and-dark sparkle of a real cut stone.
+function buildJewelEnvironment() {
+  const w = 1024, h = 512, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#5a5a66'); grad.addColorStop(0.5, '#2a2a32'); grad.addColorStop(1, '#141418');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+  let seed = 9; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 110; i++) { // spotlights: small, very bright
+    const x = rnd() * w, y = rnd() * h * 0.62, r = 2 + rnd() * 7;
+    const tint = rnd() < 0.2 ? '255,214,170' : rnd() < 0.2 ? '190,215,255' : '255,255,255';
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
+    g.addColorStop(0, 'rgba(' + tint + ',1)'); g.addColorStop(0.35, 'rgba(' + tint + ',0.9)'); g.addColorStop(1, 'rgba(' + tint + ',0)');
+    ctx.fillStyle = g; ctx.fillRect(x - r * 3, y - r * 3, r * 6, r * 6);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; // a few long softboxes
+  for (let i = 0; i < 5; i++) ctx.fillRect(rnd() * w, h * (0.1 + rnd() * 0.3), 10 + rnd() * 26, 60 + rnd() * 90);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envRT = pmrem.fromEquirectangular(tex);
+  tex.dispose(); pmrem.dispose();
+  return envRT.texture;
+}
+let jewelEnv = null;
 try {
   scene.environment = buildStudioEnvironment();
 } catch (err) {
@@ -5817,12 +5861,29 @@ const GEM_HUE_DEFAULTS = {
   ruby: [0xe8342f, 0x8a1512], amber: [0xffa23e, 0x9c5410], emerald: [0x9fd83a, 0x5a8a12],
   sapphire: [0x2f9fe8, 0x145a8a], amethyst: [0xe848ff, 0x7a1a92],
 };
-const MAT_GEM_RUBY = gemPhys(...GEM_HUE_DEFAULTS.ruby);
-const MAT_GEM_AMBER = gemPhys(...GEM_HUE_DEFAULTS.amber);
-const MAT_GEM_EMERALD = gemPhys(...GEM_HUE_DEFAULTS.emerald);
-const MAT_GEM_SAPPHIRE = gemPhys(...GEM_HUE_DEFAULTS.sapphire);
-const MAT_GEM_AMETHYST = gemPhys(...GEM_HUE_DEFAULTS.amethyst);
-const MAT_GEM_SILVER = new THREE.MeshPhysicalMaterial({ color: 0xd8dae2, roughness: 0.2, metalness: 0.35, flatShading: true, clearcoat: 0.8, clearcoatRoughness: 0.2, envMapIntensity: 0.25 });
+// The gem pieces' stones, made to read as real cut gems: crisp flat facets, clear (high transmission) with the colour
+// deepening through the stone (attenuation) rather than painted on, a gem's high refractive index and bright
+// specular, a hint of iridescent "fire" on the facets, a mirror polish (clearcoat), and strong studio reflections.
+// Only a whisper of glow, so the stones sparkle instead of looking lit from inside like plastic.
+const realGem = (color, emissive, ior) => new THREE.MeshPhysicalMaterial({
+  color, emissive, emissiveIntensity: 0.3, roughness: 0.015, metalness: 0, flatShading: true,
+  transmission: 0.9, thickness: 0.7, ior: ior || 1.77, attenuationColor: new THREE.Color(color), attenuationDistance: 0.32,
+  specularIntensity: 1, specularColor: 0xffffff, clearcoat: 1, clearcoatRoughness: 0.02,
+  iridescence: 0.35, iridescenceIOR: 1.5, iridescenceThicknessRange: [180, 520], envMapIntensity: 1.6,
+});
+const MAT_GEM_RUBY = realGem(...GEM_HUE_DEFAULTS.ruby, 1.77);
+const MAT_GEM_AMBER = realGem(...GEM_HUE_DEFAULTS.amber, 1.54);
+const MAT_GEM_EMERALD = realGem(...GEM_HUE_DEFAULTS.emerald, 1.58);
+const MAT_GEM_SAPPHIRE = realGem(...GEM_HUE_DEFAULTS.sapphire, 1.77);
+const MAT_GEM_AMETHYST = realGem(...GEM_HUE_DEFAULTS.amethyst, 1.55);
+// a colourless diamond for the small accent stones, and polished white gold / platinum for every setting
+const MAT_GEM_DIAMOND = realGem(0xf4f8ff, 0x000000, 2.42);
+MAT_GEM_DIAMOND.attenuationDistance = 4; MAT_GEM_DIAMOND.iridescence = 0.6; MAT_GEM_DIAMOND.emissiveIntensity = 0;
+const MAT_GEM_SILVER = new THREE.MeshPhysicalMaterial({ color: 0xe4e6ee, roughness: 0.12, metalness: 1, clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 1.4 });
+try { // the stones and their settings reflect the jeweller's showroom, not the general studio
+  jewelEnv = buildJewelEnvironment();
+  [MAT_GEM_RUBY, MAT_GEM_AMBER, MAT_GEM_EMERALD, MAT_GEM_SAPPHIRE, MAT_GEM_AMETHYST, MAT_GEM_DIAMOND].forEach((m) => { m.envMap = jewelEnv; });
+} catch (err) { console.warn('jewel environment failed (gems use the studio one):', err); }
 // Fixed glow-accent materials for the Magic Orb piece set (see
 // buildMagicOrbPiece): one glow color per rank, echoing a fantasy
 // amulet/orb-icon reference sheet -- reuses gemPhys (translucent, self-lit,
@@ -8591,61 +8652,101 @@ function buildCambodiaPiece(g, add, type, promoted, color) {
 // pink/purple/yellow family across the same five cuts. The BODY under
 // the stone keeps the theme's own side color (MAT_W/MAT_B) so the two
 // sides stay instantly distinguishable regardless of gem hue.
+// Real gem cuts, as faceted solids of revolution (flat-shaded, so every facet catches the light on its own):
+// a profile from the culet (the point underneath) out to the girdle and up over the crown to the flat table, turned
+// with as many sides as the cut has facets around. `sx`/`sz` stretch it into an oval or a pear/marquise outline.
+function gemCut(kind, r) {
+  const P = (pts) => pts.map(([x, y]) => new THREE.Vector2(x * r, y * r));
+  let prof, sides = 16;
+  switch (kind) {
+    case 'brilliant': prof = P([[0, -0.86], [0.55, -0.42], [0.98, -0.03], [1, 0.03], [0.86, 0.2], [0.68, 0.34], [0.52, 0.42], [0, 0.42]]); sides = 8; break;
+    case 'step': prof = P([[0, -0.7], [0.55, -0.42], [0.92, -0.08], [1, 0.02], [0.86, 0.2], [0.68, 0.34], [0, 0.34]]); sides = 4; break;
+    case 'princess': prof = P([[0, -0.8], [1, 0], [0.98, 0.06], [0.66, 0.34], [0, 0.34]]); sides = 4; break;
+    case 'pear': prof = P([[0, -0.75], [0.6, -0.4], [0.95, -0.05], [1, 0.05], [0.8, 0.28], [0.5, 0.46], [0, 0.52]]); sides = 8; break;
+    case 'briolette': prof = P([[0, -0.55], [0.62, -0.32], [1, 0], [0.88, 0.38], [0.6, 0.78], [0.3, 1.05], [0, 1.25]]); sides = 8; break; // a faceted drop
+    case 'trillion': prof = P([[0, -0.6], [1, 0], [0.96, 0.06], [0.6, 0.3], [0, 0.3]]); sides = 3; break;
+    default: prof = P([[0, -0.9], [1, 0], [0.6, 0.45], [0, 0.45]]);
+  }
+  const geo = new THREE.LatheGeometry(prof, sides, Math.PI / sides);
+  geo.computeVertexNormals();
+  return geo;
+}
+// Gem piece set: every rank is a real cut stone held in a polished white-gold setting on a side-coloured stem (so
+// White and Black stay distinct whatever the gem hue): King a large round brilliant crowned with a small diamond
+// cross, Neang an oval brilliant in a five-prong crown, Koul a tall pear cut, Ses a pair of marquise blades, Touk an
+// emerald (step) cut set flat in a rub-over bezel, Trey a small princess cut. The hue of each cut is theme-driven
+// (GEM_HUE_DEFAULTS / applyTheme's gemPalette), shared by Gem Blitz and the Girly themes.
 function buildGemPiece(g, add, type, promoted, color) {
-  add(new THREE.CylinderGeometry(0.28, 0.33, 0.12, 8), 0.06, MAT_GEM_SILVER); // faceted silver base
-  const spin = (mesh, a) => { mesh.rotation.y = a || Math.PI / 5; return mesh; };
+  add(new THREE.CylinderGeometry(0.29, 0.33, 0.1, 24), 0.05, MAT_GEM_SILVER);           // a polished base plate
+  add(new THREE.TorusGeometry(0.29, 0.018, 8, 32), 0.1, MAT_GEM_SILVER).rotation.x = Math.PI / 2;
+  const prongs = (y, rad, n, h, tilt) => { // claws rising round a stone
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.PI / n, p = add(new THREE.CylinderGeometry(0.012, 0.02, h, 6), y, MAT_GEM_SILVER);
+      p.position.x = Math.cos(a) * rad; p.position.z = Math.sin(a) * rad;
+      p.rotation.z = -Math.cos(a) * (tilt || 0.25); p.rotation.x = Math.sin(a) * (tilt || 0.25);
+      const tip = add(new THREE.SphereGeometry(0.02, 8, 6), y + h / 2, MAT_GEM_SILVER); tip.position.x = Math.cos(a) * rad * 0.9; tip.position.z = Math.sin(a) * rad * 0.9;
+    }
+  };
+  const stem = (rTop, rBot, h, y) => add(new THREE.CylinderGeometry(rTop, rBot, h, 20), y);
+  const cup = (r, y) => add(new THREE.CylinderGeometry(r, r * 0.6, 0.06, 20), y, MAT_GEM_SILVER);
   switch (type) {
-    case E.KING:
-      add(new THREE.CylinderGeometry(0.16, 0.24, 0.4, 8), 0.32);
-      add(new THREE.CylinderGeometry(0.24, 0.16, 0.1, 8), 0.57, MAT_GEM_SILVER);
-      spin(add(new THREE.OctahedronGeometry(0.24, 0), 0.82, MAT_GEM_RUBY));
-      add(new THREE.OctahedronGeometry(0.06, 0), 1.06, MAT_GEM_RUBY);
+    case E.KING: {
+      stem(0.15, 0.23, 0.38, 0.3);
+      cup(0.2, 0.52);
+      const st = add(gemCut('brilliant', 0.26), 0.78, MAT_GEM_RUBY);
+      prongs(0.72, 0.22, 6, 0.16, 0.35);
+      // a small diamond cross on top
+      add(gemCut('brilliant', 0.06), 1.0, MAT_GEM_DIAMOND);
+      const bar = add(new THREE.BoxGeometry(0.16, 0.025, 0.025), 1.08, MAT_GEM_SILVER); bar.rotation.y = Math.PI / 4;
+      add(new THREE.BoxGeometry(0.025, 0.16, 0.025), 1.12, MAT_GEM_SILVER);
+      add(gemCut('brilliant', 0.035), 1.21, MAT_GEM_DIAMOND);
+      st.rotation.y = Math.PI / 16;
       break;
+    }
     case E.QUEEN: {
-      // Neang: a round stone in a crown setting -- a ring of five silver
-      // points rising around its top -- so she reads as the crowned piece
-      // next to the Koul's tall teardrop cut (they used to differ only in
-      // gem hue, with near-identical round stones on near-identical stems).
-      add(new THREE.CylinderGeometry(0.14, 0.22, 0.36, 8), 0.3);
-      add(new THREE.CylinderGeometry(0.2, 0.14, 0.06, 8), 0.5, MAT_GEM_SILVER); // cup under the stone
-      spin(add(new THREE.IcosahedronGeometry(0.2, 0), 0.7, MAT_GEM_AMETHYST));
-      for (let i = 0; i < 5; i++) {
+      stem(0.13, 0.22, 0.34, 0.28);
+      cup(0.18, 0.48);
+      const st = add(gemCut('brilliant', 0.22), 0.7, MAT_GEM_AMETHYST); st.scale.set(0.85, 1.05, 1.15); // an oval
+      prongs(0.66, 0.17, 5, 0.18, 0.15);
+      for (let i = 0; i < 5; i++) { // the crown points, each tipped with a tiny diamond
         const a = (i / 5) * Math.PI * 2;
-        const prong = add(new THREE.ConeGeometry(0.035, 0.14, 4), 0.92, MAT_GEM_SILVER);
-        prong.position.x = Math.cos(a) * 0.11;
-        prong.position.z = Math.sin(a) * 0.11;
+        const tip = add(new THREE.ConeGeometry(0.025, 0.12, 6), 0.9, MAT_GEM_SILVER); tip.position.x = Math.cos(a) * 0.15; tip.position.z = Math.sin(a) * 0.15;
+        const dia = add(gemCut('brilliant', 0.022), 0.97, MAT_GEM_DIAMOND); dia.position.x = Math.cos(a) * 0.15; dia.position.z = Math.sin(a) * 0.15;
       }
       break;
     }
     case E.BISHOP: {
-      // Koul: the same stone stretched into a tall pointed teardrop (a
-      // mitre) on a slimmer stem.
-      add(new THREE.CylinderGeometry(0.11, 0.2, 0.3, 8), 0.27);
-      const mitre = spin(add(new THREE.DodecahedronGeometry(0.16, 0), 0.63, MAT_GEM_EMERALD));
-      mitre.scale.set(1, 1.4, 1);
+      stem(0.1, 0.2, 0.3, 0.25);
+      cup(0.15, 0.42);
+      add(gemCut('briolette', 0.15), 0.56, MAT_GEM_EMERALD); // a tall faceted drop, point up -- the mitre
+      prongs(0.52, 0.13, 3, 0.16, 0.2);
       break;
     }
-    case E.KNIGHT:
-      add(new THREE.CylinderGeometry(0.14, 0.22, 0.3, 8), 0.27);
-      // twin sapphire spikes -- reads as the Ses's ears/leap
-      add(new THREE.ConeGeometry(0.09, 0.34, 4), 0.58, MAT_GEM_SAPPHIRE).position.z = 0.08;
-      add(new THREE.ConeGeometry(0.07, 0.24, 4), 0.52, MAT_GEM_SAPPHIRE).position.z = -0.08;
+    case E.KNIGHT: {
+      stem(0.13, 0.22, 0.28, 0.25);
+      cup(0.17, 0.42);
+      // two marquise blades, swept back like ears
+      const a = add(gemCut('brilliant', 0.13), 0.66, MAT_GEM_SAPPHIRE); a.scale.set(0.55, 2.3, 0.75); a.rotation.x = 0.35; a.position.z = 0.04;
+      const b = add(gemCut('brilliant', 0.1), 0.6, MAT_GEM_SAPPHIRE); b.scale.set(0.55, 2.1, 0.75); b.rotation.x = -0.45; b.position.z = -0.08;
+      prongs(0.5, 0.12, 4, 0.12, 0.15);
       break;
-    case E.ROOK:
-      // side-colored pillar column, the defensive tower, topped with an
-      // amber gem-cut crown -- like every other rank here, only the crown
-      // carries the fixed gem hue, so White/Black stay distinguishable
-      // (this used to put BOTH parts on the amber material, so the two
-      // sides' rooks rendered identically)
-      add(new THREE.CylinderGeometry(0.19, 0.23, 0.44, 6), 0.34);
-      add(new THREE.CylinderGeometry(0.23, 0.19, 0.1, 6), 0.6, MAT_GEM_AMBER);
+    }
+    case E.ROOK: {
+      stem(0.18, 0.23, 0.4, 0.31);
+      add(new THREE.BoxGeometry(0.36, 0.06, 0.3), 0.53, MAT_GEM_SILVER);               // a rub-over bezel
+      const st = add(gemCut('step', 0.24), 0.62, MAT_GEM_AMBER); st.scale.set(1, 0.8, 0.82); st.rotation.y = Math.PI / 4; // emerald cut
       break;
+    }
     case E.PAWN:
-      add(new THREE.CylinderGeometry(0.1, 0.16, 0.16, 8), 0.2);
-      spin(add(new THREE.OctahedronGeometry(0.13, 0), 0.4, MAT_GEM_SAPPHIRE), Math.PI / 7);
+    default: {
+      stem(0.09, 0.16, 0.16, 0.18);
+      cup(0.11, 0.28);
+      const st = add(gemCut('princess', 0.13), 0.39, MAT_GEM_SAPPHIRE); st.rotation.y = Math.PI / 4;
+      prongs(0.36, 0.11, 4, 0.1, 0.2);
       break;
+    }
   }
-  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.035, 12, 32), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -11371,6 +11472,7 @@ function applyTheme(key) {
     const [c, e] = gemPalette[key] || GEM_HUE_DEFAULTS[key];
     mat.color.setHex(c);
     mat.emissive.setHex(e);
+    if (mat.attenuationColor) mat.attenuationColor.setHex(c); // (the colour deepens through the stone)
     mat.needsUpdate = true;
   };
   setGemHue(MAT_GEM_RUBY, 'ruby');
@@ -16416,8 +16518,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.93';
+const APP_VERSION = '1.6.94';
 const WHATS_NEW = [
+  {
+    version: '1.6.94',
+    date: '2026-10-31',
+    title: { kh: 'ចលនារលូន កូនអុកត្បូងពិត និងកុំព្យូទ័រកម្រិត ២ ឆ្លាតជាងមុន', en: 'Smooth transitions, real-gem pieces and a smarter level 2' },
+    items: [
+      { kh: 'ការបើក ឬបិទពេញអេក្រង់ឥឡូវរលូន៖ ក្តាររសាត់ចេញបន្តិច ហើយត្រឡប់មកវិញដោយពេញអេក្រង់ថ្មីស្រាប់។ ការប្ដូរ 3D / 2D មានចលនាផ្អៀង និងរសាត់ ហើយពី Top ទៅ 3D កាមេរ៉ារំកិលចុះយ៉ាងទន់ភ្លន់។',
+        en: 'Going in and out of full screen is smooth now: the board fades briefly and comes back already fitted to the new size. The 3D / 2D switch tips and fades, and from Top back to 3D the camera glides down.' },
+      { kh: 'កូនអុកត្បូងត្រូវបានធ្វើឡើងវិញដូចត្បូងពិត៖ ការកាត់មានមុខច្រើន ថ្លាឆ្លុះ ភ្លឺចាំងពណ៌ឥន្ទធនូ ដាក់លើជើងមាសសមានក្រញាំកាន់។',
+        en: 'The gem pieces are remade like real jewels: faceted cuts (brilliant, oval, drop, marquise, emerald, princess), clear stones with rainbow fire, set in polished white gold with claws.' },
+      { kh: 'កុំព្យូទ័រកម្រិត ២ ឆ្លាតជាងមុនច្រើន (ប្រហែល ៨០% នៃកម្រិត ៣)។',
+        en: 'Computer level 2 is much smarter now (about 80% of level 3).' }
+    ]
+  },
   {
     version: '1.6.93',
     date: '2026-10-30',
@@ -19048,6 +19163,84 @@ function updateTopViewBtn() {
   b.innerHTML = next === 'top' ? '3D<small>Top</small>' : next.toUpperCase();
   b.title = { '2d': 'ទៅ 2D — Switch to 2D', top: 'ទៅ 3D មើលពីលើ — Switch to 3D from above', '3d': 'ទៅ 3D — Switch to 3D' }[next];
 }
+function autoRefit() {
+  if (!(viewFitHeld && !theme().topDown && !viewAnimRaf && deskSig() !== viewFitSig)) return;
+  gestureFrom = null; // (this move of the camera is not the player's)
+  resize(); // (the window's resize event may not have reached the camera yet: the fit needs its new aspect)
+  if (isDeskViewport()) deskDefaultView();
+  else {
+    // after a full-screen switch, from the default angle too (the player may have turned the board)
+    if (refitFromDefault && !sideViewMode) {
+      controls.enableDamping = false; controls.update(); controls.enableDamping = true; // use up a drag's leftover spin first
+      controls.target.set(0, 0, 0);
+      camera.position.set(0, DEFAULT_CAM_POS.y, viewSide === E.BLACK ? -DEFAULT_CAM_POS.z : DEFAULT_CAM_POS.z);
+      controls.update();
+    }
+    fitCameraToBoard();
+  }
+  refitFromDefault = false;
+}
+// ---------- scene transitions: the board fades (and tips a little) out, the change happens out of sight, and it
+// comes back in already settled -- for going in or out of full screen (where the page jumps size, and the board is
+// re-fitted to it) and for the 2D / 3D view switch. Skipped with reduced motion. ----------
+let sceneTxBusy = false, sceneTxTimer = null, sceneTxPending = null;
+function waitStableSize(done) { // until the scene's size has stopped changing for 150 ms (at most 1 s)
+  let last = '', since = performance.now();
+  const start = since;
+  const step = () => {
+    const now = performance.now(), sig = sceneDiv.clientWidth + 'x' + sceneDiv.clientHeight;
+    if (sig !== last) { last = sig; since = now; }
+    if (now - since >= 150 || now - start > 1000) done(); else requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+// around a size jump the page itself makes (full screen in or out, a phone turned): fade out at once, and back in
+// when the new size has settled and the board is fitted to it
+function sceneFadeForResize() { sceneTransition(() => {}, 'fade', true); }
+function sceneTransition(change, kind, waitSize) {
+  if (fxPrefersReducedMotion()) { change(); if (waitSize) waitStableSize(() => { resize(); autoRefit(); }); return; }
+  const sc = sceneDiv;
+  if (sceneTxPending) { const p = sceneTxPending; sceneTxPending = null; try { p(); } catch (e) {} } // a change still waiting: made now
+  sceneTxBusy = true;
+  clearTimeout(sceneTxTimer);
+  sceneTxPending = change;
+  sc.classList.remove('sceneIn', 'tx-flip', 'tx-fade');
+  sc.classList.add('tx-' + (kind || 'fade'), 'sceneOut');
+  sceneTxTimer = setTimeout(() => {
+    sceneTxPending = null;
+    try { change(); } catch (e) { console.warn('scene change failed (ignored):', e); }
+    const reveal = () => {
+      try { resize(); autoRefit(); } catch (e) {}
+      sceneTxBusy = false;
+      requestAnimationFrame(() => {
+        sc.classList.add('sceneIn'); sc.classList.remove('sceneOut');
+        sceneTxTimer = setTimeout(() => sc.classList.remove('sceneIn', 'tx-flip', 'tx-fade'), 420);
+      });
+    };
+    if (waitSize) waitStableSize(reveal); else requestAnimationFrame(() => requestAnimationFrame(reveal));
+  }, 170);
+}
+// the camera glides to wherever `apply` would put it (radius, height and angle interpolated round the board)
+function animateCameraTo(apply, ms) {
+  controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+  const from = camera.position.clone().sub(controls.target);
+  apply();
+  const to = camera.position.clone().sub(controls.target);
+  if (fxPrefersReducedMotion() || from.distanceTo(to) < 1e-3) return;
+  const sa = new THREE.Spherical().setFromVector3(from), sb = new THREE.Spherical().setFromVector3(to);
+  let dth = sb.theta - sa.theta; while (dth > Math.PI) dth -= 2 * Math.PI; while (dth < -Math.PI) dth += 2 * Math.PI;
+  if (viewAnimRaf) cancelAnimationFrame(viewAnimRaf);
+  const t0 = performance.now(), dur = (ms || 600) * (window.__oukAnimSlow || 1), sp = new THREE.Spherical(); // (__oukAnimSlow: Test-only)
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / dur), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    sp.set(sa.radius + (sb.radius - sa.radius) * e, sa.phi + (sb.phi - sa.phi) * e, sa.theta + dth * e);
+    camera.position.setFromSpherical(sp).add(controls.target);
+    controls.update();
+    viewAnimRaf = k < 1 ? requestAnimationFrame(step) : null;
+  };
+  camera.position.setFromSpherical(sa).add(controls.target); controls.update();
+  viewAnimRaf = requestAnimationFrame(step);
+}
 function tickHud() {
   updateAiChip();
   updateTopViewBtn();
@@ -19055,22 +19248,7 @@ function tickHud() {
   syncPlanDesk();
   // the automatic 3D fit follows the scene's size until the player moves the camera: a computer's full screen or
   // panel, a phone going full screen (Android, from the Start pop-up) or its browser bars coming and going
-  if (viewFitHeld && !theme().topDown && !viewAnimRaf && deskSig() !== viewFitSig) {
-    gestureFrom = null; // (this move of the camera is not the player's)
-    resize(); // (the window's resize event may not have reached the camera yet: the fit needs its new aspect)
-    if (isDeskViewport()) deskDefaultView();
-    else {
-      // after a full-screen switch, from the default angle too (the player may have turned the board)
-      if (refitFromDefault && !sideViewMode) {
-        controls.enableDamping = false; controls.update(); controls.enableDamping = true; // use up a drag's leftover spin first
-        controls.target.set(0, 0, 0);
-        camera.position.set(0, DEFAULT_CAM_POS.y, viewSide === E.BLACK ? -DEFAULT_CAM_POS.z : DEFAULT_CAM_POS.z);
-        controls.update();
-      }
-      fitCameraToBoard();
-    }
-    refitFromDefault = false;
-  }
+  if (!sceneTxBusy) autoRefit(); // (while a transition hides the board, it refits once the size has settled)
   if (theme().topDown) { // the plan view re-centres itself when the HUD / header it must clear changes size
     const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight, I = planInsets(w, h, w / Math.max(1, h) >= TRAY_SIDE_ASPECT);
     if ([I.T, I.B, I.L, I.R].map(Math.round).join('/') !== planSig) resize();
@@ -19165,8 +19343,9 @@ window.__oukActions = {
   requestFullscreen: () => {
     const el = document.documentElement;
     if (document.fullscreenElement || document.webkitFullscreenElement) return Promise.resolve();
+    if (document.fullscreenEnabled || document.webkitFullscreenEnabled) sceneFadeForResize(); // (hide the jump)
     try {
-      if (el.requestFullscreen) return el.requestFullscreen().catch(() => {});
+      if (el.requestFullscreen) return el.requestFullscreen().catch(() => {}); // (refused: the fade simply comes back)
       if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     } catch (e) {}
     return Promise.resolve();
@@ -20771,8 +20950,9 @@ function pickTheme(key) {
 }
 document.getElementById('topViewBtn').onclick = () => {
   viewFitHeld = false; // (back to 3D, tiltedView puts a computer's default view back)
-  if (sideViewMode) setSideView(0, false);
-  if (theme().topDown) { // 2D -> the 3D board from straight above
+  // (a side view is left by the theme change itself, out of sight -- see applyTheme)
+  if (theme().topDown) { // 2D -> the 3D board from straight above, behind a quick tip-and-fade
+    sceneTransition(() => {
     pickTheme(THEMES[last3dThemeKey] && !THEMES[last3dThemeKey].topDown ? last3dThemeKey : 'wood');
     viewFitHeld = false; if (sideViewMode) setSideView(0, false); // (the theme change put the default view back)
     const tanV = Math.tan(camera.fov * Math.PI / 360), tanH = tanV * sceneDiv.clientWidth / Math.max(1, sceneDiv.clientHeight);
@@ -20781,12 +20961,13 @@ document.getElementById('topViewBtn').onclick = () => {
     controls.target.set(0, 0, 0);
     camera.position.set(0, fit, viewSide === E.BLACK ? -0.001 : 0.001);
     controls.update();
+    }, 'flip');
     trackEvent('top_view_btn', { to: '3d_top' });
     return;
   }
   const d = camera.position.clone().sub(controls.target);
-  if (Math.hypot(d.x, d.z) < 0.02 * d.length()) { tiltedView(); trackEvent('top_view_btn', { to: '3d' }); return; } // top -> normal
-  pickTheme(THEMES[last2dThemeKey] && THEMES[last2dThemeKey].topDown ? last2dThemeKey : 'flatVec'); // normal -> 2D
+  if (Math.hypot(d.x, d.z) < 0.02 * d.length()) { animateCameraTo(() => tiltedView(), 700); trackEvent('top_view_btn', { to: '3d' }); return; } // top -> normal: the camera glides down
+  sceneTransition(() => pickTheme(THEMES[last2dThemeKey] && THEMES[last2dThemeKey].topDown ? last2dThemeKey : 'flatVec'), 'flip'); // normal -> 2D
   trackEvent('top_view_btn', { to: '2d' });
 };
 
@@ -20825,6 +21006,7 @@ document.getElementById('settingsBtn').onclick = () => toggleSettingsPanel();
   btn.onclick = () => {
     trackEvent('fullscreen_btn', { supported, on: !isFull() });
     if (!isFull()) { window.__oukActions.requestFullscreen().then(sync); return; }
+    sceneFadeForResize();
     try {
       if (document.exitFullscreen) document.exitFullscreen().then(sync, sync);
       else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
@@ -20973,7 +21155,11 @@ let gestureFrom = null, gestureUntil = 0, refitFromDefault = false;
 controls.addEventListener('start', () => { gestureFrom = camera.position.clone(); gestureUntil = Infinity; });
 controls.addEventListener('end', () => { gestureUntil = performance.now() + 1500; });
 // switching full screen on or off (⛶, or the Start pop-up's buttons on Android) always brings back the default fit
-const refitOnFullscreen = () => { viewFitHeld = true; viewFitSig = ''; refitFromDefault = true; };
+const refitOnFullscreen = () => {
+  viewFitHeld = true; viewFitSig = ''; refitFromDefault = true;
+  if (!sceneTxBusy) sceneFadeForResize(); // left by the browser itself (Esc, a swipe): still a smooth change
+};
+window.addEventListener('orientationchange', () => { if (!sceneTxBusy) sceneFadeForResize(); });
 document.addEventListener('fullscreenchange', refitOnFullscreen);
 document.addEventListener('webkitfullscreenchange', refitOnFullscreen);
 controls.addEventListener('change', () => {
