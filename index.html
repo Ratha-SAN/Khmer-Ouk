@@ -638,6 +638,16 @@
   }
   #profileDisplayName:focus { border-color: var(--accent); outline: none; }
   .profileDivider { border: none; border-top: 1px solid var(--line); margin: 18px 0 14px; }
+  /* the profile page: two columns -- who you are (photo, colour, name, theme, buttons) and your statistics */
+  #profileBox { max-width: 860px; }
+  .profileCols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 28px; align-items: start; margin-top: 10px; }
+  .profileStatsCol { border-left: 1px solid var(--line); padding-left: 26px; text-align: left; }
+  .profileStatsCol .statsSummary { display: grid; grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 720px) { /* a phone: one column, statistics under the profile */
+    #profileBox { max-width: 420px; }
+    .profileCols { grid-template-columns: 1fr; gap: 0; }
+    .profileStatsCol { border-left: none; border-top: 1px solid var(--line); padding: 16px 0 0; margin-top: 16px; }
+  }
   .statsSummary { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
   .statTile {
     flex: 1 1 70px; min-width: 62px; background: var(--surface-2); border: 1px solid var(--accent-dim);
@@ -3150,8 +3160,10 @@
 </div>
 
 <div id="profileScreen" class="fullOverlay" style="display:none;z-index:25">
-  <div class="box" style="max-width:360px">
-    <h1 style="font-size:20px">គណនីរបស់អ្នក<br>Your Profile</h1>
+  <div class="box" id="profileBox">
+    <h1 style="font-size:20px">គណនីរបស់អ្នក — Your Profile</h1>
+    <div class="profileCols">
+    <div class="profileCol">
     <div id="profileAvatarPreview">
       <img id="profileAvatarImg" alt="" style="display:none">
       <span id="profileAvatarInitial"></span>
@@ -3176,7 +3188,8 @@
       <button id="profileCloseBtn" type="button">បិទ Close</button>
     </div>
     <p id="profileStatus" style="display:none;color:var(--accent);font-size:12px;margin-top:10px"></p>
-    <hr class="profileDivider">
+    </div>
+    <div class="profileCol profileStatsCol">
     <h2 style="font-size:15px;margin:0 0 10px">ស្ថិតិអ្នកលេង — Player Statistics</h2>
     <p id="statsSyncWarning" class="loginHint" style="display:none;text-align:center;color:var(--danger)">
       ⚠ ស្ថិតិមិនអាចរក្សាទុកបានទេ សូមពិនិត្យអ៊ីនធឺណិត — Stats couldn't be saved. Check your connection and try again.
@@ -3193,6 +3206,8 @@
     <div id="statsGraphWrap" style="display:none">
       <p class="loginHint" style="text-align:center">វឌ្ឍនភាព (ពិន្ទុបូក) — Progress (cumulative score, last games)</p>
       <svg id="statsGraph" viewBox="0 0 300 100" preserveAspectRatio="none"></svg>
+    </div>
+    </div>
     </div>
   </div>
 </div>
@@ -16651,8 +16666,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.97';
+const APP_VERSION = '1.6.98';
 const WHATS_NEW = [
+  {
+    version: '1.6.98',
+    date: '2026-10-31',
+    title: { kh: 'ទំព័រគណនីពីរជួរ', en: 'A two-column profile page' },
+    items: [
+      { kh: 'ទំព័រគណនីឥឡូវមានពីរជួរ៖ រូប ឈ្មោះ និងការកំណត់នៅខាងឆ្វេង ស្ថិតិនៅខាងស្តាំ (លើទូរស័ព្ទ ស្ថិតិនៅខាងក្រោម)។',
+        en: 'The profile page now has two columns: your photo, name and settings on the left, your statistics on the right (on a phone the statistics sit underneath).' }
+    ]
+  },
   {
     version: '1.6.97',
     date: '2026-10-31',
