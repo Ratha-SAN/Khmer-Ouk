@@ -2708,7 +2708,7 @@
       <span class="t-kh">ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។</span><span class="t-sep"> — </span><span class="t-en">Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
       <button type="button" class="iabCopyBtn"><span class="t-kh">ចម្លងតំណ</span><span class="t-sep"> — </span><span class="t-en">Copy link</span></button>
     </div>
-    <button id="playNowBtn" type="button"><span class="t-kh">លេងឥឡូវ</span><span class="t-sep"> ▸ </span><span class="t-en">PLAY NOW</span><small><span class="t-kh">ជាមួយកុំព្យូទ័រ កម្រិត ២</span><span class="t-sep"> — </span><span class="t-en">vs Computer, level 2</span></small></button>
+    <button id="playNowBtn" type="button"><span class="t-kh">លេងឥឡូវ</span><span class="t-sep"> ▸ </span><span class="t-en">PLAY NOW</span><small><span class="t-kh">ជាមួយកុំព្យូទ័រ កម្រិត ១</span><span class="t-sep"> — </span><span class="t-en">vs Computer, level 1</span></small></button>
     <p id="guestGamesNote" class="guestGamesNote"><span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ <b class="ggLeft">3</b> / 3 · ចូលគណនីដើម្បីលេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free games today: <b class="ggLeft">3</b> of 3 left · sign in for unlimited</span></p>
     <div id="dailyRow">
       <div class="dailyHead">🧩 <span class="t-kh">ល្បែងប្រាជ្ញាប្រចាំថ្ងៃ</span><span class="t-sep"> — </span><span class="t-en">Daily puzzles</span><span id="streakBadge" class="streakBadge" style="display:none"></span></div>
@@ -3763,12 +3763,8 @@
   }
 
   // Five difficulty levels, weakest to strongest:
-  //  1: mostly random legal move, but with a real (if modest) chance of
-  //     noticing an available capture -- previously fully random with no
-  //     capture awareness at all, which read as not knowing captures
-  //     exist rather than just being weak. Deliberately a much smaller
-  //     capture bias than level 2's own (35% vs 75%) so it stays clearly
-  //     the easiest level, not a near-duplicate of it.
+  //  1: the starter level (Play now): a random legal move, weighted toward captures (75%) -- it grabs pieces but
+  //     plans nothing, an easy first opponent.
   //  2: about 70% of level 3's strength: most moves (6 in 10) are level 3's own (the same depth-2 search); the
   //     rest are plausible but not the best -- picked at random from the few moves that look nearly as good two
   //     plies ahead -- so it plays soundly and rarely throws pieces away, yet stays a step below level 3.
@@ -3779,9 +3775,9 @@
     var legal = genLegal(S, S.turn);
     if (legal.length === 0) return null;
     _nodes = 0;
-    if (level === 1) {
+    if (level === 1) { // (the old level 2) a random legal move, but one that takes a piece three times in four when it can
       var caps1 = legal.filter(function (m) { return S.board[m.to] !== EMPTY; });
-      var pool1 = (caps1.length && Math.random() < 0.35) ? caps1 : legal;
+      var pool1 = (caps1.length && Math.random() < 0.75) ? caps1 : legal;
       return pool1[(Math.random() * pool1.length) | 0];
     }
     // levels 2-5 search on a working copy: a mid-search timeout must
@@ -5311,7 +5307,7 @@ let thinkMs = [0, 0];        // total thinking time per side [WHITE, BLACK], sho
 let thinkLastTick = null;    // timestamp of the previous thinking-time tick
 let thinkRunning = false;    // true while the side to move's thinking time is accruing
 let frozenElapsed = null;    // ms captured once the game ends, so the HUD clock stops
-let pendingAiLevel = 2, pendingSide = E.WHITE; // choices being made in the mode-select screen
+let pendingAiLevel = 1, pendingSide = E.WHITE; // choices being made in the mode-select screen
 let pendingPlayMode = null; // 'hotseat' | 'ai', which bigpick button is highlighted on the play-mode screen
 let hintMove = null;         // engine-suggested move currently shown as a square tint
 let hintBusy = false;        // a hint request is in flight on the worker
@@ -16655,8 +16651,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.96';
+const APP_VERSION = '1.6.97';
 const WHATS_NEW = [
+  {
+    version: '1.6.97',
+    date: '2026-10-31',
+    title: { kh: 'កម្រិត ១ សម្រាប់អ្នកចាប់ផ្ដើម', en: 'Level 1 for starters' },
+    items: [
+      { kh: 'កុំព្យូទ័រកម្រិត ១ ថ្មី (កម្រិត ២ ចាស់) ងាយស្រួលសម្រាប់អ្នកចាប់ផ្ដើម ហើយ «លេងឥឡូវ» ចាប់ផ្ដើមនៅកម្រិត ១។ កម្រិត ២ នៅដដែល។',
+        en: 'Computer level 1 is now the easy starter (what used to be level 2), and "Play now" starts at level 1. Level 2 stays as it is.' }
+    ]
+  },
   {
     version: '1.6.96',
     date: '2026-10-31',
@@ -18365,7 +18370,7 @@ document.getElementById('playNowBtn').onclick = () => {
   ensureGuest().then(() => {
     modeScreenOrigin = 'start';
     if (pendingInviteCode) landAfterSignIn(); // a friend's invite link: on to the Join screen
-    else startAiNow(2);
+    else startAiNow(1); // the starter level
   }).finally(() => { btn.disabled = false; btn.classList.remove('busy'); });
 };
 // ---------- updates for a copy left open ----------
@@ -18605,7 +18610,7 @@ if (IN_APP_BROWSER) {
 // correlation) rather than which mode-picker button got pressed.
 document.getElementById('pickLearn').onclick = () => { trackEvent('mode_access', { mode: 'learn' }); hideOverlays(); setUiMode('train'); };
 // A mode card starts that game straight away with sensible defaults (no clock, White, the last-used computer
-// level -- 2 on a fresh visit). "More options" turns the cards back into a pick-then-configure step.
+// level -- 1, the starter level, on a fresh visit). "More options" turns the cards back into a pick-then-configure step.
 let playOptionsOpen = false;
 function setPlayOptions(open) {
   playOptionsOpen = open;
@@ -18711,7 +18716,7 @@ document.getElementById('onlineQuickBtn').onclick = () => {
       onlineCleanupSearch();
       document.getElementById('onlineMatchScreen').style.display = 'none';
       funnel('online_fallback');
-      startAiNow(2, '<span class="t-kh">រកគូប្រកួតអនឡាញមិនឃើញទេ។</span><span class="t-en">No online player was found.</span>');
+      startAiNow(1, '<span class="t-kh">រកគូប្រកួតអនឡាញមិនឃើញទេ។</span><span class="t-en">No online player was found.</span>');
     }, window.__oukOnlineFallbackMs != null ? window.__oukOnlineFallbackMs : 20000);
     onlineUnsubLobby = window.__oukOnline.watchLobby(r.lobbyId, (lobby) => {
       if (lobby && lobby.matchId) {
