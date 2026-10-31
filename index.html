@@ -2884,10 +2884,12 @@
       <option value="flatKhmer">Flat Khmer — រាបស្មើ ខ្មែរ</option>
       <option value="flatPaper">Flat Paper — រាបស្មើ ក្រដាស</option>
       <option value="flatNight">Flat Night — រាបស្មើ យប់</option>
+      <option value="inkFlat">Ink &amp; Watercolour 2D — ទឹកខ្មៅ និងពណ៌ទឹក 2D</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
       <option value="tfBattle">Transformers: Autobots vs Decepticons</option>
       <option value="lowPoly">Low Poly — ឈើកាត់</option>
+      <option value="inkwash">Ink &amp; Watercolour — ទឹកខ្មៅ និងពណ៌ទឹក</option>
       <option value="okKids">Kids — កុមារ</option>
       <option value="okCartoon">Original Cartoon — គំនូរជីវចល</option>
       <option value="okWood">Original Classic White &amp; Brown — ឈើបុរាណ ស-ត្នោត</option>
@@ -2901,11 +2903,13 @@
       <option value="khmerorig" data-kh="កូនអុក៖ ខ្មែរដើម" data-en="Pieces: Original Khmer">កូនអុក៖ ខ្មែរដើម — Pieces: Original Khmer</option>
       <option value="lowpoly" data-kh="កូនអុក៖ ឈើកាត់" data-en="Pieces: Low Poly">កូនអុក៖ ឈើកាត់ — Pieces: Low Poly</option>
       <option value="gems" data-kh="កូនអុក៖ ត្បូងភ្លឺចាំង" data-en="Pieces: Gem Blitz">កូនអុក៖ ត្បូងភ្លឺចាំង — Pieces: Gem Blitz</option>
+      <option value="inkwash" data-kh="កូនអុក៖ ទឹកខ្មៅ និងពណ៌ទឹក" data-en="Pieces: Ink &amp; Watercolour">កូនអុក៖ ទឹកខ្មៅ និងពណ៌ទឹក — Pieces: Ink &amp; Watercolour</option>
       <option value="galactic" data-kh="កូនអុក៖ ចក្រវាឡ" data-en="Pieces: Galactic">កូនអុក៖ ចក្រវាឡ — Pieces: Galactic</option>
       <option value="modern" data-kh="កូនអុក៖ យោធាទំនើប" data-en="Pieces: Modern Military">កូនអុក៖ យោធាទំនើប — Pieces: Modern Military</option>
       <option value="tfbattle" data-kh="កូនអុក៖ Transformers" data-en="Pieces: Transformers">កូនអុក៖ Transformers — Pieces: Transformers</option>
       <option value="2dkhmer" data-kh="កូនអុក៖ សិល្បៈខ្មែរ 2D" data-en="Pieces: 2D Khmer Art">កូនអុក៖ សិល្បៈខ្មែរ 2D — Pieces: 2D Khmer Art</option>
       <option value="2dflat" data-kh="កូនអុក៖ រាបស្មើ 2D" data-en="Pieces: Flat 2D tokens">កូនអុក៖ រាបស្មើ 2D — Pieces: Flat 2D tokens</option>
+      <option value="2dink" data-kh="កូនអុក៖ ទឹកខ្មៅ និងពណ៌ទឹក 2D" data-en="Pieces: Ink &amp; Watercolour 2D">កូនអុក៖ ទឹកខ្មៅ និងពណ៌ទឹក 2D — Pieces: Ink &amp; Watercolour 2D</option>
       <option value="2dyantra" data-kh="កូនអុក៖ សាក់យន្ត 2D" data-en="Pieces: 2D Sak Yantra">កូនអុក៖ សាក់យន្ត 2D — Pieces: 2D Sak Yantra</option>
     </select>
     <div class="tickRow">
@@ -5270,6 +5274,19 @@ THEMES.tfBattle = Object.assign({}, THEMES.night, {
 });
 // Low Poly: the faceted wooden set in boxwood and ebony on the classic wood board
 THEMES.lowPoly = Object.assign({}, THEMES.wood, { name: 'Low Poly — ឈើកាត់', pieceStyle: 'lowpoly' });
+// Ink & Watercolour: the crystal shapes as a pen-and-wash sketch on a sheet of watercolour paper (see buildInkwashPiece)
+// Ink & Watercolour 2D: the same sketch set drawn flat on the page, in the Flat 2D family (style '2dink')
+THEMES.inkFlat = Object.assign({}, THEMES.flatPaper, {
+  name: 'Ink & Watercolour 2D — ទឹកខ្មៅ និងពណ៌ទឹក 2D', style: '2dink',
+  bg: 0xf3eee3, frame: 0xe4dccb, tileLight: 0xf8f4ea, tileDark: 0xefe8da,
+  pieceW: 0xf8f4ea, pieceB: 0x2a231e, labelInk: '#3a322b', tray: 0xe9e2d3, inkTiles: true, inkBackdrop: true
+});
+THEMES.inkwash = Object.assign({}, THEMES.wood, {
+  name: 'Ink & Watercolour — ទឹកខ្មៅ និងពណ៌ទឹក', pieceStyle: 'inkwash',
+  bg: 0xf3eee3, frame: 0xe4dccb, tileLight: 0xf8f4ea, tileDark: 0xefe8da,
+  pieceW: 0xf8f4ea, pieceB: 0x2a231e, rough: 1, metal: 0,
+  labelInk: '#3a322b', tray: 0xe9e2d3, reflectOpacity: 0, inkTiles: true, inkBackdrop: true
+});
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
 // piece style is independent of the board theme; 'auto' follows the theme's own pieces
@@ -6287,6 +6304,7 @@ function buildPiece(type, color, promoted, seed, styleOverride) {
   if (style === 'nature') return buildNaturePiece(g, add, type, promoted, color);
   if (style === 'cambodia') return buildCambodiaPiece(g, add, type, promoted, color);
   if (style === 'gems') return buildGemCrystalPiece(g, add, type, promoted, color);
+  if (style === 'inkwash') return buildInkwashPiece(g, add, type, promoted, color, seed);
   if (style === 'magicorb') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, true, rand);
   if (style === 'orbs') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, false, rand);
   if (style === 'galactic') return buildGalacticPiece(g, add, type, promoted, color, rand);
@@ -7619,6 +7637,73 @@ function flat2DArtTexture(setStyle, type, color, promoted) {
     for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2; oc.drawImage(sil, Math.cos(a) * ow, Math.sin(a) * ow); }
     oc.drawImage(body, 0, 0);
     ctx.drawImage(out, 0, 0, 256, 256);
+  } else if (setStyle === '2dink') {
+    // Pen & watercolour: the sketch set's side elevation (see projectPieceShade('inkwash')) painted on paper --
+    // a watercolour wash in the piece's own colour, paper left bare in the highlight, pen hatching in the shade
+    // (cross-hatched in the deepest), inked facet lines and outline, a hatched cast shadow and a loose splash
+    // of colour bleeding out underneath. White is painted in the light wash, Black in the deep one.
+    const name = promoted ? 'PROMOTED' : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
+    const hex = INKWASH_SET[name][color === E.WHITE ? 'w' : 'b'], pig = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
+    const deep = color === E.BLACK ? 0.14 : 0, PAPER = [247, 242, 231], INK = [42, 35, 30];
+    const src = projectPieceShade('inkwash', type, promoted);
+    const W = src.width, img = src.ctx.getImageData(0, 0, W, W), d = img.data;
+    let seed = (hex % 9973) + type * 101 + 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    const G = 24, grid = Array.from({ length: (G + 1) * (G + 1) }, rnd); // smooth pigment noise
+    const noise = (x, y) => { const fx = x / W * G, fy = y / W * G, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, at = (a, b) => grid[Math.min(G, b) * (G + 1) + Math.min(G, a)];
+      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+      return (at(ix, iy) * (1 - sx) + at(ix + 1, iy) * sx) * (1 - sy) + (at(ix, iy + 1) * (1 - sx) + at(ix + 1, iy + 1) * sx) * sy; };
+    let lo = 1, hi = 0, minX = W, maxX = -1, minY = W, maxY = -1;
+    for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4; if (d[i + 3] < 24) continue;
+      const L = d[i] / 255; if (L > 0.05) { if (L < lo) lo = L; if (L > hi) hi = L; }
+      if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    const span = Math.max(0.05, hi - lo), step = W / 42;
+    for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4; if (d[i + 3] === 0) continue;
+      const L = d[i] / 255;
+      if (L <= 0.05) { d[i] = INK[0]; d[i + 1] = INK[1]; d[i + 2] = INK[2]; continue; } // an inked facet line
+      const sh = (L - lo) / span, n = noise(x, y) * 0.65 + noise(x * 3.1, y * 3.1) * 0.35;
+      const wash = Math.min(1, Math.max(0.15, 0.62 + deep + (1 - sh) * 0.38 + (n - 0.5) * 0.4));
+      let c = [0, 1, 2].map((k) => PAPER[k] + (pig[k] - PAPER[k]) * wash);
+      const glaze = sh < 0.4 ? 1 - (0.4 - sh) / 0.4 * 0.22 : 1; c = c.map((v) => v * glaze);
+      const bare = Math.min(1, Math.max(0, (sh - 0.86) / 0.14)) * 0.6; c = c.map((v, k) => v + (PAPER[k] - v) * bare);
+      const l1 = Math.abs(((x + y) / step) % 2 - 1) < 0.34 ? 1 : 0, l2 = Math.abs(((x - y + W) / step) % 2 - 1) < 0.34 ? 1 : 0;
+      const h = Math.min(1, l1 * Math.min(1, Math.max(0, (0.55 + deep - sh) / 0.1)) + l2 * Math.min(1, Math.max(0, (0.28 + deep - sh) / 0.1))) * 0.7;
+      d[i] = c[0] + (INK[0] - c[0]) * h; d[i + 1] = c[1] + (INK[1] - c[1]) * h; d[i + 2] = c[2] + (INK[2] - c[2]) * h;
+    }
+    const body = document.createElement('canvas'); body.width = body.height = W;
+    body.getContext('2d').putImageData(img, 0, 0);
+    const sil = document.createElement('canvas'); sil.width = sil.height = W;
+    const sc = sil.getContext('2d'); sc.drawImage(body, 0, 0); sc.globalCompositeOperation = 'source-in';
+    sc.fillStyle = 'rgb(' + INK.join(',') + ')'; sc.fillRect(0, 0, W, W);
+    cv.width = cv.height = W; // (full resolution for the fine pen work)
+    const pw = maxX - minX, ph = maxY - minY, flat = type === E.PAWN || promoted; // the Trey is seen from above
+    const rgb = (a) => 'rgba(' + pig.join(',') + ',' + a + ')';
+    // the splash: overlapping blooms with darker dried edges, spreading out from the base toward the lower right
+    const sx0 = (minX + maxX) / 2 + pw * 0.12, sy0 = flat ? (minY + maxY) / 2 + ph * 0.1 : maxY - ph * 0.04, R = Math.max(pw, flat ? ph : pw) * 0.62;
+    ctx.filter = 'blur(' + (W / 110).toFixed(1) + 'px)';
+    for (let k = 0; k < 7; k++) {
+      const a = rnd() * Math.PI * 2, dd = rnd() * R * 0.45, rx = R * (0.45 + rnd() * 0.4), ry = rx * (flat ? 0.7 + rnd() * 0.3 : 0.32 + rnd() * 0.2);
+      ctx.save(); ctx.translate(sx0 + Math.cos(a) * dd + R * 0.15, sy0 + Math.sin(a) * dd * 0.4); ctx.rotate((rnd() - 0.5) * 0.5); ctx.scale(1, ry / rx);
+      const gr = ctx.createRadialGradient(0, 0, rx * 0.1, 0, 0, rx);
+      gr.addColorStop(0, rgb(0.22)); gr.addColorStop(0.78, rgb(0.3)); gr.addColorStop(0.93, rgb(0.5)); gr.addColorStop(1, rgb(0));
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+    ctx.filter = 'none';
+    for (let k = 0; k < 10; k++) { const a = rnd() * Math.PI * 2, dd = R * (0.9 + rnd() * 0.5); ctx.fillStyle = rgb(0.4 + rnd() * 0.35); ctx.beginPath(); ctx.arc(sx0 + Math.cos(a) * dd, sy0 + Math.sin(a) * dd * 0.5, W / 300 + rnd() * W / 140, 0, Math.PI * 2); ctx.fill(); }
+    // a pen-hatched cast shadow to the right of the base
+    ctx.save(); ctx.beginPath();
+    if (flat) ctx.ellipse((minX + maxX) / 2 + pw * 0.1, (minY + maxY) / 2 + ph * 0.08, pw * 0.52, ph * 0.52, 0, 0, Math.PI * 2);
+    else ctx.ellipse(maxX - pw * 0.05, maxY - ph * 0.01, pw * 0.5, Math.max(W / 60, pw * 0.1), 0, 0, Math.PI * 2);
+    ctx.clip(); ctx.strokeStyle = 'rgba(' + INK.join(',') + ',0.55)'; ctx.lineWidth = W / 400;
+    for (let k = -W; k < W * 2; k += W / 90) { ctx.beginPath(); ctx.moveTo(k, W); ctx.lineTo(k + W, 0); ctx.stroke(); }
+    ctx.restore();
+    // the pen outline: a firm line and a fainter second pass a little off it, like a sketch gone over twice
+    const ow = W / 190;
+    for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; ctx.drawImage(sil, Math.cos(a) * ow, Math.sin(a) * ow); }
+    ctx.globalAlpha = 0.3; ctx.drawImage(sil, W / 160, -W / 220); ctx.globalAlpha = 1;
+    ctx.drawImage(body, 0, 0);
   } else if (setStyle === '2dclassic') {
     // Round medallion with the classic (western) chess glyph -- the
     // filled glyph variants tint cleanly with the side color.
@@ -7675,7 +7760,7 @@ function flat2DArtTexture(setStyle, type, color, promoted) {
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.anisotropy = 4;
-  if (setStyle === '2dflat') tex.colorSpace = THREE.SRGBColorSpace; // flat colours must come out exactly as drawn
+  if (setStyle === '2dflat' || setStyle === '2dink') tex.colorSpace = THREE.SRGBColorSpace; // flat colours must come out exactly as drawn
   flat2DArtCache[key] = tex;
   return tex;
 }
@@ -7733,6 +7818,7 @@ const PROJ_PX = 512;
 const FLAT2D_KING_TILE = 1.012, FLAT2D_CANVAS = 1.2, FLAT2D_BASE_LIFT = 0.06; // tiles
 const FLAT2D_KING_FIT = 0.90; // the King alone is brought down to this height so it stays inside its square
 let projScene = null, projCam = null, projRT = null, projRef = null;
+const projLineMat = new THREE.LineBasicMaterial({ color: 0x000000 });
 const projCache = {};
 function projectPieceShade(srcStyle, type, promoted) {
   const ckey = srcStyle + '_' + type + (promoted ? 'p' : '');
@@ -7749,7 +7835,10 @@ function projectPieceShade(srcStyle, type, promoted) {
   const build = (ty, pr) => {
     const g = buildPiece(ty, E.WHITE, pr, 7, srcStyle);
     g.rotation.set(0, 0, 0); // every piece (horse included) faces the same way, toward the top of the diagram
-    g.traverse((o) => { if (o.isMesh) o.material = lam; });
+    // the sketch set: drop the splash and the outline hull; its inked facet lines draw pure black (a line mask)
+    const extra = []; g.traverse((o) => { if (o.userData.inkSplash || o.material === inkHullMat) extra.push(o); });
+    extra.forEach((o) => o.removeFromParent());
+    g.traverse((o) => { if (o.isMesh) o.material = lam; else if (o.isLineSegments) o.material = projLineMat; });
     g.updateMatrixWorld(true);
     return { g, box: new THREE.Box3().setFromObject(g) };
   };
@@ -7833,7 +7922,7 @@ function buildFlatProjectionPiece(g, type, promoted, color, setStyle) {
   return g;
 }
 function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
-  if (setStyle === '2dflat') return buildFlatProjectionPiece(g, type, promoted, color, setStyle);
+  if (setStyle === '2dflat' || setStyle === '2dink') return buildFlatProjectionPiece(g, type, promoted, color, setStyle);
   const floating = !!FLAT2D_FLOATING[setStyle];
   // a smaller platform for floating sets -- a full-size coin base would
   // dwarf the hovering figure and read as "character glued to a puck"
@@ -8746,7 +8835,7 @@ function buildGemPiece(g, add, type, promoted, color) {
 // bright end of each crystal's colour, Black the deep end.
 const CRYSTAL_SET = {
   //            white     black     profile: [radius, height, offset] -- offset 1 turns that ring half a side
-  KING:     { w: 0xff2438, b: 0x8a0716, p: [[0, 0], [0.3, 0], [0.3, 0.07], [0.22, 0.1], [0.13, 0.14], [0.11, 0.2, 1], [0.22, 0.3], [0.26, 0.41, 1], [0.21, 0.52], [0.12, 0.59, 1], [0.085, 0.65], [0.05, 0.84, 1], [0, 1.06]] },
+  KING:     { w: 0xff2438, b: 0x8a0716, p: [[0.0, 0.0], [0.229, 0.0], [0.229, 0.073], [0.215, 0.115], [0.197, 0.128], [0.222, 0.141], [0.222, 0.205], [0.2, 0.228], [0.145, 0.247], [0.254, 0.376], [0.279, 0.442], [0.279, 0.587], [0.24, 0.653], [0.119, 0.704], [0.09, 0.713], [0.125, 0.77], [0.081, 0.818], [0.0, 1.122, 1]] },
   QUEEN:    { w: 0xeef4ff, b: 0x4a5266, p: [[0, 0], [0.27, 0], [0.27, 0.07], [0.19, 0.1], [0.2, 0.17, 1], [0.26, 0.31], [0.23, 0.47, 1], [0.13, 0.61], [0.1, 0.7, 1], [0.19, 0.83], [0.215, 0.88, 1], [0.15, 0.875], [0.08, 0.79, 1], [0, 0.77]] },
   BISHOP:   { w: 0xffd21a, b: 0x8c6400, p: [[0, 0], [0.27, 0], [0.27, 0.07], [0.2, 0.1], [0.14, 0.13, 1], [0.24, 0.21], [0.29, 0.34, 1], [0.26, 0.47], [0.16, 0.56, 1], [0.06, 0.59], [0.09, 0.64, 1], [0.07, 0.7], [0, 0.72, 1]] },
   KNIGHT:   { w: 0xff8a12, b: 0x8e3500 },
@@ -8829,6 +8918,186 @@ function buildGemCrystalPiece(g, add, type, promoted, color) {
   if (name === 'PAWN') g.userData.labelTopY = 0.22;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
+}
+
+// Ink & Watercolour: the cut-crystal shapes drawn as a pen-and-wash sketch. Each body is painted with a
+// translucent watercolour wash (paler where the light falls, deeper and layered in shadow, with a little
+// pigment granulation), the shadowed facets are pen-hatched (cross-hatched in the deepest shade), every facet
+// edge is inked, and a bold ink outline runs round the silhouette. A loose splash of the same colour bleeds
+// into the paper under each piece. White's washes are light, Black's are the deep shade with heavier hatching.
+const INKWASH_SET = {
+  KING:     { w: 0xd7314a, b: 0x7c1226 },
+  QUEEN:    { w: 0xbfc6d4, b: 0x434c62 },
+  BISHOP:   { w: 0xf0bd26, b: 0xa07006 },
+  KNIGHT:   { w: 0xe8862c, b: 0x9a450e },
+  ROOK:     { w: 0x9a5bd2, b: 0x4a2278 },
+  PAWN:     { w: 0x38ac56, b: 0x14602a },
+  PROMOTED: { w: 0x3a6fd8, b: 0x183888 }
+};
+const INK_COLOR = 0x2a231e;
+const inkwashMatCache = {}, inkHullCache = {}, inkEdgeCache = {}, inkSplashCache = {};
+const inkLineMat = new THREE.LineBasicMaterial({ color: INK_COLOR, transparent: true, opacity: 0.85, depthWrite: false });
+const inkHullMat = new THREE.MeshBasicMaterial({ color: INK_COLOR, side: THREE.BackSide });
+function inkwashMaterial(name, color) {
+  const key = name + (color === E.WHITE ? 'w' : 'b');
+  if (inkwashMatCache[key]) return inkwashMatCache[key];
+  const deep = color === E.BLACK;
+  const m = new THREE.MeshLambertMaterial({ color: INKWASH_SET[name][deep ? 'b' : 'w'], flatShading: true });
+  m.toneMapped = false;
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uPaper = { value: new THREE.Color(0xf7f2e7) };
+    sh.uniforms.uInk = { value: new THREE.Color(INK_COLOR) };
+    sh.uniforms.uDeep = { value: deep ? 0.14 : 0 };
+    sh.uniforms.uHatchPx = { value: 6 * renderer.getPixelRatio() };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vInkW;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvInkW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vInkW;
+uniform vec3 uPaper; uniform vec3 uInk; uniform float uDeep; uniform float uHatchPx;
+float inkHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float inkNoise(vec3 x) {
+  vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(inkHash(i), inkHash(i + vec3(1,0,0)), f.x), mix(inkHash(i + vec3(0,1,0)), inkHash(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(inkHash(i + vec3(0,0,1)), inkHash(i + vec3(1,0,1)), f.x), mix(inkHash(i + vec3(0,1,1)), inkHash(i + vec3(1,1,1)), f.x), f.y), f.z);
+}`)
+      .replace('#include <opaque_fragment>', `
+// tones come from one fixed sketching light (upper left of the page), not the scene lights, so every piece
+// reads like the same drawing: bare paper in the highlight, a light wash, then glazes and hatching in the shade
+float sh = clamp(dot(normalize(normal), normalize(vec3(-0.55, 0.75, 0.5))) * 0.55 + 0.45, 0.0, 1.0);
+float n = inkNoise(vInkW * 9.0) * 0.6 + inkNoise(vInkW * 31.0) * 0.4;
+float wash = clamp(0.72 + uDeep + (1.0 - sh) * 0.35 + (n - 0.5) * 0.35, 0.15, 1.0);
+vec3 col = mix(uPaper, diffuseColor.rgb, wash);
+col *= mix(1.0, 0.8, smoothstep(0.45, 0.1, sh));             // a second, darker glaze in the shade
+col = mix(col, uPaper, smoothstep(0.88, 0.99, sh) * 0.55);    // paper left bare in the brightest light
+vec2 fc = gl_FragCoord.xy / uHatchPx;
+float l1 = 1.0 - smoothstep(0.08, 0.26, abs(fract((fc.x + fc.y) * 0.5) - 0.5) * 2.0);
+float l2 = 1.0 - smoothstep(0.08, 0.26, abs(fract((fc.x - fc.y) * 0.5) - 0.5) * 2.0);
+float h = l1 * smoothstep(0.58 + uDeep, 0.46 + uDeep, sh) + l2 * smoothstep(0.34 + uDeep, 0.22 + uDeep, sh);
+col = mix(col, uInk, clamp(h, 0.0, 1.0) * 0.55);
+gl_FragColor = vec4(col, diffuseColor.a);`);
+  };
+  m.customProgramCacheKey = () => 'inkwash';
+  return (inkwashMatCache[key] = m);
+}
+// the body pushed out along position-merged normals: an inverted-hull pen outline
+function inkHullGeometry(key, src, thick) {
+  if (inkHullCache[key]) return inkHullCache[key];
+  if (!src.attributes.normal) src.computeVertexNormals();
+  const P = src.attributes.position, N = src.attributes.normal, n = P.count, q = 1e5, sum = new Map();
+  const k = (i) => Math.round(P.getX(i) * q) + ',' + Math.round(P.getY(i) * q) + ',' + Math.round(P.getZ(i) * q);
+  for (let i = 0; i < n; i++) { const kk = k(i); let a = sum.get(kk); if (!a) { a = [0, 0, 0]; sum.set(kk, a); } a[0] += N.getX(i); a[1] += N.getY(i); a[2] += N.getZ(i); }
+  const pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const a = sum.get(k(i)), l = Math.hypot(a[0], a[1], a[2]) || 1;
+    pos[i * 3] = P.getX(i) + a[0] / l * thick; pos[i * 3 + 1] = P.getY(i) + a[1] / l * thick; pos[i * 3 + 2] = P.getZ(i) + a[2] / l * thick;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  if (src.index) geo.setIndex(src.index);
+  return (inkHullCache[key] = geo);
+}
+// a loose watercolour splash in the piece's colour: overlapping blooms with darker dried edges, a few drips
+function inkSplashMaterial(hex, variant) {
+  const key = hex + '_' + variant;
+  if (inkSplashCache[key]) return inkSplashCache[key];
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const ctx = cv.getContext('2d');
+  let seed = (hex ^ (variant * 7919)) % 2147483646 + 1; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const c = new THREE.Color(hex), rgb = (a) => 'rgba(' + Math.round(c.r * 255) + ',' + Math.round(c.g * 255) + ',' + Math.round(c.b * 255) + ',' + a + ')';
+  ctx.filter = 'blur(3px)';
+  for (let i = 0; i < 7; i++) {
+    const a = rnd() * Math.PI * 2, d = rnd() * 52, x = S / 2 + Math.cos(a) * d + 18, y = S / 2 + Math.sin(a) * d * 0.8 + 18;
+    const rx = 34 + rnd() * 46, ry = 26 + rnd() * 34, rot = rnd() * Math.PI;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(1, ry / rx);
+    const g = ctx.createRadialGradient(0, 0, rx * 0.1, 0, 0, rx);
+    g.addColorStop(0, rgb(0.2)); g.addColorStop(0.78, rgb(0.3)); g.addColorStop(0.93, rgb(0.5)); g.addColorStop(1, rgb(0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  ctx.filter = 'blur(0.6px)';
+  for (let i = 0; i < 9; i++) { // spatters
+    const a = rnd() * Math.PI * 2, d = 90 + rnd() * 30;
+    ctx.fillStyle = rgb(0.35 + rnd() * 0.3); ctx.beginPath(); ctx.arc(S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d, 1 + rnd() * 3.2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.filter = 'none';
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  return (inkSplashCache[key] = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+}
+const inkSplashGeo = new THREE.PlaneGeometry(1.0, 1.0).rotateX(-Math.PI / 2);
+function buildInkwashPiece(g, add, type, promoted, color, seed) {
+  const name = (promoted && type === E.QUEEN) ? 'PROMOTED'
+    : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
+  const mat = inkwashMaterial(name, color);
+  let mesh, geo, key = name, thick = 0.013, crease = 20;
+  if (name === 'KNIGHT') {
+    const lp = typeof LOWPOLY_WOOD !== 'undefined';
+    geo = lp ? bkGeometry('LOWPOLY_WOOD', 'KNIGHT', 30) : okGeometry('KNIGHT');
+    key = lp ? 'KNIGHT_LP' : 'KNIGHT_OK';
+    mesh = add(geo, 0, mat);
+    if (lp) { mesh.scale.setScalar(4.0); mesh.rotation.y = Math.PI; } else { mesh.scale.setScalar(4.2); mesh.rotation.y = -Math.PI / 2; }
+    thick = 0.013 / mesh.scale.x; crease = 32;
+  } else {
+    geo = crystalGeoCache[name] || (crystalGeoCache[name] = crystalLathe(CRYSTAL_SET[name].p, 8));
+    mesh = add(geo, 0, mat);
+    mesh.rotation.y = Math.PI / 8;
+  }
+  const follow = (o) => { o.scale.copy(mesh.scale); o.rotation.copy(mesh.rotation); o.position.copy(mesh.position); g.add(o); return o; };
+  follow(new THREE.Mesh(inkHullGeometry(key, geo, thick), inkHullMat));
+  if (key !== 'KNIGHT_OK') follow(new THREE.LineSegments(inkEdgeCache[key] || (inkEdgeCache[key] = new THREE.EdgesGeometry(geo, crease)), inkLineMat)).renderOrder = 2;
+  const splash = new THREE.Mesh(inkSplashGeo, inkSplashMaterial(INKWASH_SET[name][color === E.WHITE ? 'w' : 'b'], ((seed || 0) * 13 + type) % 4));
+  splash.position.y = 0.004; splash.rotation.y = ((seed || 0) % 8) * 0.7;
+  splash.userData.inkSplash = true;
+  splash.raycast = () => {}; // clicks pass through to the square underneath
+  g.add(splash);
+  if (name === 'PROMOTED') g.userData.labelTopY = 0.16;
+  if (name === 'PAWN') g.userData.labelTopY = 0.22;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+// the paper: warm cold-press watercolour paper with its fibre grain (no wash: every tile shares the texture)
+const inkTileCache = {};
+function buildInkTileTexture(hex, key) {
+  if (inkTileCache[key]) return inkTileCache[key];
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#' + hex.toString(16).padStart(6, '0'); ctx.fillRect(0, 0, S, S);
+  let seed = 9001 + key.length * 77 + key.charCodeAt(key.length - 1); const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const img = ctx.getImageData(0, 0, S, S), d = img.data; // cold-press tooth: soft bumps lit from the top left
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const i = (y * S + x) * 4, v = (Math.sin(x * 0.9 + Math.sin(y * 0.37) * 3) + Math.sin(y * 1.1 + Math.sin(x * 0.29) * 3)) * 3 + (rnd() - 0.5) * 9;
+    d[i] += v; d[i + 1] += v; d[i + 2] += v;
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  return (inkTileCache[key] = tex);
+}
+// the backdrop: a sheet of paper with loose rainbow washes and spatters drifting in from the edges
+let inkBackdropCache = null;
+function buildInkBackdrop() {
+  if (inkBackdropCache) return inkBackdropCache;
+  const W = 1600, H = 900, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#f3eee3'; ctx.fillRect(0, 0, W, H);
+  let seed = 4242; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const hues = ['215,49,74', '240,189,38', '232,134,44', '154,91,210', '56,172,86', '58,111,216'];
+  ctx.filter = 'blur(18px)';
+  for (let i = 0; i < 16; i++) {
+    const edge = i % 4, t = rnd();
+    const x = edge === 0 ? t * W : edge === 1 ? W - rnd() * 160 : edge === 2 ? t * W : rnd() * 160;
+    const y = edge === 0 ? rnd() * 130 : edge === 1 ? t * H : edge === 2 ? H - rnd() * 130 : t * H;
+    const r = 90 + rnd() * 170, c = hues[i % hues.length];
+    const g = ctx.createRadialGradient(x, y, r * 0.1, x, y, r);
+    g.addColorStop(0, 'rgba(' + c + ',0.10)'); g.addColorStop(0.85, 'rgba(' + c + ',0.17)'); g.addColorStop(1, 'rgba(' + c + ',0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, r, r * (0.6 + rnd() * 0.4), rnd() * 3, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.filter = 'none';
+  for (let i = 0; i < 140; i++) { ctx.fillStyle = 'rgba(' + hues[i % hues.length] + ',' + (0.2 + rnd() * 0.35).toFixed(2) + ')'; ctx.beginPath(); const e = rnd() < 0.5; ctx.arc(e ? rnd() * W : (rnd() < 0.5 ? rnd() * 220 : W - rnd() * 220), e ? (rnd() < 0.5 ? rnd() * 150 : H - rnd() * 150) : rnd() * H, 1 + rnd() * 4, 0, Math.PI * 2); ctx.fill(); }
+  const img = ctx.getImageData(0, 0, W, H), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const v = (rnd() - 0.5) * 10; d[i] += v; d[i + 1] += v; d[i + 2] += v; }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  return (inkBackdropCache = tex);
 }
 
 // Magic Orb piece set: every rank is a floating glowing orb hovering above
@@ -9982,7 +10251,9 @@ const MODEL_DATA_FILES = {
   khmerorig: ['data/ok-khmer.js?v=1', 'OK_DATA'],
   tfbattle: ['data/baked-tf.js?v=1', 'TF_AUTOBOT'],
   lowpoly: ['data/baked-lowpoly.js?v=1', 'LOWPOLY_WOOD'],
-  gems: ['data/baked-lowpoly.js?v=1', 'LOWPOLY_WOOD'] // (the crystal horse is the low-poly one)
+  gems: ['data/baked-lowpoly.js?v=1', 'LOWPOLY_WOOD'], // (the crystal horse is the low-poly one)
+  inkwash: ['data/baked-lowpoly.js?v=1', 'LOWPOLY_WOOD'],
+  '2dink': ['data/baked-lowpoly.js?v=1', 'LOWPOLY_WOOD'] // (drawn from the sketch set)
 };
 const modelDataLoading = {};
 function modelDataReady(style) { const f = MODEL_DATA_FILES[style]; return !f || typeof window[f[1]] !== 'undefined'; }
@@ -10286,8 +10557,9 @@ function onStartingSquare(sq, p) {
 }
 // how far (in tiles) a projected piece's ink sits below the middle of its art canvas
 function flat2dInkShift(type, promoted) {
-  if (pieceStyle() !== '2dflat') return 0;
-  return projectPieceShade(theme().projectFrom || 'khmerorig', type, promoted).inkCy * FLAT2D_CANVAS;
+  const st = pieceStyle();
+  if (st !== '2dflat' && st !== '2dink') return 0;
+  return projectPieceShade(st === '2dink' ? 'inkwash' : (theme().projectFrom || 'khmerorig'), type, promoted).inkCy * FLAT2D_CANVAS;
 }
 function rebuildPieces() {
   pieceGroup.clear();
@@ -10352,6 +10624,7 @@ function startRagdoll(g, fromSq, toSq) {
   // away from the attacker like a log; a little twist besides
   const w = dir.clone().multiplyScalar((Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 3));
   w.y = (Math.random() - 0.5) * 3;
+  g.traverse((o) => { if (o.userData.inkSplash) o.visible = false; }); // (a watercolour splash stays on the paper)
   ragdolls.push({ g, v, w, t: 0, rest: 0, vanish: -1, s0: g.scale.clone() });
   if (!ragdollRaf) { ragdollLast = performance.now(); ragdollRaf = requestAnimationFrame(ragdollStep); }
 }
@@ -11516,6 +11789,7 @@ function updateBackground() {
     tex = backgroundTexture(bgOverride, blur, stroke);
   } else if (t.skyline) tex = buildSkylineTexture();
   else if (t.paintedBackdrop) tex = buildPaintingBackdrop();
+  else if (t.inkBackdrop) tex = buildInkBackdrop();
   else if (t.marioBackdrop) tex = buildMarioBackdrop();
   else if (t.contraBackdrop) tex = buildContraBackdrop();
   else if (t.sofisticateBackdrop) tex = buildSofisticateBackdrop();
@@ -11798,7 +12072,7 @@ function applyTheme(key) {
   // applies whichever of the three surface treatments the active theme
   // and piece style call for.
   updatePieceMaterialTexture();
-  const tiled = t.brickTiles || t.paintedTiles || t.marbleTiles || t.gradientTiles;
+  const tiled = t.brickTiles || t.paintedTiles || t.marbleTiles || t.gradientTiles || t.inkTiles;
   for (const m of squareMeshes) {
     const light = (E.fileOf(m.userData.sq) + E.rankOf(m.userData.sq)) % 2 === 1;
     // Khmer board style: every square shares one wood tone instead of the
@@ -11817,6 +12091,8 @@ function applyTheme(key) {
       ? buildMarbleTexture(hex, light ? 0x777777 : 0xdddddd, 'bd' + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
       : t.gradientTiles
       ? buildGradientTileTexture(hex, 'gt' + hex.toString(16) + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
+      : t.inkTiles
+      ? buildInkTileTexture(hex, 'ink' + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
       : null;
     m.material.ior = t.ior || 1.5;
     m.material.clearcoat = t.clearcoat || 0;
@@ -16744,8 +17020,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.99';
+const APP_VERSION = '1.6.100';
 const WHATS_NEW = [
+  {
+    version: '1.6.100',
+    date: '2026-10-31',
+    title: { kh: 'ទឹកខ្មៅ និងពណ៌ទឹក', en: 'Ink & Watercolour' },
+    items: [
+      { kh: 'រូបរាងថ្មី «ទឹកខ្មៅ និងពណ៌ទឹក»៖ តួអុកគ្រីស្តាល់ គូរដោយប៊ិច និងលាបពណ៌ទឹក លើក្រដាសគំនូរ — មានទាំង 3D និង 2D។',
+        en: 'New Ink & Watercolour themes: the crystal pieces drawn in pen and painted in watercolour on a sheet of paper, with hatching, inked outlines and a splash of colour under each piece, in 3D and in 2D.' },
+      { kh: 'ស្តេចក្នុងឈុតត្បូង និងឈុតគំនូរ ត្រូវបានធ្វើថ្មី៖ ជើងប្រាំបីជ្រុងពីរជាន់ ខ្លួនធំកាត់មុខ និងកំពូលស្រួច។',
+        en: 'A new Sdach for the gem and sketch sets: a two-tier octagonal base, a tall faceted body, a small collar and a long pointed spire.' }
+    ]
+  },
   {
     version: '1.6.99',
     date: '2026-10-31',
@@ -20272,8 +20559,8 @@ function applyAccessTier() {
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
   { key: 'original', label: 'ដើម Original', themes: ['wood', 'okCartoon', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
-  { key: 'flat', label: 'រាបស្មើ Flat 2D', themes: ['flatVec', 'flatClassic', 'flatKhmer', 'flatPaper', 'flatNight'] },
-  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'tfBattle', 'lowPoly'] }
+  { key: 'flat', label: 'រាបស្មើ Flat 2D', themes: ['flatVec', 'flatClassic', 'flatKhmer', 'flatPaper', 'flatNight', 'inkFlat'] },
+  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'tfBattle', 'lowPoly', 'inkwash'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
 let openThemeCatKey = null;
