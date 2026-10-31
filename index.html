@@ -5858,16 +5858,16 @@ const gemPhys = (color, emissive) => new THREE.MeshPhysicalMaterial({
 // match that same glowing-amulet saturation; ruby stays the grounded
 // jewel-tone red from the previous Jeweled-Blitz-style tuning.
 const GEM_HUE_DEFAULTS = {
-  ruby: [0xe8342f, 0x8a1512], amber: [0xffa23e, 0x9c5410], emerald: [0x9fd83a, 0x5a8a12],
-  sapphire: [0x2f9fe8, 0x145a8a], amethyst: [0xe848ff, 0x7a1a92],
+  ruby: [0xf0203a, 0x9a0a1c], amber: [0xffd21e, 0xb8860a], emerald: [0x2fe04a, 0x0f8a22],
+  sapphire: [0x1f6bff, 0x0b2fa8], amethyst: [0xd23cff, 0x7a12a8],
 };
 // The gem pieces' stones, made to read as real cut gems: crisp flat facets, clear (high transmission) with the colour
 // deepening through the stone (attenuation) rather than painted on, a gem's high refractive index and bright
 // specular, a hint of iridescent "fire" on the facets, a mirror polish (clearcoat), and strong studio reflections.
 // Only a whisper of glow, so the stones sparkle instead of looking lit from inside like plastic.
 const realGem = (color, emissive, ior) => new THREE.MeshPhysicalMaterial({
-  color, emissive, emissiveIntensity: 0.3, roughness: 0.015, metalness: 0, flatShading: true,
-  transmission: 0.9, thickness: 0.7, ior: ior || 1.77, attenuationColor: new THREE.Color(color), attenuationDistance: 0.32,
+  color, emissive, emissiveIntensity: 0.55, roughness: 0.02, metalness: 0, flatShading: true,
+  transmission: 0.45, thickness: 0.7, ior: ior || 1.77, attenuationColor: new THREE.Color(color), attenuationDistance: 0.32,
   specularIntensity: 1, specularColor: 0xffffff, clearcoat: 1, clearcoatRoughness: 0.02,
   iridescence: 0.35, iridescenceIOR: 1.5, iridescenceThicknessRange: [180, 520], envMapIntensity: 1.6,
 });
@@ -5877,12 +5877,13 @@ const MAT_GEM_EMERALD = realGem(...GEM_HUE_DEFAULTS.emerald, 1.58);
 const MAT_GEM_SAPPHIRE = realGem(...GEM_HUE_DEFAULTS.sapphire, 1.77);
 const MAT_GEM_AMETHYST = realGem(...GEM_HUE_DEFAULTS.amethyst, 1.55);
 // a colourless diamond for the small accent stones, and polished white gold / platinum for every setting
-const MAT_GEM_DIAMOND = realGem(0xf4f8ff, 0x000000, 2.42);
-MAT_GEM_DIAMOND.attenuationDistance = 4; MAT_GEM_DIAMOND.iridescence = 0.6; MAT_GEM_DIAMOND.emissiveIntensity = 0;
+const MAT_GEM_DIAMOND = realGem(0xf4f8ff, 0x8090a8, 2.42);
+MAT_GEM_DIAMOND.attenuationDistance = 4; MAT_GEM_DIAMOND.iridescence = 0.7; MAT_GEM_DIAMOND.emissiveIntensity = 0.35;
+const MAT_GEM_TOPAZ = realGem(0xff7a1a, 0xb8400a, 1.62); // the promoted Trey's orange hexagon
 const MAT_GEM_SILVER = new THREE.MeshPhysicalMaterial({ color: 0xe4e6ee, roughness: 0.12, metalness: 1, clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 1.4 });
 try { // the stones and their settings reflect the jeweller's showroom, not the general studio
   jewelEnv = buildJewelEnvironment();
-  [MAT_GEM_RUBY, MAT_GEM_AMBER, MAT_GEM_EMERALD, MAT_GEM_SAPPHIRE, MAT_GEM_AMETHYST, MAT_GEM_DIAMOND].forEach((m) => { m.envMap = jewelEnv; });
+  [MAT_GEM_RUBY, MAT_GEM_AMBER, MAT_GEM_EMERALD, MAT_GEM_SAPPHIRE, MAT_GEM_AMETHYST, MAT_GEM_DIAMOND, MAT_GEM_TOPAZ].forEach((m) => { m.envMap = jewelEnv; });
 } catch (err) { console.warn('jewel environment failed (gems use the studio one):', err); }
 // Fixed glow-accent materials for the Magic Orb piece set (see
 // buildMagicOrbPiece): one glow color per rank, echoing a fantasy
@@ -8652,101 +8653,92 @@ function buildCambodiaPiece(g, add, type, promoted, color) {
 // pink/purple/yellow family across the same five cuts. The BODY under
 // the stone keeps the theme's own side color (MAT_W/MAT_B) so the two
 // sides stay instantly distinguishable regardless of gem hue.
-// Real gem cuts, as faceted solids of revolution (flat-shaded, so every facet catches the light on its own):
-// a profile from the culet (the point underneath) out to the girdle and up over the crown to the flat table, turned
-// with as many sides as the cut has facets around. `sx`/`sz` stretch it into an oval or a pear/marquise outline.
-function gemCut(kind, r) {
-  const P = (pts) => pts.map(([x, y]) => new THREE.Vector2(x * r, y * r));
-  let prof, sides = 16;
-  switch (kind) {
-    case 'brilliant': prof = P([[0, -0.86], [0.55, -0.42], [0.98, -0.03], [1, 0.03], [0.86, 0.2], [0.68, 0.34], [0.52, 0.42], [0, 0.42]]); sides = 8; break;
-    case 'step': prof = P([[0, -0.7], [0.55, -0.42], [0.92, -0.08], [1, 0.02], [0.86, 0.2], [0.68, 0.34], [0, 0.34]]); sides = 4; break;
-    case 'princess': prof = P([[0, -0.8], [1, 0], [0.98, 0.06], [0.66, 0.34], [0, 0.34]]); sides = 4; break;
-    case 'pear': prof = P([[0, -0.75], [0.6, -0.4], [0.95, -0.05], [1, 0.05], [0.8, 0.28], [0.5, 0.46], [0, 0.52]]); sides = 8; break;
-    case 'briolette': prof = P([[0, -0.55], [0.62, -0.32], [1, 0], [0.88, 0.38], [0.6, 0.78], [0.3, 1.05], [0, 1.25]]); sides = 8; break; // a faceted drop
-    case 'trillion': prof = P([[0, -0.6], [1, 0], [0.96, 0.06], [0.6, 0.3], [0, 0.3]]); sides = 3; break;
-    default: prof = P([[0, -0.9], [1, 0], [0.6, 0.45], [0, 0.45]]);
+// Gem piece set, after the game-gem references: each rank is one bold faceted gem in its own shape and colour --
+// Sdach a white round brilliant (diamond), Neang a blue heart, Koul a purple triangle, Ses a yellow rhombus, Touk a
+// red square (step) cut, Trey a green octagon, and a promoted Trey an orange hexagon. Every gem is its outline
+// extruded with a deep single bevel, so it has a flat table framed by angled facets (both faces), flat-shaded so
+// each facet catches the light on its own, with a soft glow of its colour behind it. It lies tilted toward its
+// player on a low faceted stand in the side's colour (MAT_W/MAT_B), so the two sides stay distinct whatever the
+// gem hues (which Girly themes recolour through gemPalette).
+const GEM_OUTLINES = {
+  square: [[-0.78, 1], [0.78, 1], [1, 0.78], [1, -0.78], [0.78, -1], [-0.78, -1], [-1, -0.78], [-1, 0.78]],
+  rhombus: [[0, 1.2], [0.86, 0], [0, -1.2], [-0.86, 0]],
+  triangle: [[0, 1.12], [1.08, -0.72], [-1.08, -0.72]],
+  hexagon: [0, 1, 2, 3, 4, 5].map((i) => [Math.sin(i * Math.PI / 3), Math.cos(i * Math.PI / 3)]),
+  octagon: [0, 1, 2, 3, 4, 5, 6, 7].map((i) => [Math.sin(i * Math.PI / 4 + Math.PI / 8), Math.cos(i * Math.PI / 4 + Math.PI / 8)]),
+  round: Array.from({ length: 16 }, (_, i) => [Math.sin(i * Math.PI / 8), Math.cos(i * Math.PI / 8)])
+};
+const gemGeoCache = {};
+function gemGeometry(kind) {
+  if (gemGeoCache[kind]) return gemGeoCache[kind];
+  const sh = new THREE.Shape();
+  if (kind === 'heart') {
+    sh.moveTo(0, -1.1);
+    sh.bezierCurveTo(-0.35, -0.75, -1.05, -0.25, -1.02, 0.32);
+    sh.bezierCurveTo(-1.0, 0.85, -0.42, 1.1, 0, 0.62);
+    sh.bezierCurveTo(0.42, 1.1, 1.0, 0.85, 1.02, 0.32);
+    sh.bezierCurveTo(1.05, -0.25, 0.35, -0.75, 0, -1.1);
+  } else {
+    const pts = GEM_OUTLINES[kind];
+    sh.moveTo(pts[0][0], pts[0][1]); pts.slice(1).forEach(([x, y]) => sh.lineTo(x, y)); sh.closePath();
   }
-  const geo = new THREE.LatheGeometry(prof, sides, Math.PI / sides);
+  const geo = new THREE.ExtrudeGeometry(sh, {
+    depth: 0.18, bevelEnabled: true, bevelThickness: 0.26, bevelSize: 0.3, bevelSegments: kind === 'round' ? 2 : 1, curveSegments: 6
+  });
+  geo.center();
   geo.computeVertexNormals();
-  return geo;
+  return (gemGeoCache[kind] = geo);
 }
-// Gem piece set: every rank is a real cut stone held in a polished white-gold setting on a side-coloured stem (so
-// White and Black stay distinct whatever the gem hue): King a large round brilliant crowned with a small diamond
-// cross, Neang an oval brilliant in a five-prong crown, Koul a tall pear cut, Ses a pair of marquise blades, Touk an
-// emerald (step) cut set flat in a rub-over bezel, Trey a small princess cut. The hue of each cut is theme-driven
-// (GEM_HUE_DEFAULTS / applyTheme's gemPalette), shared by Gem Blitz and the Girly themes.
-function buildGemPiece(g, add, type, promoted, color) {
-  add(new THREE.CylinderGeometry(0.29, 0.33, 0.1, 24), 0.05, MAT_GEM_SILVER);           // a polished base plate
-  add(new THREE.TorusGeometry(0.29, 0.018, 8, 32), 0.1, MAT_GEM_SILVER).rotation.x = Math.PI / 2;
-  const prongs = (y, rad, n, h, tilt) => { // claws rising round a stone
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + Math.PI / n, p = add(new THREE.CylinderGeometry(0.012, 0.02, h, 6), y, MAT_GEM_SILVER);
-      p.position.x = Math.cos(a) * rad; p.position.z = Math.sin(a) * rad;
-      p.rotation.z = -Math.cos(a) * (tilt || 0.25); p.rotation.x = Math.sin(a) * (tilt || 0.25);
-      const tip = add(new THREE.SphereGeometry(0.02, 8, 6), y + h / 2, MAT_GEM_SILVER); tip.position.x = Math.cos(a) * rad * 0.9; tip.position.z = Math.sin(a) * rad * 0.9;
-    }
-  };
-  const stem = (rTop, rBot, h, y) => add(new THREE.CylinderGeometry(rTop, rBot, h, 20), y);
-  const cup = (r, y) => add(new THREE.CylinderGeometry(r, r * 0.6, 0.06, 20), y, MAT_GEM_SILVER);
-  switch (type) {
-    case E.KING: {
-      stem(0.15, 0.23, 0.38, 0.3);
-      cup(0.2, 0.52);
-      const st = add(gemCut('brilliant', 0.26), 0.78, MAT_GEM_RUBY);
-      prongs(0.72, 0.22, 6, 0.16, 0.35);
-      // a small diamond cross on top
-      add(gemCut('brilliant', 0.06), 1.0, MAT_GEM_DIAMOND);
-      const bar = add(new THREE.BoxGeometry(0.16, 0.025, 0.025), 1.08, MAT_GEM_SILVER); bar.rotation.y = Math.PI / 4;
-      add(new THREE.BoxGeometry(0.025, 0.16, 0.025), 1.12, MAT_GEM_SILVER);
-      add(gemCut('brilliant', 0.035), 1.21, MAT_GEM_DIAMOND);
-      st.rotation.y = Math.PI / 16;
-      break;
-    }
-    case E.QUEEN: {
-      stem(0.13, 0.22, 0.34, 0.28);
-      cup(0.18, 0.48);
-      const st = add(gemCut('brilliant', 0.22), 0.7, MAT_GEM_AMETHYST); st.scale.set(0.85, 1.05, 1.15); // an oval
-      prongs(0.66, 0.17, 5, 0.18, 0.15);
-      for (let i = 0; i < 5; i++) { // the crown points, each tipped with a tiny diamond
-        const a = (i / 5) * Math.PI * 2;
-        const tip = add(new THREE.ConeGeometry(0.025, 0.12, 6), 0.9, MAT_GEM_SILVER); tip.position.x = Math.cos(a) * 0.15; tip.position.z = Math.sin(a) * 0.15;
-        const dia = add(gemCut('brilliant', 0.022), 0.97, MAT_GEM_DIAMOND); dia.position.x = Math.cos(a) * 0.15; dia.position.z = Math.sin(a) * 0.15;
-      }
-      break;
-    }
-    case E.BISHOP: {
-      stem(0.1, 0.2, 0.3, 0.25);
-      cup(0.15, 0.42);
-      add(gemCut('briolette', 0.15), 0.56, MAT_GEM_EMERALD); // a tall faceted drop, point up -- the mitre
-      prongs(0.52, 0.13, 3, 0.16, 0.2);
-      break;
-    }
-    case E.KNIGHT: {
-      stem(0.13, 0.22, 0.28, 0.25);
-      cup(0.17, 0.42);
-      // two marquise blades, swept back like ears
-      const a = add(gemCut('brilliant', 0.13), 0.66, MAT_GEM_SAPPHIRE); a.scale.set(0.55, 2.3, 0.75); a.rotation.x = 0.35; a.position.z = 0.04;
-      const b = add(gemCut('brilliant', 0.1), 0.6, MAT_GEM_SAPPHIRE); b.scale.set(0.55, 2.1, 0.75); b.rotation.x = -0.45; b.position.z = -0.08;
-      prongs(0.5, 0.12, 4, 0.12, 0.15);
-      break;
-    }
-    case E.ROOK: {
-      stem(0.18, 0.23, 0.4, 0.31);
-      add(new THREE.BoxGeometry(0.36, 0.06, 0.3), 0.53, MAT_GEM_SILVER);               // a rub-over bezel
-      const st = add(gemCut('step', 0.24), 0.62, MAT_GEM_AMBER); st.scale.set(1, 0.8, 0.82); st.rotation.y = Math.PI / 4; // emerald cut
-      break;
-    }
-    case E.PAWN:
-    default: {
-      stem(0.09, 0.16, 0.16, 0.18);
-      cup(0.11, 0.28);
-      const st = add(gemCut('princess', 0.13), 0.39, MAT_GEM_SAPPHIRE); st.rotation.y = Math.PI / 4;
-      prongs(0.36, 0.11, 4, 0.1, 0.2);
-      break;
-    }
+// Each frame every gem turns its face (the table) part-way toward the camera -- between straight up and straight at
+// the viewer -- with its shape upright on screen, so both sides' gems read clearly from either seat and any angle.
+const _gemPos = new THREE.Vector3(), _gemDir = new THREE.Vector3(), _gemUp = new THREE.Vector3();
+function retrackGems() {
+  if (pieceStyle() !== 'gems') return;
+  _gemUp.set(0, 1, 0).applyQuaternion(camera.quaternion); // the screen's "up", in the world
+  for (const g of pieceGroup.children) {
+    const gem = g.userData.gemMesh; if (!gem) continue;
+    gem.getWorldPosition(_gemPos);
+    _gemDir.copy(camera.position).sub(_gemPos).normalize().multiplyScalar(0.6).add(_THREE_UP04).normalize();
+    gem.up.copy(_gemUp);
+    gem.lookAt(_gemPos.add(_gemDir));
   }
-  if (promoted) add(new THREE.TorusGeometry(0.26, 0.035, 12, 32), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
+}
+const _THREE_UP04 = new THREE.Vector3(0, 0.4, 0);
+// a soft round glow in the gem's colour, always facing the camera (cached per colour)
+let gemGlowTex = null;
+const gemGlowMats = {};
+function gemGlow(hex) {
+  if (!gemGlowTex) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const ctx = cv.getContext('2d'), gr = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, 64, 64);
+    gemGlowTex = new THREE.CanvasTexture(cv);
+  }
+  if (!gemGlowMats[hex]) gemGlowMats[hex] = new THREE.SpriteMaterial({ map: gemGlowTex, color: hex, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false });
+  return gemGlowMats[hex];
+}
+function buildGemPiece(g, add, type, promoted, color) {
+  // the stand: a low faceted plinth in the side's colour, with a polished rim
+  add(new THREE.CylinderGeometry(0.27, 0.31, 0.12, 8), 0.06);
+  add(new THREE.TorusGeometry(0.27, 0.016, 6, 24), 0.12, MAT_GEM_SILVER).rotation.x = Math.PI / 2;
+  const spec = promoted ? ['hexagon', MAT_GEM_TOPAZ, 0.27]
+    : type === E.KING ? ['round', MAT_GEM_DIAMOND, 0.3]
+    : type === E.QUEEN ? ['heart', MAT_GEM_SAPPHIRE, 0.29]
+    : type === E.BISHOP ? ['triangle', MAT_GEM_AMETHYST, 0.27]
+    : type === E.KNIGHT ? ['rhombus', MAT_GEM_AMBER, 0.26]
+    : type === E.ROOK ? ['square', MAT_GEM_RUBY, 0.26]
+    : ['octagon', MAT_GEM_EMERALD, 0.2];
+  const [kind, mat, size] = spec;
+  const y = 0.14 + size * 1.05;
+  add(new THREE.CylinderGeometry(0.05, 0.09, y - 0.12, 8), 0.12 + (y - 0.12) / 2, MAT_GEM_SILVER); // a short post
+  const gem = add(gemGeometry(kind), y, mat);
+  gem.scale.setScalar(size);
+  gem.rotation.x = -(Math.PI / 2 - 0.62); // (until retrackGems turns it to the camera)
+  g.userData.gemMesh = gem;
+  const glow = new THREE.Sprite(gemGlow(mat.color.getHex()));
+  glow.position.y = y; glow.scale.setScalar(size * 4.2);
+  g.add(glow);
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -16518,8 +16510,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.94';
+const APP_VERSION = '1.6.95';
 const WHATS_NEW = [
+  {
+    version: '1.6.95',
+    date: '2026-10-31',
+    title: { kh: 'កូនអុកត្បូងថ្មី', en: 'A new gem chess set' },
+    items: [
+      { kh: 'កូនអុកត្បូងទាំងមូលត្រូវបានធ្វើឡើងវិញ៖ ស្ដេច ពេជ្រមូល ស នាង បេះដូងខៀវ គោល ត្រីកោណស្វាយ សេះ ពេជ្ររាងខៀវលឿង ទូក ការ៉េក្រហម ត្រី អដ្ឋកោណបៃតង (ត្រីឡើងនាង ឆកោណទឹកក្រូច)។ ត្បូងនីមួយៗមានមុខរាបស្មើ និងមុខកាត់ជុំវិញ ភ្លឺចាំង ហើយបែរមុខមកអ្នកលេងជានិច្ច។',
+        en: 'The gem set is remade: Sdach a white round diamond, Neang a blue heart, Koul a purple triangle, Ses a yellow rhombus, Touk a red square cut, Trey a green octagon (a promoted Trey an orange hexagon). Each gem has a flat table framed by sparkling facets and a soft glow, and always turns its face toward you.' }
+    ]
+  },
   {
     version: '1.6.94',
     date: '2026-10-31',
@@ -21025,6 +21026,7 @@ function loop() {
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   retrackOnlineThinkingTip();
   retrackFlat2DArt(); // keep 2D standee artwork facing the camera
+  retrackGems(); // the gem pieces turn their faces to the camera
   retrackMagicOrbFloat(); // bob Magic Orb/Orbs pieces up and down
   retrackGalacticOrbit(); // bob Galactic pieces and orbit their moons
   updateModernCinematics(); // advance any in-flight Modern Ops shoot/explode cinematics
