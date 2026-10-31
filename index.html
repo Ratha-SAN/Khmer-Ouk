@@ -4988,8 +4988,8 @@ const THEMES = {
   },
   // Gem Blitz: a jewel-box arcade board (deep midnight-violet squares
   // with a dark chrome rail) built for pure match-3-style EXCITEMENT --
-  // the most effect-heavy theme in the game. Faceted, glowing gem pieces
-  // (amber Fire side vs amethyst Ice side, see buildGemPiece), and, the
+  // the most effect-heavy theme in the game. Cut-crystal pieces, one
+  // colour per rank (see buildGemCrystalPiece), and, the
   // whole point, an arcade scoring layer no other theme has: captures
   // explode into flying gem shards with a floating "+points" score popup,
   // and chained captures (within two moves of each other) escalate a
@@ -6286,7 +6286,7 @@ function buildPiece(type, color, promoted, seed, styleOverride) {
   if (style === 'starwars') return buildStarwarsPiece(g, add, type, promoted, color);
   if (style === 'nature') return buildNaturePiece(g, add, type, promoted, color);
   if (style === 'cambodia') return buildCambodiaPiece(g, add, type, promoted, color);
-  if (style === 'gems') return buildGemPiece(g, add, type, promoted, color);
+  if (style === 'gems') return buildGemCrystalPiece(g, add, type, promoted, color);
   if (style === 'magicorb') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, true, rand);
   if (style === 'orbs') return buildMagicOrbPiece(g, add, type, promoted, color, 0.9, false, rand);
   if (style === 'galactic') return buildGalacticPiece(g, add, type, promoted, color, rand);
@@ -8700,21 +8700,6 @@ function gemGeometry(kind) {
   geo.computeVertexNormals();
   return (gemGeoCache[kind] = geo);
 }
-// Each frame every gem turns its face (the table) part-way toward the camera -- between straight up and straight at
-// the viewer -- with its shape upright on screen, so both sides' gems read clearly from either seat and any angle.
-const _gemPos = new THREE.Vector3(), _gemDir = new THREE.Vector3(), _gemUp = new THREE.Vector3();
-function retrackGems() {
-  if (pieceStyle() !== 'gems') return;
-  _gemUp.set(0, 1, 0).applyQuaternion(camera.quaternion); // the screen's "up", in the world
-  for (const g of pieceGroup.children) {
-    const gem = g.userData.gemMesh; if (!gem) continue;
-    gem.getWorldPosition(_gemPos);
-    _gemDir.copy(camera.position).sub(_gemPos).normalize().multiplyScalar(0.6).add(_THREE_UP04).normalize();
-    gem.up.copy(_gemUp);
-    gem.lookAt(_gemPos.add(_gemDir));
-  }
-}
-const _THREE_UP04 = new THREE.Vector3(0, 0.4, 0);
 // a soft round glow in the gem's colour, always facing the camera (cached per colour)
 let gemGlowTex = null;
 const gemGlowMats = {};
@@ -8745,11 +8730,112 @@ function buildGemPiece(g, add, type, promoted, color) {
   add(new THREE.CylinderGeometry(0.05, 0.09, y - 0.12, 8), 0.12 + (y - 0.12) / 2, MAT_GEM_SILVER); // a short post
   const gem = add(gemGeometry(kind), y, mat);
   gem.scale.setScalar(size);
-  gem.rotation.x = -(Math.PI / 2 - 0.62); // (until retrackGems turns it to the camera)
-  g.userData.gemMesh = gem;
+  gem.rotation.x = -(Math.PI / 2 - 0.62); // tilted toward the viewer
   const glow = new THREE.Sprite(gemGlow(mat.color.getHex()));
   glow.position.y = y; glow.scale.setScalar(size * 4.2);
   g.add(glow);
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Gem Blitz: a cut-crystal set, one coloured crystal per rank (after a studio photo of a faceted glass set):
+// a red spired Sdach, a clear flared vase for the Neang, a yellow faceted ball for the Koul, an orange horse,
+// a purple lidded urn for the Touk, a green ringed octagon for the Trey and a blue octagonal ring once promoted.
+// Each body is turned from a profile with only 8 sides, alternate rings offset by half a side, so the faces
+// break into triangular facets like a cut stone; thin white lines trace the facet edges. White wears the
+// bright end of each crystal's colour, Black the deep end.
+const CRYSTAL_SET = {
+  //            white     black     profile: [radius, height, offset] -- offset 1 turns that ring half a side
+  KING:     { w: 0xff2438, b: 0x8a0716, p: [[0, 0], [0.3, 0], [0.3, 0.07], [0.22, 0.1], [0.13, 0.14], [0.11, 0.2, 1], [0.22, 0.3], [0.26, 0.41, 1], [0.21, 0.52], [0.12, 0.59, 1], [0.085, 0.65], [0.05, 0.84, 1], [0, 1.06]] },
+  QUEEN:    { w: 0xeef4ff, b: 0x4a5266, p: [[0, 0], [0.27, 0], [0.27, 0.07], [0.19, 0.1], [0.2, 0.17, 1], [0.26, 0.31], [0.23, 0.47, 1], [0.13, 0.61], [0.1, 0.7, 1], [0.19, 0.83], [0.215, 0.88, 1], [0.15, 0.875], [0.08, 0.79, 1], [0, 0.77]] },
+  BISHOP:   { w: 0xffd21a, b: 0x8c6400, p: [[0, 0], [0.27, 0], [0.27, 0.07], [0.2, 0.1], [0.14, 0.13, 1], [0.24, 0.21], [0.29, 0.34, 1], [0.26, 0.47], [0.16, 0.56, 1], [0.06, 0.59], [0.09, 0.64, 1], [0.07, 0.7], [0, 0.72, 1]] },
+  KNIGHT:   { w: 0xff8a12, b: 0x8e3500 },
+  ROOK:     { w: 0xb45cff, b: 0x47127e, p: [[0, 0], [0.28, 0], [0.28, 0.07], [0.2, 0.1], [0.26, 0.17, 1], [0.3, 0.29], [0.26, 0.4, 1], [0.275, 0.42], [0.24, 0.47], [0.14, 0.52, 1], [0.05, 0.55], [0.085, 0.6, 1], [0.065, 0.66], [0, 0.67, 1]] },
+  PAWN:     { w: 0x1fd24c, b: 0x075a1c, p: [[0, 0], [0.28, 0], [0.28, 0.1], [0.245, 0.125], [0.2, 0.125], [0.17, 0.16], [0.125, 0.16], [0.095, 0.195], [0.05, 0.195], [0, 0.215]] },
+  PROMOTED: { w: 0x2f72ff, b: 0x0c2a90, p: [[0.13, 0], [0.285, 0], [0.285, 0.1], [0.245, 0.14], [0.17, 0.14], [0.13, 0.1], [0.13, 0]] }
+};
+const crystalGeoCache = {}, crystalEdgeCache = {}, crystalMatCache = {};
+// a flat-shaded (non-indexed) turned solid with `n` sides; profile rings with offset 1 are turned half a side
+function crystalLathe(profile, n) {
+  const pos = [];
+  const ring = (r, y, off) => Array.from({ length: n }, (_, k) => { const a = (k + (off ? 0.5 : 0)) / n * Math.PI * 2; return [Math.sin(a) * r, y, Math.cos(a) * r]; });
+  const rings = profile.map(([r, y, off]) => ring(r, y, off));
+  const tri = (a, b, c) => { pos.push(...a, ...b, ...c); };
+  for (let i = 0; i + 1 < rings.length; i++) {
+    const A = rings[i], B = rings[i + 1], oa = profile[i][2] ? 1 : 0, ob = profile[i + 1][2] ? 1 : 0;
+    const ra = profile[i][0], rb = profile[i + 1][0];
+    for (let k = 0; k < n; k++) {
+      const k1 = (k + 1) % n;
+      if (oa === ob) { // straight band: quads
+        if (ra > 0) tri(A[k], A[k1], B[k1]);
+        if (rb > 0) tri(A[k], B[k1], B[k]);
+      } else if (ob > oa) { // the upper ring sits half a side ahead: triangles point both ways
+        if (ra > 0) tri(A[k], A[k1], B[k]);
+        if (rb > 0) tri(B[k], A[k1], B[k1]);
+      } else { // the lower ring sits half a side ahead
+        if (rb > 0) tri(A[k], B[k1], B[k]);
+        if (ra > 0) tri(A[k], A[k1], B[k1]);
+      }
+    }
+  }
+  // (a profile running bottom-centre -> out -> up -> top-centre winds every face outward); drop degenerate slivers
+  const out = [];
+  for (let i = 0; i < pos.length; i += 9) {
+    const a = pos.slice(i, i + 3), b = pos.slice(i + 3, i + 6), c = pos.slice(i + 6, i + 9);
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const nx = u[1] * v[2] - u[2] * v[1], ny = u[2] * v[0] - u[0] * v[2], nz = u[0] * v[1] - u[1] * v[0];
+    if (Math.hypot(nx, ny, nz) < 1e-9) continue;
+    out.push(...a, ...b, ...c);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(out, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+function crystalMaterial(name, color) {
+  const key = name + (color === E.WHITE ? 'w' : 'b');
+  if (!crystalMatCache[key]) {
+    const c = new THREE.Color(CRYSTAL_SET[name][color === E.WHITE ? 'w' : 'b']);
+    const clear = name === 'QUEEN';
+    crystalMatCache[key] = new THREE.MeshPhysicalMaterial({
+      color: c, flatShading: true, side: THREE.DoubleSide,
+      roughness: 0.04, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03,
+      transmission: clear ? 0.92 : 0.7, thickness: 0.6, ior: 1.6,
+      attenuationColor: c, attenuationDistance: clear ? 2.5 : (color === E.WHITE ? 0.45 : 0.25),
+      emissive: c, emissiveIntensity: clear ? (color === E.WHITE ? 0.05 : 0.12) : (color === E.WHITE ? 0.22 : 0.3),
+      specularIntensity: 1, specularColor: 0xffffff, iridescence: 0.25, iridescenceIOR: 1.4,
+      envMap: jewelEnv, envMapIntensity: 1.8
+    });
+  }
+  return crystalMatCache[key];
+}
+const crystalEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.42, depthWrite: false });
+function buildGemCrystalPiece(g, add, type, promoted, color) {
+  const name = (promoted && type === E.QUEEN) ? 'PROMOTED'
+    : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
+  const mat = crystalMaterial(name, color);
+  let mesh, geo, edgeKey = name;
+  if (name === 'KNIGHT') {
+    // the low-poly horse (already cut in flat facets), in orange crystal
+    geo = typeof LOWPOLY_WOOD !== 'undefined' ? bkGeometry('LOWPOLY_WOOD', 'KNIGHT', 30) : okGeometry('KNIGHT');
+    edgeKey = typeof LOWPOLY_WOOD !== 'undefined' ? 'KNIGHT_LP' : 'KNIGHT_OK';
+    mesh = add(geo, 0, mat);
+    if (edgeKey === 'KNIGHT_LP') { mesh.scale.setScalar(4.0); mesh.rotation.y = Math.PI; }
+    else { mesh.scale.setScalar(4.2); mesh.rotation.y = -Math.PI / 2; }
+  } else {
+    geo = crystalGeoCache[name] || (crystalGeoCache[name] = crystalLathe(CRYSTAL_SET[name].p, 8));
+    mesh = add(geo, 0, mat);
+    mesh.rotation.y = Math.PI / 8; // a flat face toward each side of the square
+  }
+  if (edgeKey !== 'KNIGHT_OK') { // facet lines (skipped on the smooth fallback horse, where they would be a mesh of hairlines)
+    const eg = crystalEdgeCache[edgeKey] || (crystalEdgeCache[edgeKey] = new THREE.EdgesGeometry(geo, 18));
+    const lines = new THREE.LineSegments(eg, crystalEdgeMat);
+    lines.scale.copy(mesh.scale); lines.rotation.copy(mesh.rotation); lines.position.copy(mesh.position);
+    lines.renderOrder = 2;
+    g.add(lines);
+  }
+  if (name === 'PROMOTED') g.userData.labelTopY = 0.16;
+  if (name === 'PAWN') g.userData.labelTopY = 0.22;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -9904,7 +9990,8 @@ function bkDecode(d, creaseDeg) {
 const MODEL_DATA_FILES = {
   khmerorig: ['data/ok-khmer.js?v=1', 'OK_DATA'],
   tfbattle: ['data/baked-tf.js?v=1', 'TF_AUTOBOT'],
-  lowpoly: ['data/baked-lowpoly.js?v=1', 'LOWPOLY_WOOD']
+  lowpoly: ['data/baked-lowpoly.js?v=1', 'LOWPOLY_WOOD'],
+  gems: ['data/baked-lowpoly.js?v=1', 'LOWPOLY_WOOD'] // (the crystal horse is the low-poly one)
 };
 const modelDataLoading = {};
 function modelDataReady(style) { const f = MODEL_DATA_FILES[style]; return !f || typeof window[f[1]] !== 'undefined'; }
@@ -16666,8 +16753,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.98';
+const APP_VERSION = '1.6.99';
 const WHATS_NEW = [
+  {
+    version: '1.6.99',
+    date: '2026-10-31',
+    title: { kh: 'តួអុកត្បូងគ្រីស្តាល់ថ្មី', en: 'New cut-crystal gem pieces' },
+    items: [
+      { kh: 'តួអុក Gem Blitz ឥឡូវជាគ្រីស្តាល់កាត់មុខ មួយពណ៌សម្រាប់តួនីមួយៗ៖ ស្តេចក្រហមមានកំពូលស្រួច នាងជាថូថ្លា គោលលឿង សេះទឹកក្រូច ទូកជាកោដ្ឋស្វាយមានគម្រប ត្រីបៃតងជាបន្ទះប្រាំបីជ្រុង និងត្រីកំពូលជាកងពណ៌ខៀវ។ ខាងសភ្លឺ ខាងខ្មៅដិត។',
+        en: 'The Gem Blitz pieces are now cut crystal, one colour per piece: a red spired Sdach, a clear vase for the Neang, yellow Koul, orange horses, purple lidded urns for the Touk, green ringed octagons for the Trey and a blue octagonal ring for a promoted Trey. White is the bright shade, Black the deep one.' }
+    ]
+  },
   {
     version: '1.6.98',
     date: '2026-10-31',
@@ -21211,7 +21307,6 @@ function loop() {
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   retrackOnlineThinkingTip();
   retrackFlat2DArt(); // keep 2D standee artwork facing the camera
-  retrackGems(); // the gem pieces turn their faces to the camera
   retrackMagicOrbFloat(); // bob Magic Orb/Orbs pieces up and down
   retrackGalacticOrbit(); // bob Galactic pieces and orbit their moons
   updateModernCinematics(); // advance any in-flight Modern Ops shoot/explode cinematics
