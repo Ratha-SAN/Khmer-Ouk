@@ -3769,7 +3769,7 @@
   //     exist rather than just being weak. Deliberately a much smaller
   //     capture bias than level 2's own (35% vs 75%) so it stays clearly
   //     the easiest level, not a near-duplicate of it.
-  //  2: about 80% of level 3's strength: most moves (7 in 10) are level 3's own (the same depth-2 search); the
+  //  2: about 70% of level 3's strength: most moves (6 in 10) are level 3's own (the same depth-2 search); the
   //     rest are plausible but not the best -- picked at random from the few moves that look nearly as good two
   //     plies ahead -- so it plays soundly and rarely throws pieces away, yet stays a step below level 3.
   //  3: fixed shallow search (depth 2), small time budget.
@@ -3790,7 +3790,7 @@
     if (level === 2) {
       _deadline = Date.now() + 1100;
       try {
-        if (Math.random() < 0.7) { var r2 = searchRoot(W, 2, null).move; return r2 || legal[0]; }
+        if (Math.random() < 0.6) { var r2 = searchRoot(W, 2, null).move; return r2 || legal[0]; }
         var color = W.turn, scored = [];
         for (var k = 0; k < legal.length; k++) {
           var u2 = makeMove(W, legal[k]);
@@ -10870,6 +10870,12 @@ function bgMist(ctx, y, h, color, alpha) {
   ctx.fillStyle = bgLinear(ctx, 0, y - h, 0, y + h, [[0, 'rgba(0,0,0,0)'], [0.5, color], [1, 'rgba(0,0,0,0)']]);
   ctx.fillRect(0, y - h, BG_W, h * 2); ctx.restore();
 }
+// paint a layer on its own canvas, then lay it down blurred in one go (blurring each shape as it is drawn is slow)
+function bgBlurLayer(ctx, px, draw) {
+  const cv = document.createElement('canvas'); cv.width = BG_W; cv.height = BG_H;
+  draw(cv.getContext('2d'));
+  ctx.save(); ctx.filter = 'blur(' + px + 'px)'; ctx.drawImage(cv, 0, 0); ctx.restore();
+}
 function bgVignette(ctx, strength) {
   const g = ctx.createRadialGradient(BG_W / 2, BG_H * 0.48, BG_H * 0.35, BG_W / 2, BG_H * 0.5, BG_W * 0.72);
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,' + strength + ')');
@@ -11194,6 +11200,145 @@ const BACKGROUNDS = {
     ctx.fillStyle = '#4a3a20'; ctx.fillRect(0, base, BG_W, BG_H - base); // the causeway
     bgMist(ctx, base - 20, 60, 'rgba(255,235,200,1)', 0.25);
     bgVignette(ctx, 0.55); bgGrain(ctx, rnd, 8);
+  } },
+  cafe: { label: 'ហាងកាហ្វេខ្មែរ Khmer Café Terrace', paint(ctx) {
+    const rnd = bgRng(101);
+    bgSky(ctx, [[0, '#141a3a'], [0.45, '#3a2f5a'], [0.7, '#b8664a'], [1, '#2a1a12']]);
+    // the street beyond: shopfronts with warm windows, softly out of focus
+    bgBlurLayer(ctx, 3, (ctx) => {
+    for (let x = -40; x < BG_W; x += 150 + rnd() * 80) {
+      const w = 130 + rnd() * 90, h = 220 + rnd() * 160, y = BG_H * 0.62 - h;
+      ctx.fillStyle = ['#2a2030', '#33263a', '#2c2433'][Math.floor(rnd() * 3)]; ctx.fillRect(x, y, w, h);
+      for (let wy = y + 24; wy < y + h - 30; wy += 46) for (let wx = x + 14; wx < x + w - 24; wx += 34)
+        if (rnd() < 0.65) { ctx.fillStyle = rnd() < 0.7 ? 'rgba(255,196,110,0.85)' : 'rgba(255,240,200,0.7)'; ctx.fillRect(wx, wy, 18, 24); }
+    }
+    });
+    [[120, 260], [1480, 300], [1330, 220]].forEach(([x, h]) => bgPalm(ctx, x, BG_H * 0.62, h, '#120c16', rnd));
+    // a tuk-tuk passing, headlight on
+    ctx.fillStyle = '#1b1420'; const tx = BG_W * 0.73, ty = BG_H * 0.6;
+    ctx.fillRect(tx, ty - 70, 150, 58); ctx.fillRect(tx - 60, ty - 48, 70, 36); ctx.beginPath(); ctx.arc(tx + 20, ty - 8, 16, 0, Math.PI * 2); ctx.arc(tx + 125, ty - 8, 16, 0, Math.PI * 2); ctx.fill();
+    bgGlow(ctx, tx - 60, ty - 36, 60, 'rgba(255,240,190,1)', 0.8);
+    bgMist(ctx, BG_H * 0.6, 50, 'rgba(255,190,140,1)', 0.25);
+    // the terrace floor: warm wooden planks running toward the street
+    ctx.fillStyle = bgLinear(ctx, 0, BG_H * 0.62, 0, BG_H, [[0, '#5a3a22'], [1, '#2a180c']]); ctx.fillRect(0, BG_H * 0.62, BG_W, BG_H * 0.38);
+    ctx.strokeStyle = 'rgba(20,10,4,0.55)'; ctx.lineWidth = 2;
+    for (let i = -12; i <= 12; i++) { ctx.beginPath(); ctx.moveTo(BG_W / 2 + i * 40, BG_H * 0.62); ctx.lineTo(BG_W / 2 + i * 210, BG_H); ctx.stroke(); }
+    // rattan chairs and little tables with candles at the sides
+    const table = (x, s) => {
+      ctx.fillStyle = '#1e130b'; ctx.beginPath(); ctx.ellipse(x, BG_H * 0.8, 90 * s, 22 * s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x - 8 * s, BG_H * 0.8, 16 * s, 120 * s);
+      ctx.strokeStyle = '#3a2614'; ctx.lineWidth = 6 * s;
+      for (const side of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x + side * 150 * s, BG_H * 0.78, 50 * s, 80 * s, 0, Math.PI, Math.PI * 2); ctx.stroke(); }
+      bgGlow(ctx, x, BG_H * 0.77, 50 * s, 'rgba(255,190,90,1)', 0.9);
+    };
+    table(170, 1.1); table(BG_W - 170, 1.1);
+    // the string of warm bulbs swinging across the top
+    for (const [y0, sag] of [[90, 120], [40, 160]]) {
+      ctx.strokeStyle = 'rgba(20,14,10,0.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-20, y0); ctx.quadraticCurveTo(BG_W / 2, y0 + sag * 2, BG_W + 20, y0); ctx.stroke();
+      for (let t = 0.03; t < 1; t += 0.055) {
+        const x = -20 + t * (BG_W + 40), y = y0 + 2 * t * (1 - t) * sag * 2 + 14;
+        bgGlow(ctx, x, y, 34, 'rgba(255,200,110,1)', 0.75); ctx.fillStyle = '#fff3d0'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    for (let i = 0; i < 26; i++) bgGlow(ctx, rnd() * BG_W, BG_H * (0.3 + rnd() * 0.3), 20 + rnd() * 40, 'rgba(255,190,120,0.7)', 0.18); // bokeh
+    bgVignette(ctx, 0.55); bgGrain(ctx, rnd, 7);
+  } },
+  chessclub: { label: 'ក្លឹបអុក Chess Club', paint(ctx) {
+    const rnd = bgRng(113);
+    // dark wood panelling
+    ctx.fillStyle = '#2a170c'; ctx.fillRect(0, 0, BG_W, BG_H);
+    for (let x = 0; x < BG_W; x += 160) {
+      ctx.fillStyle = bgLinear(ctx, x, 0, x + 160, 0, [[0, '#3a2112'], [0.5, '#4a2c18'], [1, '#2e190c']]); ctx.fillRect(x + 6, 60, 148, BG_H * 0.5);
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 3; ctx.strokeRect(x + 18, 80, 124, BG_H * 0.5 - 40);
+    }
+    // bookshelves on the left and right walls
+    for (const [x0, x1] of [[0, 330], [BG_W - 330, BG_W]]) {
+      ctx.fillStyle = '#1c0f07'; ctx.fillRect(x0, 40, x1 - x0, BG_H * 0.62);
+      for (let sy = 70; sy < BG_H * 0.62; sy += 90) {
+        let bx = x0 + 12;
+        while (bx < x1 - 20) { const w = 10 + rnd() * 16, h = 54 + rnd() * 24; ctx.fillStyle = ['#6a1e1a', '#1f3a5a', '#2f4a26', '#7a5a22', '#4a2a4a', '#8a6a4a'][Math.floor(rnd() * 6)]; ctx.fillRect(bx, sy + 76 - h, w, h); bx += w + 2; }
+        ctx.fillStyle = '#3a2210'; ctx.fillRect(x0, sy + 76, x1 - x0, 10);
+      }
+    }
+    // a tall window with the last light of evening
+    ctx.fillStyle = bgLinear(ctx, 0, 70, 0, 470, [[0, '#2a3a6a'], [1, '#c87a4a']]); ctx.fillRect(BG_W / 2 - 110, 70, 220, 400);
+    ctx.fillStyle = '#1c0f07'; ctx.fillRect(BG_W / 2 - 6, 70, 12, 400); ctx.fillRect(BG_W / 2 - 110, 260, 220, 10);
+    bgGlow(ctx, BG_W / 2, 280, 380, 'rgba(255,170,110,0.35)', 1);
+    // the floor and rows of tables, each with a board and a green banker's lamp
+    ctx.fillStyle = bgLinear(ctx, 0, BG_H * 0.6, 0, BG_H, [[0, '#3a1e10'], [1, '#160a04']]); ctx.fillRect(0, BG_H * 0.6, BG_W, BG_H * 0.4);
+    bgBlurLayer(ctx, 2, (ctx) => {
+    for (const [y, s] of [[BG_H * 0.66, 0.55], [BG_H * 0.8, 0.85]]) for (let k = 0; k < 4; k++) {
+      const x = BG_W * (0.12 + k * 0.255) + (s < 0.7 ? 60 : 0);
+      ctx.fillStyle = '#2a160a'; ctx.fillRect(x - 110 * s, y, 220 * s, 18 * s); ctx.fillRect(x - 8 * s, y, 16 * s, 120 * s);
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { ctx.fillStyle = (i + j) % 2 ? '#d8c08a' : '#4a2a14'; ctx.fillRect(x - 50 * s + i * 25 * s, y - 10 * s + j * 2.5 * s, 25 * s, 3 * s); }
+      // seated players, out of focus
+      ctx.fillStyle = 'rgba(14,8,4,0.85)';
+      for (const side of [-1, 1]) { ctx.beginPath(); ctx.arc(x + side * 140 * s, y - 60 * s, 26 * s, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + side * 140 * s, y + 10 * s, 52 * s, 70 * s, 0, Math.PI, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = '#1f5a3a'; ctx.beginPath(); ctx.ellipse(x + 70 * s, y - 50 * s, 34 * s, 14 * s, 0, Math.PI, Math.PI * 2); ctx.fill(); // the lamp shade
+      bgGlow(ctx, x + 70 * s, y - 40 * s, 120 * s, 'rgba(255,220,140,1)', 0.55);
+    }
+    });
+    bgVignette(ctx, 0.65); bgGrain(ctx, rnd, 8);
+  } },
+  riverside: { label: 'មាត់ទន្លេ Riverside Café at Dusk', paint(ctx) {
+    const rnd = bgRng(127);
+    bgSky(ctx, [[0, '#1c1f4a'], [0.35, '#5a3a6a'], [0.55, '#e0805a'], [0.62, '#f4b070']]);
+    bgGlow(ctx, BG_W * 0.4, BG_H * 0.58, 420, 'rgba(255,180,110,0.6)', 1);
+    const H = BG_H * 0.6;
+    // the far bank: the palace roofs in silhouette -- stacked, swept Khmer roofs and a tall spire
+    ctx.fillStyle = '#2a1a2e';
+    ctx.fillRect(0, H - 30, BG_W, 30);
+    const roof = (cx, w, h, tiers) => {
+      for (let t = 0; t < tiers; t++) {
+        const ww = w * (1 - t * 0.22), y = H - 30 - t * h * 0.42;
+        ctx.beginPath(); ctx.moveTo(cx - ww / 2 - 18, y); ctx.quadraticCurveTo(cx - ww / 4, y - h * 0.15, cx, y - h * 0.55); ctx.quadraticCurveTo(cx + ww / 4, y - h * 0.15, cx + ww / 2 + 18, y); ctx.closePath(); ctx.fill();
+      }
+      ctx.beginPath(); ctx.moveTo(cx - 6, H - 30 - tiers * h * 0.42); ctx.lineTo(cx, H - 30 - tiers * h * 0.42 - h * 1.1); ctx.lineTo(cx + 6, H - 30 - tiers * h * 0.42); ctx.fill();
+    };
+    roof(BG_W * 0.42, 220, 90, 3); roof(BG_W * 0.58, 160, 70, 3); roof(BG_W * 0.3, 120, 50, 2);
+    [[80, 200], [1500, 240], [1380, 180]].forEach(([x, h]) => bgPalm(ctx, x, H - 20, h, '#1c1222', rnd));
+    // the river, mirroring the sky, with boat lights and ripples
+    ctx.fillStyle = bgLinear(ctx, 0, H, 0, BG_H, [[0, '#c87a5a'], [0.4, '#5a3a5a'], [1, '#1a1430']]); ctx.fillRect(0, H, BG_W, BG_H - H);
+    bgRipples(ctx, rnd, H + 4, BG_H * 0.85, 'rgba(255,200,150,0.45)', 140);
+    for (let i = 0; i < 6; i++) { const x = rnd() * BG_W, y = H + 20 + rnd() * 80; bgGlow(ctx, x, y, 16, 'rgba(255,230,160,1)', 0.8); ctx.fillStyle = 'rgba(255,220,150,0.35)'; ctx.fillRect(x - 2, y + 6, 4, 50); }
+    // the balcony rail in front, and string lights along it
+    ctx.fillStyle = '#140c10'; ctx.fillRect(0, BG_H * 0.86, BG_W, 16);
+    for (let x = 10; x < BG_W; x += 46) ctx.fillRect(x, BG_H * 0.86, 10, BG_H * 0.14);
+    for (let t = 0.02; t < 1; t += 0.04) { const x = t * BG_W, y = BG_H * 0.83 - Math.sin(t * Math.PI * 3) * 10; bgGlow(ctx, x, y, 26, 'rgba(255,214,140,1)', 0.7); }
+    bgVignette(ctx, 0.5); bgGrain(ctx, rnd, 7);
+  } },
+  coffee: { label: 'កាហ្វេទឹកកក Iced Coffee Corner', paint(ctx) {
+    const rnd = bgRng(139);
+    // the café behind, deep out of focus: warm walls, a bright window, round bokeh
+    bgSky(ctx, [[0, '#5a3a24'], [0.6, '#8a5a34'], [1, '#3a2414']]);
+    bgGlow(ctx, BG_W * 0.25, BG_H * 0.25, 420, 'rgba(255,236,190,1)', 0.75);
+    for (let i = 0; i < 34; i++) bgGlow(ctx, rnd() * BG_W, rnd() * BG_H * 0.55, 30 + rnd() * 60, rnd() < 0.5 ? 'rgba(255,210,150,0.8)' : 'rgba(255,240,210,0.7)', 0.18 + rnd() * 0.15);
+    // the wooden table, lit by the sun
+    const T = BG_H * 0.58;
+    ctx.fillStyle = bgLinear(ctx, 0, T, 0, BG_H, [[0, '#a8743e'], [1, '#5a3618']]); ctx.fillRect(0, T, BG_W, BG_H - T);
+    ctx.strokeStyle = 'rgba(70,40,15,0.35)'; ctx.lineWidth = 2;
+    for (let i = 0; i < 26; i++) { const y = T + 8 + i * (BG_H - T) / 26; ctx.beginPath(); ctx.moveTo(0, y); for (let x = 0; x <= BG_W; x += 80) ctx.lineTo(x, y + Math.sin(x * 0.01 + i) * 4); ctx.stroke(); }
+    ctx.fillStyle = bgLinear(ctx, 0, 0, BG_W, 0, [[0, 'rgba(255,240,200,0.28)'], [0.5, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.2)']]); ctx.fillRect(0, T, BG_W, BG_H - T);
+    // a tall glass of iced coffee with condensed milk, on the right
+    const gx = BG_W * 0.86, gy = BG_H * 0.94, gw = 150, gh = 330;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(gx + 30, gy, gw * 0.8, 24, 0, 0, Math.PI * 2); ctx.fill(); // shadow
+    const glass = new Path2D(); glass.moveTo(gx - gw / 2, gy - gh); glass.lineTo(gx + gw / 2, gy - gh); glass.lineTo(gx + gw * 0.42, gy); glass.lineTo(gx - gw * 0.42, gy); glass.closePath();
+    ctx.save(); ctx.clip(glass);
+    ctx.fillStyle = bgLinear(ctx, 0, gy - gh, 0, gy, [[0, '#f0e2c8'], [0.35, '#c89a6a'], [0.55, '#6a3a1a'], [1, '#2a1408']]); ctx.fillRect(gx - gw, gy - gh, gw * 2, gh);
+    for (let i = 0; i < 6; i++) { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.save(); ctx.translate(gx - 40 + (i % 3) * 40, gy - gh + 40 + Math.floor(i / 3) * 70); ctx.rotate(rnd()); ctx.fillRect(-22, -22, 44, 44); ctx.restore(); } // ice
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 4; ctx.stroke(glass);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(gx - gw / 2 + 14, gy - gh + 20, 10, gh - 50); // the shine
+    ctx.strokeStyle = '#2a8a5a'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(gx + 20, gy - gh + 40); ctx.lineTo(gx + 60, gy - gh - 80); ctx.stroke(); // a straw
+    // a notebook and pen on the left
+    ctx.save(); ctx.translate(BG_W * 0.12, BG_H * 0.82); ctx.rotate(-0.18);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-150, -90, 310, 200);
+    ctx.fillStyle = '#f4ecd8'; ctx.fillRect(-160, -100, 300, 190);
+    ctx.strokeStyle = 'rgba(80,110,160,0.35)'; ctx.lineWidth = 2; for (let y = -70; y < 80; y += 22) { ctx.beginPath(); ctx.moveTo(-140, y); ctx.lineTo(120, y); ctx.stroke(); }
+    ctx.fillStyle = '#7a2a1a'; ctx.fillRect(-160, -100, 16, 190);
+    ctx.fillStyle = '#1e2a3a'; ctx.save(); ctx.rotate(0.5); ctx.fillRect(40, -40, 160, 10); ctx.restore();
+    ctx.restore();
+    bgVignette(ctx, 0.45); bgGrain(ctx, rnd, 6);
   } },
   plain: { label: 'ស្រទន់ Soft Gradient (minimal)', paint(ctx) {
     const rnd = bgRng(5);
@@ -16510,8 +16655,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.95';
+const APP_VERSION = '1.6.96';
 const WHATS_NEW = [
+  {
+    version: '1.6.96',
+    date: '2026-10-31',
+    title: { kh: 'ផ្ទៃខាងក្រោយហាងកាហ្វេ និងក្លឹបអុក', en: 'Café and chess-club backgrounds' },
+    items: [
+      { kh: 'ផ្ទៃខាងក្រោយថ្មីបួន៖ ហាងកាហ្វេខ្មែរពេលល្ងាច ក្លឹបអុក ហាងកាហ្វេមាត់ទន្លេ និងកាហ្វេទឹកកកលើតុឈើ។',
+        en: 'Four new backgrounds: a Khmer café terrace in the evening, a chess club, a riverside café at dusk, and an iced coffee on a wooden table.' },
+      { kh: 'កុំព្យូទ័រកម្រិត ២ ត្រូវបានបន្ថយបន្តិច (ប្រហែល ១០%)។',
+        en: 'Computer level 2 is a little easier (about 10% less strong).' }
+    ]
+  },
   {
     version: '1.6.95',
     date: '2026-10-31',
