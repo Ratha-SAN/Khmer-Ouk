@@ -5285,7 +5285,7 @@ THEMES.inkwash = Object.assign({}, THEMES.wood, {
   name: 'Ink & Watercolour — ទឹកខ្មៅ និងពណ៌ទឹក', pieceStyle: 'inkwash',
   bg: 0xf3eee3, frame: 0xe4dccb, tileLight: 0xf8f4ea, tileDark: 0xefe8da,
   pieceW: 0xf8f4ea, pieceB: 0x2a231e, rough: 1, metal: 0,
-  labelInk: '#3a322b', tray: 0xe9e2d3, reflectOpacity: 0, inkTiles: true, inkBackdrop: true
+  labelInk: '#3a322b', tray: 0xe9e2d3, reflectOpacity: 0, inkTiles: true, inkBackdrop: true, inkFx: true
 });
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
@@ -13716,7 +13716,7 @@ function fxGirlyShatter(sq) {
   }
   window.__oukFxLog.push({ tier: 2, key: 'girly_shatter' });
 }
-// Ink & Watercolour 2D (theme.inkFx): wet paint on the paper when a piece moves -- a brush stroke of the
+// Ink & Watercolour, 3D and 2D (theme.inkFx): wet paint on the paper when a piece moves -- a brush stroke of the
 // piece's colour blooms along its path, a splash spreads out where it lands and slowly soaks away, and a
 // capture throws a bigger splash of both colours with spatters. The blooms are flat, unclickable planes on
 // the board under the pieces, with their own small animation loop that stops when the last one has faded.
@@ -17173,8 +17173,8 @@ const WHATS_NEW = [
     items: [
       { kh: 'រូបរាងថ្មី «ទឹកខ្មៅ និងពណ៌ទឹក»៖ តួអុកគ្រីស្តាល់ គូរដោយប៊ិច និងលាបពណ៌ទឹក លើក្រដាសគំនូរ — មានទាំង 3D និង 2D។',
         en: 'New Ink & Watercolour themes: the crystal pieces drawn in pen and painted in watercolour on a sheet of paper, with hatching, inked outlines and a splash of colour under each piece, in 3D and in 2D.' },
-      { kh: 'ក្នុងទឹកខ្មៅ និងពណ៌ទឹក 2D ពណ៌ហៀរជុំវិញតួអុកស្រាលៗ ហើយពេលដើរ ច្រាសពណ៌គូរតាមផ្លូវ និងពណ៌ទឹករាលដាលលើក្រដាសនៅកន្លែងចុះ (ការស៊ីបាចពណ៌ទាំងពីរ)។',
-        en: 'In Ink & Watercolour 2D the colour bleeds softly all round each piece, and every move paints a brush stroke along its path and spreads a pool of watercolour where it lands (a capture splashes both colours).' },
+      { kh: 'ក្នុងទឹកខ្មៅ និងពណ៌ទឹក 2D ពណ៌ហៀរជុំវិញតួអុកស្រាលៗ ហើយក្នុងទាំង 3D និង 2D ពេលដើរ ច្រាសពណ៌គូរតាមផ្លូវ និងពណ៌ទឹករាលដាលលើក្រដាសនៅកន្លែងចុះ (ការស៊ីបាចពណ៌ទាំងពីរ)។',
+        en: 'In Ink & Watercolour 2D the colour bleeds softly all round each piece, and in both Ink & Watercolour themes every move paints a brush stroke along its path and spreads a pool of watercolour where it lands (a capture splashes both colours).' },
       { kh: 'ស្តេចក្នុងឈុតត្បូង និងឈុតគំនូរ ត្រូវបានធ្វើថ្មី៖ ជើងប្រាំបីជ្រុងពីរជាន់ ខ្លួនធំកាត់មុខ និងកំពូលស្រួច។',
         en: 'A new Sdach for the gem and sketch sets: a two-tier octagonal base, a tall faceted body, a small collar and a long pointed spire.' }
     ]
