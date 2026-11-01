@@ -5279,7 +5279,7 @@ THEMES.lowPoly = Object.assign({}, THEMES.wood, { name: 'Low Poly — ឈើក�
 THEMES.inkFlat = Object.assign({}, THEMES.flatPaper, {
   name: 'Ink & Watercolour 2D — ទឹកខ្មៅ និងពណ៌ទឹក 2D', style: '2dink',
   bg: 0xf3eee3, frame: 0xe4dccb, tileLight: 0xf8f4ea, tileDark: 0xefe8da,
-  pieceW: 0xf8f4ea, pieceB: 0x2a231e, labelInk: '#3a322b', tray: 0xe9e2d3, inkTiles: true, inkBackdrop: true
+  pieceW: 0xf8f4ea, pieceB: 0x2a231e, labelInk: '#3a322b', tray: 0xe9e2d3, inkTiles: true, inkBackdrop: true, inkFx: true
 });
 THEMES.inkwash = Object.assign({}, THEMES.wood, {
   name: 'Ink & Watercolour — ទឹកខ្មៅ និងពណ៌ទឹក', pieceStyle: 'inkwash',
@@ -7640,8 +7640,7 @@ function flat2DArtTexture(setStyle, type, color, promoted) {
   } else if (setStyle === '2dink') {
     // Pen & watercolour: the sketch set's side elevation (see projectPieceShade('inkwash')) painted on paper --
     // a watercolour wash in the piece's own colour, paper left bare in the highlight, pen hatching in the shade
-    // (cross-hatched in the deepest), inked facet lines and outline, a hatched cast shadow and a loose splash
-    // of colour bleeding out underneath. White is painted in the light wash, Black in the deep one.
+    // (cross-hatched in the deepest), inked facet lines and outline, and the colour spilling out all round it. White is painted in the light wash, Black in the deep one.
     const name = promoted ? 'PROMOTED' : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[type];
     const hex = INKWASH_SET[name][color === E.WHITE ? 'w' : 'b'], pig = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
     const deep = color === E.BLACK ? 0.14 : 0, PAPER = [247, 242, 231], INK = [42, 35, 30];
@@ -7678,27 +7677,37 @@ function flat2DArtTexture(setStyle, type, color, promoted) {
     const sc = sil.getContext('2d'); sc.drawImage(body, 0, 0); sc.globalCompositeOperation = 'source-in';
     sc.fillStyle = 'rgb(' + INK.join(',') + ')'; sc.fillRect(0, 0, W, W);
     cv.width = cv.height = W; // (full resolution for the fine pen work)
-    const pw = maxX - minX, ph = maxY - minY, flat = type === E.PAWN || promoted; // the Trey is seen from above
+    const pw = maxX - minX, ph = maxY - minY, cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
     const rgb = (a) => 'rgba(' + pig.join(',') + ',' + a + ')';
-    // the splash: overlapping blooms with darker dried edges, spreading out from the base toward the lower right
-    const sx0 = (minX + maxX) / 2 + pw * 0.12, sy0 = flat ? (minY + maxY) / 2 + ph * 0.1 : maxY - ph * 0.04, R = Math.max(pw, flat ? ph : pw) * 0.62;
-    ctx.filter = 'blur(' + (W / 110).toFixed(1) + 'px)';
-    for (let k = 0; k < 7; k++) {
-      const a = rnd() * Math.PI * 2, dd = rnd() * R * 0.45, rx = R * (0.45 + rnd() * 0.4), ry = rx * (flat ? 0.7 + rnd() * 0.3 : 0.32 + rnd() * 0.2);
-      ctx.save(); ctx.translate(sx0 + Math.cos(a) * dd + R * 0.15, sy0 + Math.sin(a) * dd * 0.4); ctx.rotate((rnd() - 0.5) * 0.5); ctx.scale(1, ry / rx);
+    // the colour spills out all round the piece, as if the wash ran into wet paper: a soft swollen copy of the
+    // silhouette, then blooms with darker dried rims around its edge, then a ring of spatters
+    const halo = document.createElement('canvas'); halo.width = halo.height = W;
+    const hc = halo.getContext('2d'); hc.drawImage(sil, 0, 0); hc.globalCompositeOperation = 'source-in';
+    hc.fillStyle = rgb(1); hc.fillRect(0, 0, W, W);
+    ctx.filter = 'blur(' + (W / 30).toFixed(1) + 'px)'; ctx.globalAlpha = 0.24;
+    const sw = 1.22, shh = 1.12; // swell (wider than tall, so tall pieces don't run off the page)
+    ctx.drawImage(halo, cx - cx * sw, cy - cy * shh, W * sw, W * shh);
+    ctx.globalAlpha = 1;
+    ctx.filter = 'blur(' + (W / 70).toFixed(1) + 'px)';
+    const nb = 7;
+    for (let k = 0; k < nb; k++) {
+      const a = (k + rnd() * 0.6) / nb * Math.PI * 2;
+      let x = cx + Math.cos(a) * pw * (0.42 + rnd() * 0.18), y = cy + Math.sin(a) * ph * (0.4 + rnd() * 0.12);
+      let rx = Math.max(pw, ph * 0.6) * (0.3 + rnd() * 0.16), ry = rx * (0.65 + rnd() * 0.35);
+      rx = Math.min(rx, x - 6, W - 6 - x); ry = Math.min(ry, y - 6, W - 6 - y);
+      if (rx < W / 40 || ry < W / 40) continue;
+      ctx.save(); ctx.translate(x, y); ctx.scale(1, ry / rx);
       const gr = ctx.createRadialGradient(0, 0, rx * 0.1, 0, 0, rx);
-      gr.addColorStop(0, rgb(0.22)); gr.addColorStop(0.78, rgb(0.3)); gr.addColorStop(0.93, rgb(0.5)); gr.addColorStop(1, rgb(0));
+      gr.addColorStop(0, rgb(0.06)); gr.addColorStop(0.7, rgb(0.09)); gr.addColorStop(0.9, rgb(0.13)); gr.addColorStop(1, rgb(0));
       ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     }
     ctx.filter = 'none';
-    for (let k = 0; k < 10; k++) { const a = rnd() * Math.PI * 2, dd = R * (0.9 + rnd() * 0.5); ctx.fillStyle = rgb(0.4 + rnd() * 0.35); ctx.beginPath(); ctx.arc(sx0 + Math.cos(a) * dd, sy0 + Math.sin(a) * dd * 0.5, W / 300 + rnd() * W / 140, 0, Math.PI * 2); ctx.fill(); }
-    // a pen-hatched cast shadow to the right of the base
-    ctx.save(); ctx.beginPath();
-    if (flat) ctx.ellipse((minX + maxX) / 2 + pw * 0.1, (minY + maxY) / 2 + ph * 0.08, pw * 0.52, ph * 0.52, 0, 0, Math.PI * 2);
-    else ctx.ellipse(maxX - pw * 0.05, maxY - ph * 0.01, pw * 0.5, Math.max(W / 60, pw * 0.1), 0, 0, Math.PI * 2);
-    ctx.clip(); ctx.strokeStyle = 'rgba(' + INK.join(',') + ',0.55)'; ctx.lineWidth = W / 400;
-    for (let k = -W; k < W * 2; k += W / 90) { ctx.beginPath(); ctx.moveTo(k, W); ctx.lineTo(k + W, 0); ctx.stroke(); }
-    ctx.restore();
+    for (let k = 0; k < 9; k++) {
+      const a = rnd() * Math.PI * 2, f = 0.62 + rnd() * 0.3;
+      const x = cx + Math.cos(a) * Math.max(pw, ph * 0.7) * f, y = cy + Math.sin(a) * ph * f * 0.85, r = W / 320 + rnd() * W / 150;
+      if (x < r + 2 || x > W - r - 2 || y < r + 2 || y > W - r - 2) continue;
+      ctx.fillStyle = rgb(0.2 + rnd() * 0.25); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
     // the pen outline: a firm line and a fainter second pass a little off it, like a sketch gone over twice
     const ow = W / 190;
     for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; ctx.drawImage(sil, Math.cos(a) * ow, Math.sin(a) * ow); }
@@ -13707,6 +13716,140 @@ function fxGirlyShatter(sq) {
   }
   window.__oukFxLog.push({ tier: 2, key: 'girly_shatter' });
 }
+// Ink & Watercolour 2D (theme.inkFx): wet paint on the paper when a piece moves -- a brush stroke of the
+// piece's colour blooms along its path, a splash spreads out where it lands and slowly soaks away, and a
+// capture throws a bigger splash of both colours with spatters. The blooms are flat, unclickable planes on
+// the board under the pieces, with their own small animation loop that stops when the last one has faded.
+const inkFxList = [];
+let inkFxRaf = 0, inkFxLast = 0;
+// a wet, strongly pigmented bloom, centred: a pool with a dark tide-line rim and a few fingers running out
+const inkFxTexCache = {};
+function inkFxTexture(hex, variant) {
+  const key = hex + '_' + variant;
+  if (inkFxTexCache[key]) return inkFxTexCache[key];
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const ctx = cv.getContext('2d');
+  let seed = ((hex * 31) ^ (variant * 7919)) % 2147483646 + 1; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const pig = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255], rgb = (a) => 'rgba(' + pig.join(',') + ',' + a + ')';
+  ctx.filter = 'blur(2.5px)';
+  for (let i = 0; i < 6; i++) {
+    const a = rnd() * Math.PI * 2, d = rnd() * 30, x = S / 2 + Math.cos(a) * d, y = S / 2 + Math.sin(a) * d;
+    const rx = 44 + rnd() * 40, ry = rx * (0.7 + rnd() * 0.3);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rnd() * Math.PI); ctx.scale(1, ry / rx);
+    const g = ctx.createRadialGradient(0, 0, rx * 0.1, 0, 0, rx);
+    g.addColorStop(0, rgb(0.34)); g.addColorStop(0.72, rgb(0.42)); g.addColorStop(0.9, rgb(0.68)); g.addColorStop(1, rgb(0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 5; i++) { // runs: thin fingers of paint creeping out
+    const a = rnd() * Math.PI * 2, r0 = 50 + rnd() * 20, r1 = r0 + 20 + rnd() * 30;
+    ctx.strokeStyle = rgb(0.45); ctx.lineWidth = 3 + rnd() * 5;
+    ctx.beginPath(); ctx.moveTo(S / 2 + Math.cos(a) * r0, S / 2 + Math.sin(a) * r0);
+    ctx.quadraticCurveTo(S / 2 + Math.cos(a + 0.2) * (r0 + r1) / 2, S / 2 + Math.sin(a + 0.2) * (r0 + r1) / 2, S / 2 + Math.cos(a + 0.1) * r1, S / 2 + Math.sin(a + 0.1) * r1);
+    ctx.stroke();
+  }
+  ctx.filter = 'blur(0.5px)';
+  for (let i = 0; i < 12; i++) {
+    const a = rnd() * Math.PI * 2, d = 90 + rnd() * 30;
+    ctx.fillStyle = rgb(0.5 + rnd() * 0.4); ctx.beginPath(); ctx.arc(S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d, 1.2 + rnd() * 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.filter = 'none';
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  return (inkFxTexCache[key] = tex);
+}
+// a wet brush stroke: a band of pigment of wobbling width, tapered where the brush touched down, with a dark
+// tide-line along its edges and bristle streaks down its length
+const inkStrokeTexCache = {};
+function inkStrokeTexture(hex) {
+  if (inkStrokeTexCache[hex]) return inkStrokeTexCache[hex];
+  const Wd = 512, H = 128, cv = document.createElement('canvas'); cv.width = Wd; cv.height = H;
+  const ctx = cv.getContext('2d');
+  let seed = (hex * 17) % 2147483646 + 3; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const pig = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255], rgb = (a) => 'rgba(' + pig.join(',') + ',' + a + ')';
+  const p1 = rnd() * 6, p2 = rnd() * 6, wAt = (x) => (64 + 14 * Math.sin(x * 0.018 + p1) + 8 * Math.sin(x * 0.061 + p2)) * Math.min(1, Math.pow(x / 70, 0.6)) * Math.min(1, (Wd - x) / 26 + 0.35);
+  const cY = (x) => H / 2 + 5 * Math.sin(x * 0.012 + p2);
+  ctx.beginPath(); ctx.moveTo(0, cY(0));
+  for (let x = 0; x <= Wd; x += 8) ctx.lineTo(x, cY(x) - wAt(x) / 2);
+  for (let x = Wd; x >= 0; x -= 8) ctx.lineTo(x, cY(x) + wAt(x) / 2);
+  ctx.closePath();
+  ctx.filter = 'blur(2px)'; ctx.fillStyle = rgb(0.4); ctx.fill();
+  ctx.filter = 'blur(1.2px)'; ctx.strokeStyle = rgb(0.55); ctx.lineWidth = 3; ctx.stroke();
+  ctx.filter = 'blur(0.8px)';
+  for (let i = 0; i < 14; i++) {
+    const off = (rnd() - 0.5) * 0.8, x0 = rnd() * 60, x1 = Wd - rnd() * 120;
+    ctx.strokeStyle = rgb(0.12 + rnd() * 0.14); ctx.lineWidth = 1 + rnd() * 2.5;
+    ctx.beginPath(); ctx.moveTo(x0, cY(x0) + off * wAt(x0)); for (let x = x0; x <= x1; x += 16) ctx.lineTo(x, cY(x) + off * wAt(x)); ctx.stroke();
+  }
+  ctx.filter = 'none';
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  return (inkStrokeTexCache[hex] = tex);
+}
+const inkStrokeGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0); // starts at its origin
+function inkFxStroke(a, b, hex, life) {
+  const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz);
+  const mat = new THREE.MeshBasicMaterial({ map: inkStrokeTexture(hex), transparent: true, depthWrite: false, toneMapped: false, opacity: 0 });
+  const mesh = new THREE.Mesh(inkStrokeGeo, mat);
+  mesh.position.set(a.x - dx / len * 0.18, 0.007, a.z - dz / len * 0.18);
+  mesh.rotation.y = Math.atan2(-dz, dx);
+  mesh.scale.set(0.01, 1, 0.5);
+  mesh.raycast = () => {};
+  scene.add(mesh);
+  inkFxList.push({ mesh, t: 0, life, stroke: len + 0.36 });
+}
+function inkFxBloom(x, z, hex, size, delay, life, variant) {
+  const mat = new THREE.MeshBasicMaterial({ map: inkFxTexture(hex, variant), transparent: true, depthWrite: false, toneMapped: false });
+  mat.opacity = 0;
+  const mesh = new THREE.Mesh(inkSplashGeo, mat);
+  mesh.position.set(x, 0.008, z);
+  mesh.rotation.y = Math.random() * Math.PI * 2;
+  mesh.scale.setScalar(0.01);
+  mesh.raycast = () => {};
+  scene.add(mesh);
+  inkFxList.push({ mesh, t: -delay, size, life });
+}
+function inkFxStep(now) {
+  inkFxAdvance(Math.min(0.25, (now - inkFxLast) / 1000) / (window.__oukAnimSlow || 1)); inkFxLast = now; // (__oukAnimSlow: Test-only)
+  inkFxRaf = inkFxList.length ? requestAnimationFrame(inkFxStep) : 0;
+}
+function inkFxAdvance(dt) {
+  for (let i = inkFxList.length - 1; i >= 0; i--) {
+    const f = inkFxList[i]; f.t += dt;
+    if (f.t < 0) continue;
+    const spread = 1 - Math.pow(1 - Math.min(1, f.t / 0.75), 3); // runs out fast, then creeps as it soaks in
+    if (f.stroke) f.mesh.scale.set(f.stroke * (1 - Math.pow(1 - Math.min(1, f.t / 0.28), 2)), 1, 0.7 * (1 + f.t * 0.06)); // drawn along the path
+    else f.mesh.scale.setScalar(f.size * (0.2 + 0.8 * spread) * (1 + f.t * 0.05));
+    f.mesh.material.opacity = f.t < 0.2 ? f.t / 0.2 : Math.max(0, Math.pow(1 - (f.t - 0.2) / (f.life - 0.2), 1.6));
+    if (f.t >= f.life) { scene.remove(f.mesh); f.mesh.material.dispose(); inkFxList.splice(i, 1); }
+  }
+}
+function inkwashHexOf(p) {
+  const name = E.isProm(p) ? 'PROMOTED' : { [E.KING]: 'KING', [E.QUEEN]: 'QUEEN', [E.BISHOP]: 'BISHOP', [E.KNIGHT]: 'KNIGHT', [E.ROOK]: 'ROOK', [E.PAWN]: 'PAWN' }[E.typeOf(p)];
+  return INKWASH_SET[name][E.colorOf(p) === E.WHITE ? 'w' : 'b'];
+}
+function triggerInkEffect(m, moverPiece, capturedPiece) {
+  if (!theme().inkFx || fxPrefersReducedMotion()) return;
+  try {
+    const hex = inkwashHexOf(state.board[m.to] || moverPiece);
+    const a = sqPos(m.from), b = sqPos(m.to), dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
+    inkFxStroke(a, b, hex, 2.2); // the brush stroke, drawn from the start square to the end
+    inkFxBloom(a.x, a.z, hex, 0.8, 0, 1.8, 0); // a soft bloom where the brush touched down
+    const land = 0.24;
+    inkFxBloom(b.x, b.z, hex, 1.7, land, 2.8, 1);
+    inkFxBloom(b.x + (Math.random() - 0.5) * 0.3, b.z + (Math.random() - 0.5) * 0.3, hex, 1.05, land + 0.12, 2.3, 2);
+    if (capturedPiece !== E.EMPTY) {
+      const hc = inkwashHexOf(capturedPiece);
+      inkFxBloom(b.x, b.z, hc, 2.1, land * 0.6, 3.0, 3);
+      for (let k = 0; k < 5; k++) {
+        const ang = Math.random() * Math.PI * 2, r = 0.55 + Math.random() * 0.45;
+        inkFxBloom(b.x + Math.cos(ang) * r, b.z + Math.sin(ang) * r, k % 2 ? hc : hex, 0.32 + Math.random() * 0.2, land + 0.05 * k, 2.2, k % 4);
+      }
+    }
+    window.__oukFxLog.push({ tier: 1, key: capturedPiece !== E.EMPTY ? 'ink_capture' : 'ink_move' });
+    if (!inkFxRaf) { inkFxLast = performance.now(); inkFxRaf = requestAnimationFrame(inkFxStep); }
+  } catch (err) {
+    console.warn('ink-effect render failed (ignored):', err);
+  }
+}
 function triggerGirlyEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
   const t = theme();
   if (!t.girlyFx) return;
@@ -15643,6 +15786,7 @@ function applyMove(m) {
   triggerCambodiaEffect(m, mover, captured, isCheck, isCheckmate);
   triggerAnnoEffect(m, mover, captured, isCheck, isCheckmate);
   triggerGirlyEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerInkEffect(m, mover, captured);
   triggerTransformersEffect(m, mover, captured, isCheck, isCheckmate);
   triggerModernEffect(m, mover, captured, isCheck, isCheckmate, modernCaptureCue);
   triggerYantraEffect(m, mover, captured, isCheck, isCheckmate);
@@ -17029,6 +17173,8 @@ const WHATS_NEW = [
     items: [
       { kh: 'រូបរាងថ្មី «ទឹកខ្មៅ និងពណ៌ទឹក»៖ តួអុកគ្រីស្តាល់ គូរដោយប៊ិច និងលាបពណ៌ទឹក លើក្រដាសគំនូរ — មានទាំង 3D និង 2D។',
         en: 'New Ink & Watercolour themes: the crystal pieces drawn in pen and painted in watercolour on a sheet of paper, with hatching, inked outlines and a splash of colour under each piece, in 3D and in 2D.' },
+      { kh: 'ក្នុងទឹកខ្មៅ និងពណ៌ទឹក 2D ពណ៌ហៀរជុំវិញតួអុកស្រាលៗ ហើយពេលដើរ ច្រាសពណ៌គូរតាមផ្លូវ និងពណ៌ទឹករាលដាលលើក្រដាសនៅកន្លែងចុះ (ការស៊ីបាចពណ៌ទាំងពីរ)។',
+        en: 'In Ink & Watercolour 2D the colour bleeds softly all round each piece, and every move paints a brush stroke along its path and spreads a pool of watercolour where it lands (a capture splashes both colours).' },
       { kh: 'ស្តេចក្នុងឈុតត្បូង និងឈុតគំនូរ ត្រូវបានធ្វើថ្មី៖ ជើងប្រាំបីជ្រុងពីរជាន់ ខ្លួនធំកាត់មុខ និងកំពូលស្រួច។',
         en: 'A new Sdach for the gem and sketch sets: a two-tier octagonal base, a tall faceted body, a small collar and a long pointed spire.' }
     ]
@@ -20793,6 +20939,7 @@ window.__ouk = {
   debugFlat2DSize: (setStyle, type) => (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type],
   debugApplyMove: (m) => applyMove(m),
   debugRenderMusic: (key, secs) => musRenderOffline(key, secs), // Test-only
+  debugInkFx: (secs) => { inkFxAdvance(secs); return inkFxList.length; }, // Test-only: step the watercolour move blooms
   debugBgArt: (key) => { backgroundTexture(key, 0, false); return bgArtCache[key].toDataURL('image/jpeg', 0.85); }, // Test-only
   debugPieceStyle: () => pieceStyle(), // Test-only: the piece style in use
   debugRagdolls: () => ragdolls.map((r) => ({ t: +r.t.toFixed(2), p: r.g.position.toArray().map((x) => +x.toFixed(2)) })), // Test-only
