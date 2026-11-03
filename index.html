@@ -259,7 +259,8 @@
   #camControls #topViewBtn.mode-top { background: color-mix(in srgb, #4fd88a 24%, var(--panel-bg)) !important; color: #d9ffe8; }
   #camControls #topViewBtn.mode-3d { background: color-mix(in srgb, var(--accent) 20%, var(--panel-bg)) !important; color: var(--accent); }
   /* full screen: a wider button with its name */
-  #camControls #fullscreenBtn { width: auto; padding: 0 12px; white-space: nowrap; font-size: 13px; font-weight: 600; order: -1; } /* a computer: first in the column, just under ◧ */
+  #camControls #fullscreenBtn { width: auto; padding: 0 12px; white-space: nowrap; font-size: 13px; font-weight: 600; order: -1; }
+  .fsIcon { display: inline-block; vertical-align: -0.2em; flex: none; } /* drawn: the ⛶ character has no glyph on iPhone */ /* a computer: first in the column, just under ◧ */
   #camControls button {
     width: 44px; height: 40px; font-size: 16px; border-radius: 8px; border: 1px solid var(--accent-dim);
     background: color-mix(in srgb, var(--panel-bg) 82%, transparent); color: var(--panel-fg); cursor: pointer;
@@ -948,7 +949,8 @@
     #camControls button { width: auto; min-width: 0; height: 30px; padding: 0; font-size: 14px; border-radius: 7px; }
     #camControls #settingsBtn { display: block; grid-column: 3; grid-row: 1; }
     #camControls #topViewBtn { font-size: 11px; }
-    #camControls #fullscreenBtn { grid-column: span 2; width: auto; padding: 0 4px; font-size: 11px; order: 0; overflow: hidden; text-overflow: ellipsis; }
+    #camControls #fullscreenBtn { grid-column: span 2; width: auto; padding: 0 2px; font-size: 10.5px; order: 0; overflow: hidden; text-overflow: ellipsis; }
+    #camControls #fullscreenBtn .fsIcon { width: 1.05em; height: 1.05em; } /* a touch smaller, so the name still fits beside it */
     #boardTitle { font-size: 20px; top: 14px; }
   }
   @media (max-width: 400px) {
@@ -2630,7 +2632,7 @@
     <button id="topViewBtn" class="mode-3d" title="3D → 2D → Top">3D</button>
     <button id="sideViewBtn" title="ទិដ្ឋភាពចំហៀង — Side view">⇆</button>
     <button id="flipViewBtn" title="Flip Board View">⇅</button>
-    <button id="fullscreenBtn" title="ពេញអេក្រង់ — Full screen">⛶ <span class="t-kh">ពេញអេក្រង់</span><span class="t-en">Full screen</span></button>
+    <button id="fullscreenBtn" title="ពេញអេក្រង់ — Full screen"><svg class="fsIcon" viewBox="0 0 16 16" width="1.15em" height="1.15em" aria-hidden="true"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> <span class="t-kh">ពេញអេក្រង់</span><span class="t-en">Full screen</span></button>
     <button id="settingsBtn" title="ការកំណត់ — Settings">⚙</button>
   </div>
 </div>
@@ -3077,7 +3079,7 @@
 
 <div id="homeScreenPopup" class="fullOverlay" style="display:none;z-index:25">
   <div class="box" style="max-width:380px">
-    <p style="font-size:20px;margin:0 0 6px">⛶</p>
+    <p style="font-size:26px;margin:0 0 6px;line-height:1"><svg class="fsIcon" viewBox="0 0 16 16" width="1.15em" height="1.15em" aria-hidden="true"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
     <p><span class="t-kh">iPhone និង iPad មិនអនុញ្ញាតឲ្យគេហទំព័របើកពេញអេក្រង់ទេ។ ដើម្បីលេងពេញអេក្រង់ សូមបន្ថែម អុកចត្រង្គ ទៅអេក្រង់ដើម៖</span><span class="t-sep"> — </span><span class="t-en">iPhone and iPad do not let web pages go full screen. To play full screen, add Ouk Chatrang to your home screen:</span></p>
     <ol class="homeSteps">
       <li><p><span class="t-kh">ចុចប៊ូតុងចែករំលែក <b>□↑</b> (Chrome៖ ខាងស្ដាំរបារអាសយដ្ឋាន · Safari៖ ខាងក្រោម)</span><span class="t-sep"> — </span><span class="t-en">Tap the Share button <b>□↑</b> (Chrome: right of the address bar · Safari: at the bottom)</span></p><img src="help/home-screen-1.jpg" width="550" height="523" loading="lazy" alt=""></li>
@@ -17164,8 +17166,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.101';
+const APP_VERSION = '1.6.102';
 const WHATS_NEW = [
+  {
+    version: '1.6.102',
+    date: '2026-11-03',
+    title: { kh: 'រូបតំណាងពេញអេក្រង់', en: 'The full screen icon' },
+    items: [
+      { kh: 'ប៊ូតុងពេញអេក្រង់ ឥឡូវបង្ហាញរូបតំណាងជ្រុងបួននៅគ្រប់ឧបករណ៍ (លើ iPhone វាធ្លាប់បង្ហាញតែអក្សរ)។',
+        en: 'The full screen button now shows its four-corner icon on every device (on iPhone it used to show the words only).' }
+    ]
+  },
   {
     version: '1.6.101',
     date: '2026-11-03',
