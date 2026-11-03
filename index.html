@@ -948,7 +948,7 @@
     #camControls button { width: auto; min-width: 0; height: 30px; padding: 0; font-size: 14px; border-radius: 7px; }
     #camControls #settingsBtn { display: block; grid-column: 3; grid-row: 1; }
     #camControls #topViewBtn { font-size: 11px; }
-    #camControls #fullscreenBtn { grid-column: span 2; width: auto; padding: 0 4px; font-size: 11px; order: 0; }
+    #camControls #fullscreenBtn { grid-column: span 2; width: auto; padding: 0 4px; font-size: 11px; order: 0; overflow: hidden; text-overflow: ellipsis; }
     #boardTitle { font-size: 20px; top: 14px; }
   }
   @media (max-width: 400px) {
@@ -17164,8 +17164,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.100';
+const APP_VERSION = '1.6.101';
 const WHATS_NEW = [
+  {
+    version: '1.6.101',
+    date: '2026-11-03',
+    title: { kh: 'ប៊ូតុងពេញអេក្រង់លើ iPhone', en: 'A full screen button on iPhone' },
+    items: [
+      { kh: 'លើ iPhone ប៊ូតុង ⛶ ពេញអេក្រង់ ត្រឡប់មកវិញ។ ដោយសារ Safari មិនអនុញ្ញាតឲ្យគេហទំព័របើកពេញអេក្រង់ ការចុចវាបង្ហាញរបៀបបន្ថែម អុកចត្រង្គ ទៅអេក្រង់ដើម ដែលបើកពេញអេក្រង់ដោយគ្មានរបារកម្មវិធីរុករក។',
+        en: 'On iPhone the ⛶ Full screen button is back. Safari does not let web pages go full screen, so it shows how to add Ouk Chatrang to your home screen, which opens full screen with no browser bars.' }
+    ]
+  },
   {
     version: '1.6.100',
     date: '2026-10-31',
@@ -21697,15 +21706,22 @@ function toggleSettingsPanel() {
 document.getElementById('panelToggle').onclick = () => toggleSettingsPanel();
 document.getElementById('settingsBtn').onclick = () => toggleSettingsPanel();
 // ⛶ full screen: switches full screen on and off where the browser allows it (Android, iPad, computers). An iPhone
-// allows no full screen for web pages, so there the button is hidden (no pop-up: the Add to Home Screen banner still
-// offers the home-screen guide, and the game opened from the home screen has no browser bars). Hidden too once
-// opened that way.
+// allows no full screen for web pages, so there it opens the Add to Home Screen picture guide instead (the game
+// opened from the home screen has no browser bars). Hidden once opened that way, and in in-app browsers (Facebook,
+// TikTok, ...) that can neither go full screen nor add to the home screen.
 (function () {
   const btn = document.getElementById('fullscreenBtn');
   const installed = window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
   if (installed) { btn.style.display = 'none'; return; }
   const supported = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
-  if (!supported) { btn.style.display = 'none'; return; }
+  if (!supported) {
+    const ua = navigator.userAgent || '';
+    const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const iab = /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(ua);
+    if (!ios || iab) { btn.style.display = 'none'; return; }
+    btn.onclick = () => { trackEvent('fullscreen_btn', { supported, guide: true }); openPopup('homeScreenPopup'); };
+    return;
+  }
   const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
   const sync = () => btn.classList.toggle('active', isFull());
   document.addEventListener('fullscreenchange', sync);
