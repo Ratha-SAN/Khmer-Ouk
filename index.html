@@ -4289,6 +4289,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const E = OukEngine;
 
@@ -4315,7 +4316,9 @@ const THEMES = {
     bg: 0x15100a, fog: null,
     frame: 0x3d2410, tileLight: 0xdec48f, tileDark: 0x9a6633,
     pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.45, metal: 0.05,
-    labelInk: '#f4e6c8', tray: 0x2c1a0c
+    labelInk: '#f4e6c8', tray: 0x2c1a0c,
+    // realistic scene (see applyRealism): a wood-grain varnished board with dark inlaid lines on a walnut table
+    real: true, gridInk: '#2a1406'
   },
   stone: {
     // pieceB was a near-neutral grayish-tan only marginally darker than
@@ -5258,7 +5261,7 @@ const THEMES = {
 Object.assign(THEMES.magic2, { pieceStyle: 'khmerorig', okThemeColors: true });
 // Original Cartoon: the Original Khmer pieces in white and brown (the classic wood's own colours), cel-shaded with ink outlines
 THEMES.okCartoon = Object.assign({}, THEMES.wood, {
-  name: 'Original Cartoon — គំនូរជីវចល', pieceStyle: 'khmerorig', okToon: true,
+  name: 'Original Cartoon — គំនូរជីវចល', pieceStyle: 'khmerorig', okToon: true, real: false, gridInk: null,
   bg: 0x26364a, frame: 0x5e3517, tileLight: 0xf2dca6, tileDark: 0xb87a3f,
   pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.9, metal: 0, labelInk: '#fff1cf', tray: 0x4a2a12, reflectOpacity: 0.05
 });
@@ -5287,7 +5290,7 @@ THEMES.inkwash = Object.assign({}, THEMES.wood, {
   name: 'Ink & Watercolour — ទឹកខ្មៅ និងពណ៌ទឹក', pieceStyle: 'inkwash',
   bg: 0xf3eee3, frame: 0xe4dccb, tileLight: 0xf8f4ea, tileDark: 0xefe8da,
   pieceW: 0xf8f4ea, pieceB: 0x2a231e, rough: 1, metal: 0,
-  labelInk: '#3a322b', tray: 0xe9e2d3, reflectOpacity: 0, inkTiles: true, inkBackdrop: true, inkFx: true
+  labelInk: '#3a322b', tray: 0xe9e2d3, reflectOpacity: 0, inkTiles: true, inkBackdrop: true, inkFx: true, real: false, gridInk: null
 });
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
@@ -5379,12 +5382,13 @@ const sceneDiv = document.getElementById('scene');
 // overall scene brightness, applied as a renderer exposure multiplier so it
 // stays independent of the azimuth/elevation/mood lighting controls
 let sceneBrightness = 1, pieceLuminescence = 0;
+let themeExposure = 1, realToneMapping = false; // the realistic scene's tone mapping (see applyRealism)
 function createRenderer(smooth) {
   const r = new THREE.WebGLRenderer({ antialias: smooth, powerPreference: 'high-performance' });
   r.shadowMap.enabled = true;
   r.shadowMap.type = smooth ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
-  r.toneMapping = THREE.LinearToneMapping;
-  r.toneMappingExposure = sceneBrightness;
+  r.toneMapping = realToneMapping ? THREE.ACESFilmicToneMapping : THREE.LinearToneMapping;
+  r.toneMappingExposure = sceneBrightness * themeExposure;
   return r;
 }
 function configureControls(c) {
@@ -5565,7 +5569,7 @@ document.getElementById('lightAzimuth').oninput = (e) => { lightAzimuth = +e.tar
 document.getElementById('lightElevation').oninput = (e) => { lightElevation = +e.target.value; updateSunPosition(); };
 document.getElementById('lightBrightness').oninput = (e) => {
   sceneBrightness = +e.target.value / 100; // 100 = neutral (exposure 1.0)
-  renderer.toneMappingExposure = sceneBrightness;
+  renderer.toneMappingExposure = sceneBrightness * themeExposure;
 };
 document.getElementById('pieceLuminescence').oninput = (e) => {
   pieceLuminescence = (+e.target.value / 100) * 2; // 0..100 slider -> 0..2 emissiveIntensity
@@ -5627,6 +5631,167 @@ gridOverlayMesh.rotation.x = -Math.PI / 2;
 gridOverlayMesh.position.y = 0.001;
 gridOverlayMesh.visible = false;
 scene.add(gridOverlayMesh);
+
+// ---------- realistic scene (themes with real: true -- Classic Wood and the sets built on it) ----------
+// A real board on a real table: one varnished wooden playing surface (glued planks with running grain, cut
+// into the 64 squares as windows on the same sheet, so the grain carries across the lines), dark inlaid lines,
+// a rounded rosewood frame, a walnut table under it that fades into the dark room, a soft contact shadow under
+// every piece, film-style (ACES) tone mapping and a warm room reflected in the polish. Off for every other
+// theme, which keep their own looks exactly.
+function realWoodCanvas(W, H, base, opts) {
+  const o = Object.assign({ planks: 4, seed: 1, grain: 'rgba(60,30,8,', light: 'rgba(255,225,170,', seams: true, vertical: true }, opts || {});
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  let seed = o.seed * 7919 + 17; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const L = o.vertical ? H : W, A = o.vertical ? W : H; // along / across the grain
+  const c = new THREE.Color(base);
+  const pw = A / o.planks;
+  for (let p = 0; p < o.planks; p++) {
+    const tone = 1 + (rnd() - 0.5) * 0.14, hue = (rnd() - 0.5) * 0.02;
+    const pc = c.clone().offsetHSL(hue, 0, 0); pc.multiplyScalar(tone);
+    ctx.save();
+    if (o.vertical) { ctx.beginPath(); ctx.rect(p * pw, 0, pw, H); ctx.clip(); } else { ctx.beginPath(); ctx.rect(0, p * pw, W, pw); ctx.clip(); }
+    ctx.fillStyle = '#' + pc.getHexString(); ctx.fillRect(0, 0, W, H);
+    // the grain: long gently waving lines, in families that bend together, darker latewood and paler earlywood
+    const f1 = 0.5 + rnd() * 1.5, ph = rnd() * 6.28, amp = 4 + rnd() * 10, a0 = p * pw;
+    const pos = (t, k) => { // t along, k across (0..1 in this plank) -> canvas x,y
+      const across = a0 + k * pw + Math.sin(t / L * 6.28 * f1 + ph + k * 2) * amp + Math.sin(t / L * 6.28 * 3.3 + k * 9) * amp * 0.25;
+      return o.vertical ? [across, t] : [t, across];
+    };
+    for (let i = 0; i < 70; i++) {
+      const k = rnd(), dark = rnd() < 0.62;
+      ctx.strokeStyle = (dark ? o.grain : o.light) + (dark ? 0.05 + rnd() * 0.12 : 0.04 + rnd() * 0.07).toFixed(3) + ')';
+      ctx.lineWidth = 0.6 + rnd() * (dark ? 2.6 : 4);
+      ctx.beginPath();
+      for (let t = -10; t <= L + 10; t += 12) { const [x, y] = pos(t, k); if (t < 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+    // a few long soft colour bands (the figure of the wood)
+    ctx.filter = 'blur(' + Math.round(pw / 14) + 'px)';
+    for (let i = 0; i < 6; i++) {
+      const k = rnd(); ctx.strokeStyle = (rnd() < 0.5 ? o.grain : o.light) + (0.05 + rnd() * 0.07).toFixed(3) + ')'; ctx.lineWidth = pw * (0.06 + rnd() * 0.12);
+      ctx.beginPath(); for (let t = -10; t <= L + 10; t += 24) { const [x, y] = pos(t, k); if (t < 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); } ctx.stroke();
+    }
+    ctx.filter = 'none';
+    // pores: tiny dark flecks drawn out along the grain
+    for (let i = 0; i < pw * L / 900; i++) {
+      const t = rnd() * L, k = rnd(), [x, y] = pos(t, k), len = 2 + rnd() * 6;
+      ctx.fillStyle = o.grain + (0.1 + rnd() * 0.2).toFixed(2) + ')';
+      if (o.vertical) ctx.fillRect(x, y, 0.8, len); else ctx.fillRect(x, y, len, 0.8);
+    }
+    ctx.restore();
+    if (o.seams && p > 0) { // the glue line between two planks
+      ctx.fillStyle = 'rgba(35,18,6,0.28)';
+      if (o.vertical) ctx.fillRect(p * pw - 0.75, 0, 1.5, H); else ctx.fillRect(0, p * pw - 0.75, W, 1.5);
+    }
+  }
+  return cv;
+}
+const realBoardTexCache = {};
+// the playing surface: one sheet of wood per tone, each square shows its own 1/8 x 1/8 window of it
+function realBoardTexture(hex, kind, sq) {
+  const key = kind + hex + '_' + sq;
+  if (realBoardTexCache[key]) return realBoardTexCache[key];
+  const sheetKey = kind + hex;
+  if (!realBoardTexCache[sheetKey]) {
+    const tex = new THREE.CanvasTexture(realWoodCanvas(1024, 1024, hex, { planks: kind === 'K' ? 5 : 4, seed: kind.charCodeAt(0) }));
+    tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+    realBoardTexCache[sheetKey] = tex;
+  }
+  const t = realBoardTexCache[sheetKey].clone();
+  t.repeat.set(1 / 8, 1 / 8); t.offset.set(E.fileOf(sq) / 8, E.rankOf(sq) / 8);
+  t.needsUpdate = true;
+  return (realBoardTexCache[key] = t);
+}
+let realFrameTex = null, realTableTex = null, realRoomEnv = null, realFrameGeo = null, realContactTex = null;
+const boxFrameGeo = frame.geometry;
+function realFrameTexture() {
+  if (!realFrameTex) {
+    realFrameTex = new THREE.CanvasTexture(realWoodCanvas(512, 1024, 0x4a2412, { planks: 1, seed: 5, grain: 'rgba(20,6,2,', light: 'rgba(200,120,80,', seams: false }));
+    realFrameTex.colorSpace = THREE.SRGBColorSpace; realFrameTex.anisotropy = 8;
+  }
+  return realFrameTex;
+}
+// the table: walnut boards running across the view, fading into the room with the fog
+const realTableMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.62, metalness: 0 });
+const realTable = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), realTableMat);
+realTable.rotation.x = -Math.PI / 2; realTable.position.y = -0.551; realTable.receiveShadow = true; realTable.visible = false;
+realTable.raycast = () => {};
+scene.add(realTable);
+// a warm room for the polish to reflect: dark panelled walls, a tall window to one side, two lamps and a pale ceiling
+function buildRoomEnvironment() {
+  const w = 1024, h = 512, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#e9dfcf'); g.addColorStop(0.3, '#8a735a'); g.addColorStop(0.5, '#4a3626'); g.addColorStop(0.62, '#2a1c12'); g.addColorStop(1, '#120c08');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.filter = 'blur(6px)';
+  ctx.fillStyle = 'rgba(255,250,240,0.95)'; ctx.fillRect(w * 0.18, h * 0.14, w * 0.12, h * 0.34); // the window
+  ctx.fillStyle = 'rgba(220,235,255,0.6)'; ctx.fillRect(w * 0.31, h * 0.16, w * 0.04, h * 0.3);
+  for (const x of [0.62, 0.82]) { // lamps
+    const rg = ctx.createRadialGradient(w * x, h * 0.34, 0, w * x, h * 0.34, 46);
+    rg.addColorStop(0, 'rgba(255,214,150,1)'); rg.addColorStop(1, 'rgba(255,190,120,0)');
+    ctx.fillStyle = rg; ctx.fillRect(w * x - 50, h * 0.34 - 50, 100, 100);
+  }
+  ctx.filter = 'none';
+  const tex = new THREE.CanvasTexture(cv);
+  tex.mapping = THREE.EquirectangularReflectionMapping; tex.colorSpace = THREE.SRGBColorSpace;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const rt = pmrem.fromEquirectangular(tex);
+  tex.dispose(); pmrem.dispose();
+  return rt.texture;
+}
+let studioEnv = null;
+// a soft dark disc under a piece where it touches the board (the shading a lamp's shadow alone misses)
+function realContactShadow() {
+  if (!realContactTex) {
+    const S = 128, cv = document.createElement('canvas'); cv.width = cv.height = S;
+    const ctx = cv.getContext('2d'), rg = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    rg.addColorStop(0, 'rgba(0,0,0,0.62)'); rg.addColorStop(0.45, 'rgba(0,0,0,0.42)'); rg.addColorStop(0.75, 'rgba(0,0,0,0.12)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, S, S);
+    realContactTex = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  }
+  const m = new THREE.Mesh(realContactGeo, realContactTex);
+  m.position.y = 0.003; m.raycast = () => {}; m.userData.contactShadow = true; m.renderOrder = 1;
+  return m;
+}
+const realContactGeo = new THREE.PlaneGeometry(0.86, 0.86).rotateX(-Math.PI / 2);
+function addContactShadow(g) {
+  if (!theme().real || pieceStyle().slice(0, 2) === '2d') return;
+  g.add(realContactShadow());
+}
+function applyRealism(t) {
+  const real = !!t.real;
+  realToneMapping = real;
+  themeExposure = real ? (t.realExposure || 1.12) : 1;
+  renderer.toneMapping = real ? THREE.ACESFilmicToneMapping : THREE.LinearToneMapping;
+  renderer.toneMappingExposure = sceneBrightness * themeExposure;
+  if (!studioEnv) studioEnv = scene.environment;
+  if (real && !realRoomEnv) { try { realRoomEnv = buildRoomEnvironment(); } catch (e) { realRoomEnv = null; } }
+  scene.environment = (real && realRoomEnv) ? realRoomEnv : studioEnv;
+  if (real && !realFrameGeo) realFrameGeo = new RoundedBoxGeometry(9.4, 0.5, 11.9, 4, 0.09);
+  frame.geometry = real ? realFrameGeo : boxFrameGeo;
+  frame.castShadow = real;
+  if (real) {
+    frameMat.map = realFrameTexture(); frameMat.color.setHex(0xffffff);
+    frameMat.roughness = 0.48; frameMat.clearcoat = 0.35; frameMat.clearcoatRoughness = 0.28; frameMat.envMapIntensity = 0.4;
+    frameMat.needsUpdate = true;
+    trayMat.roughness = 1; // (felt-lined trays)
+    if (!realTableTex) {
+      realTableTex = new THREE.CanvasTexture(realWoodCanvas(1024, 1024, 0x2a1a10, { planks: 4, seed: 9, vertical: false, grain: 'rgba(14,8,3,', light: 'rgba(120,85,55,' }));
+      realTableTex.colorSpace = THREE.SRGBColorSpace; realTableTex.wrapS = realTableTex.wrapT = THREE.RepeatWrapping;
+      realTableTex.repeat.set(3, 3); realTableTex.anisotropy = 8;
+      realTableMat.map = realTableTex; realTableMat.needsUpdate = true;
+    }
+  } else trayMat.roughness = 0.9;
+  realTable.visible = real;
+  if (real) scene.fog = new THREE.Fog(t.bg, t.realFog ? t.realFog[0] : 16, t.realFog ? t.realFog[1] : 40);
+  // tighter, cleaner shadows: the shadow camera spans the table around the board, with a small bias against acne
+  const ext = real ? 9.5 : 7;
+  sun.shadow.camera.left = -ext; sun.shadow.camera.right = ext; sun.shadow.camera.top = ext; sun.shadow.camera.bottom = -ext;
+  sun.shadow.bias = real ? -0.0004 : 0; sun.shadow.normalBias = real ? 0.02 : 0;
+  sun.shadow.camera.updateProjectionMatrix();
+}
 
 // ---------- Khmer coordinate labels on the frame ----------
 const KH_FILES = ['ក', 'ខ', 'គ', 'ឃ', 'ង', 'ច', 'ឆ', 'ជ'];
@@ -10581,6 +10746,7 @@ function rebuildPieces() {
     const type = E.typeOf(p);
     const color = E.colorOf(p);
     const g = buildPiece(type, color, E.isProm(p), sq);
+    addContactShadow(g);
     const pos = sqPos(sq);
     g.position.set(pos.x, 0, pos.z);
     if (g.userData.flat2dPlane && !onStartingSquare(sq, p)) g.userData.flat2dShift = flat2dInkShift(type, E.isProm(p));
@@ -10635,7 +10801,7 @@ function startRagdoll(g, fromSq, toSq) {
   // away from the attacker like a log; a little twist besides
   const w = dir.clone().multiplyScalar((Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 3));
   w.y = (Math.random() - 0.5) * 3;
-  g.traverse((o) => { if (o.userData.inkSplash) o.visible = false; }); // (a watercolour splash stays on the paper)
+  g.traverse((o) => { if (o.userData.inkSplash || o.userData.contactShadow) o.visible = false; }); // (a watercolour splash / contact shadow stays on the board)
   ragdolls.push({ g, v, w, t: 0, rest: 0, vanish: -1, s0: g.scale.clone() });
   if (!ragdollRaf) { ragdollLast = performance.now(); ragdollRaf = requestAnimationFrame(ragdollStep); }
 }
@@ -10794,6 +10960,7 @@ function rebuildCaptured() {
     row.list.forEach((t, i) => {
       const occ = typeCounts[t] = (typeCounts[t] || 0) + 1;
       const g = buildPiece(t, row.color, false, 1000 + row.color * 100 + t * 10 + occ);
+      addContactShadow(g);
       g.scale.setScalar(capSideLayout ? CAP_SIDE_SCALE : 0.55);
       if (capSideLayout) {
         // two columns per side, White's lost pieces on the left, Black's on the right
@@ -12083,7 +12250,7 @@ function applyTheme(key) {
   // applies whichever of the three surface treatments the active theme
   // and piece style call for.
   updatePieceMaterialTexture();
-  const tiled = t.brickTiles || t.paintedTiles || t.marbleTiles || t.gradientTiles || t.inkTiles;
+  const tiled = t.brickTiles || t.paintedTiles || t.marbleTiles || t.gradientTiles || t.inkTiles || t.real;
   for (const m of squareMeshes) {
     const light = (E.fileOf(m.userData.sq) + E.rankOf(m.userData.sq)) % 2 === 1;
     // Khmer board style: every square shares one wood tone instead of the
@@ -12104,7 +12271,10 @@ function applyTheme(key) {
       ? buildGradientTileTexture(hex, 'gt' + hex.toString(16) + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
       : t.inkTiles
       ? buildInkTileTexture(hex, 'ink' + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
+      : t.real
+      ? realBoardTexture(hex, khmerBoardStyle ? 'K' : (light ? 'L' : 'D'), m.userData.sq)
       : null;
+    m.material.roughness = t.real ? 0.4 : 0.85;
     m.material.ior = t.ior || 1.5;
     m.material.clearcoat = t.clearcoat || 0;
     // Dark squares can opt into a rougher clearcoat + a dimmer env pull
@@ -12124,6 +12294,7 @@ function applyTheme(key) {
       m.material.clearcoatRoughness = 0.22;
       m.material.envMapIntensity = Math.max(m.material.envMapIntensity, Math.min(0.45, reflectBaseOpacity * 1.9));
     }
+    if (t.real) { m.material.clearcoat = 0.6; m.material.clearcoatRoughness = 0.16; m.material.envMapIntensity = 0.5; } // a varnished board
     // Glass's light/dark squares are two different materials (clear vs.
     // black glass), not one material in two colors, so transmission is
     // looked up per-square by light/dark rather than being a single theme
@@ -12138,7 +12309,8 @@ function applyTheme(key) {
     m.material.needsUpdate = true;
   }
   gridOverlayMesh.visible = khmerBoardStyle;
-  gridOverlayMat.map = buildGridTexture(t.labelInk);
+  gridOverlayMat.map = buildGridTexture(t.gridInk || t.labelInk);
+  applyRealism(t);
   gridOverlayMat.needsUpdate = true;
   buildLabels();
   document.body.classList.toggle('theme-pixel', !!t.pixelated);
@@ -17166,8 +17338,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.102';
+const APP_VERSION = '1.6.103';
 const WHATS_NEW = [
+  {
+    version: '1.6.103',
+    date: '2026-11-11',
+    title: { kh: 'ក្តារឈើពិតៗ', en: 'A real wooden board' },
+    items: [
+      { kh: 'រូបរាងឈើបុរាណ ឥឡូវមើលទៅដូចពិត៖ ក្តារឈើមានសរសៃ និងលាបប្រេងរលោង បន្ទាត់ពណ៌ត្នោតខ្មៅ ស៊ុមឈើក្រហមជ្រុងមូល តុឈើនៅខាងក្រោម ស្រមោលទន់ៗក្រោមតួអុក និងពន្លឺបន្ទប់កក់ក្តៅឆ្លុះលើផ្ទៃរលោង។',
+        en: 'Classic Wood now looks real: a varnished wood-grain board with dark inlaid lines, a rounded rosewood frame, a walnut table beneath it, soft contact shadows under the pieces and a warm room reflected in the polish.' }
+    ]
+  },
   {
     version: '1.6.102',
     date: '2026-11-03',
