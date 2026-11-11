@@ -2877,6 +2877,7 @@
     <div id="themeCatRow" class="themeCatRow"></div>
     <select id="themeSel" style="display:none">
       <option value="wood" selected>Classic Wood — ឈើបុរាណ</option>
+      <option value="woodReal">Realistic Wood — ឈើពិត</option>
       <option value="magic2">Magic II — វេទមន្តខ្លាំង</option>
       <option value="galactic">Galactic — ចក្រវាឡ</option>
       <option value="gems">Gem Blitz — ត្បូងភ្លឺចាំង</option>
@@ -4316,9 +4317,7 @@ const THEMES = {
     bg: 0x15100a, fog: null,
     frame: 0x3d2410, tileLight: 0xdec48f, tileDark: 0x9a6633,
     pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.45, metal: 0.05,
-    labelInk: '#f4e6c8', tray: 0x2c1a0c,
-    // realistic scene (see applyRealism): a wood-grain varnished board with dark inlaid lines on a walnut table
-    real: true, gridInk: '#2a1406'
+    labelInk: '#f4e6c8', tray: 0x2c1a0c
   },
   stone: {
     // pieceB was a near-neutral grayish-tan only marginally darker than
@@ -5261,7 +5260,7 @@ const THEMES = {
 Object.assign(THEMES.magic2, { pieceStyle: 'khmerorig', okThemeColors: true });
 // Original Cartoon: the Original Khmer pieces in white and brown (the classic wood's own colours), cel-shaded with ink outlines
 THEMES.okCartoon = Object.assign({}, THEMES.wood, {
-  name: 'Original Cartoon — គំនូរជីវចល', pieceStyle: 'khmerorig', okToon: true, real: false, gridInk: null,
+  name: 'Original Cartoon — គំនូរជីវចល', pieceStyle: 'khmerorig', okToon: true,
   bg: 0x26364a, frame: 0x5e3517, tileLight: 0xf2dca6, tileDark: 0xb87a3f,
   pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.9, metal: 0, labelInk: '#fff1cf', tray: 0x4a2a12, reflectOpacity: 0.05
 });
@@ -5277,6 +5276,11 @@ THEMES.tfBattle = Object.assign({}, THEMES.night, {
   bg: 0x090c12, frame: 0x242a35, tileLight: 0x9aa4b4, tileDark: 0x464e5e, labelInk: '#dfe7f3', tray: 0x141922,
   pieceW: 0xd9dde6, pieceB: 0x4a2a66, rough: 0.5, metal: 0.3, reflectOpacity: 0.2
 });
+// Realistic Wood: Classic Wood's Original Khmer set as a real wooden set on a real table (see applyRealism) --
+// a varnished wood-grain board with dark inlaid lines, a rounded rosewood frame, a walnut table, contact shadows
+THEMES.woodReal = Object.assign({}, THEMES.wood, {
+  name: 'Realistic Wood — ឈើពិត', real: true, gridInk: '#2a1406', reflectOpacity: 0.14
+});
 // Low Poly: the faceted wooden set in boxwood and ebony on the classic wood board
 THEMES.lowPoly = Object.assign({}, THEMES.wood, { name: 'Low Poly — ឈើកាត់', pieceStyle: 'lowpoly' });
 // Ink & Watercolour: the crystal shapes as a pen-and-wash sketch on a sheet of watercolour paper (see buildInkwashPiece)
@@ -5290,7 +5294,7 @@ THEMES.inkwash = Object.assign({}, THEMES.wood, {
   name: 'Ink & Watercolour — ទឹកខ្មៅ និងពណ៌ទឹក', pieceStyle: 'inkwash',
   bg: 0xf3eee3, frame: 0xe4dccb, tileLight: 0xf8f4ea, tileDark: 0xefe8da,
   pieceW: 0xf8f4ea, pieceB: 0x2a231e, rough: 1, metal: 0,
-  labelInk: '#3a322b', tray: 0xe9e2d3, reflectOpacity: 0, inkTiles: true, inkBackdrop: true, inkFx: true, real: false, gridInk: null
+  labelInk: '#3a322b', tray: 0xe9e2d3, reflectOpacity: 0, inkTiles: true, inkBackdrop: true, inkFx: true
 });
 let themeKey = 'wood';
 const theme = () => THEMES[themeKey];
@@ -5632,7 +5636,7 @@ gridOverlayMesh.position.y = 0.001;
 gridOverlayMesh.visible = false;
 scene.add(gridOverlayMesh);
 
-// ---------- realistic scene (themes with real: true -- Classic Wood and the sets built on it) ----------
+// ---------- realistic scene (themes with real: true -- Realistic Wood) ----------
 // A real board on a real table: one varnished wooden playing surface (glued planks with running grain, cut
 // into the 64 squares as windows on the same sheet, so the grain carries across the lines), dark inlaid lines,
 // a rounded rosewood frame, a walnut table under it that fades into the dark room, a soft contact shadow under
@@ -17338,15 +17342,24 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.103';
+const APP_VERSION = '1.6.104';
 const WHATS_NEW = [
+  {
+    version: '1.6.104',
+    date: '2026-11-11',
+    title: { kh: 'រូបរាងថ្មី៖ ឈើពិត', en: 'A new theme: Realistic Wood' },
+    items: [
+      { kh: 'ក្តារឈើពិតៗ ឥឡូវជារូបរាងថ្មីមួយ «ឈើពិត» (ក្នុងក្រុមដើម)។ រូបរាងឈើបុរាណ ត្រឡប់ទៅដូចដើមវិញ។',
+        en: 'The realistic wooden set is now a theme of its own, Realistic Wood (in the Original group). Classic Wood is back to its original look.' }
+    ]
+  },
   {
     version: '1.6.103',
     date: '2026-11-11',
     title: { kh: 'ក្តារឈើពិតៗ', en: 'A real wooden board' },
     items: [
-      { kh: 'រូបរាងឈើបុរាណ ឥឡូវមើលទៅដូចពិត៖ ក្តារឈើមានសរសៃ និងលាបប្រេងរលោង បន្ទាត់ពណ៌ត្នោតខ្មៅ ស៊ុមឈើក្រហមជ្រុងមូល តុឈើនៅខាងក្រោម ស្រមោលទន់ៗក្រោមតួអុក និងពន្លឺបន្ទប់កក់ក្តៅឆ្លុះលើផ្ទៃរលោង។',
-        en: 'Classic Wood now looks real: a varnished wood-grain board with dark inlaid lines, a rounded rosewood frame, a walnut table beneath it, soft contact shadows under the pieces and a warm room reflected in the polish.' }
+      { kh: 'ឈុតឈើដូចពិត៖ ក្តារឈើមានសរសៃ និងលាបប្រេងរលោង បន្ទាត់ពណ៌ត្នោតខ្មៅ ស៊ុមឈើក្រហមជ្រុងមូល តុឈើនៅខាងក្រោម ស្រមោលទន់ៗក្រោមតួអុក និងពន្លឺបន្ទប់កក់ក្តៅឆ្លុះលើផ្ទៃរលោង។',
+        en: 'A realistic wooden set: a varnished wood-grain board with dark inlaid lines, a rounded rosewood frame, a walnut table beneath it, soft contact shadows under the pieces and a warm room reflected in the polish.' }
     ]
   },
   {
@@ -20905,7 +20918,7 @@ function applyAccessTier() {
 // (not reordered for guests the way themeSel's own option order is) since
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
-  { key: 'original', label: 'ដើម Original', themes: ['wood', 'okCartoon', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
+  { key: 'original', label: 'ដើម Original', themes: ['wood', 'woodReal', 'okCartoon', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
   { key: 'flat', label: 'រាបស្មើ Flat 2D', themes: ['flatVec', 'flatClassic', 'flatKhmer', 'flatPaper', 'flatNight', 'inkFlat'] },
   { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'tfBattle', 'lowPoly', 'inkwash'] }
 ];
