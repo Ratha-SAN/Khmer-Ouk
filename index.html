@@ -12052,7 +12052,9 @@ function vignetteBackdrop(hex) {
   const ctx = cv.getContext('2d');
   const c = new THREE.Color(hex), hsl = {}; c.getHSL(hsl);
   const css = (col) => '#' + col.getHexString();
-  const mid = c.clone().lerp(new THREE.Color(0xffffff), hsl.l < 0.5 ? 0.13 : 0.06), edge = c.clone().multiplyScalar(hsl.l < 0.5 ? 0.5 : 0.82);
+  // (a dark colour is brightened in its own hue, so a warm room glows warm, not grey)
+  const mid = hsl.l < 0.5 ? c.clone().multiplyScalar(1.9).lerp(new THREE.Color(0xffffff), 0.02) : c.clone().lerp(new THREE.Color(0xffffff), 0.06);
+  const edge = c.clone().multiplyScalar(hsl.l < 0.5 ? 0.55 : 0.82);
   const g = ctx.createRadialGradient(W / 2, H * 0.46, 0, W / 2, H * 0.46, W * 0.74);
   g.addColorStop(0, css(mid)); g.addColorStop(0.45, css(c)); g.addColorStop(1, css(edge));
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
