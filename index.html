@@ -121,6 +121,10 @@
     padding: 22px 40px; font-size: 24px; text-align: center; display: none; z-index: 5;
   }
   #banner small { display: block; font-size: 14px; margin-top: 8px; color: var(--text-faint); }
+  #banner .bannerYou { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+  #banner .bannerYou.win { color: var(--accent); animation: bannerWinPop .5s cubic-bezier(.2,1.6,.4,1) both; }
+  #banner .bannerYou.loss { font-size: 17px; font-weight: 600; color: var(--text-faint); }
+  @keyframes bannerWinPop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   /* game-over banner action buttons: the highest-friction moment in the
      game used to be checkmate -- the banner announced the result but
      playing again meant hunting for "New game" in the settings panel. */
@@ -1364,6 +1368,16 @@
     0% { transform: scale(.2); opacity: 1; }
     50% { opacity: 1; }
     100% { transform: scale(1.7); opacity: 0; }
+  }
+  /* a win: confetti falls across the whole board */
+  .fx-win-confetti {
+    position: absolute; left: -4px; top: -4px; border-radius: 2px; background: var(--fxcol, #f2c14e); opacity: 0;
+    animation: fxWinConfetti 2200ms cubic-bezier(.25,.45,.5,1) forwards;
+  }
+  @keyframes fxWinConfetti {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(var(--rot)); opacity: 0; }
   }
   .fx-kids-confetti {
     position: absolute; width: 7px; height: 7px; left: -3.5px; top: -3.5px; border-radius: 2px;
@@ -5707,7 +5721,7 @@ function realBoardTexture(hex, kind, sq) {
   t.needsUpdate = true;
   return (realBoardTexCache[key] = t);
 }
-let realFrameTex = null, realTableTex = null, realRoomEnv = null, realFrameGeo = null, realContactTex = null;
+let realFrameTex = null, realTableTex = null, realRoomEnv = null, realFrameGeo = null;
 const boxFrameGeo = frame.geometry;
 function realFrameTexture() {
   if (!realFrameTex) {
@@ -5746,23 +5760,29 @@ function buildRoomEnvironment() {
   return rt.texture;
 }
 let studioEnv = null;
-// a soft dark disc under a piece where it touches the board (the shading a lamp's shadow alone misses)
-function realContactShadow() {
+// a soft dark disc under a piece where it touches the board (the shading a lamp's shadow alone misses): every 3D
+// set gets a light one, so pieces sit on the board instead of floating over it; the realistic scene a deeper one.
+// Not for the flat 2D sets, the pen sketch (its own splash) or the blocky pixel sets.
+let realContactTex = null;
+const contactShadowMats = {};
+function contactShadowMaterial(strength) {
   if (!realContactTex) {
     const S = 128, cv = document.createElement('canvas'); cv.width = cv.height = S;
     const ctx = cv.getContext('2d'), rg = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
     rg.addColorStop(0, 'rgba(0,0,0,0.62)'); rg.addColorStop(0.45, 'rgba(0,0,0,0.42)'); rg.addColorStop(0.75, 'rgba(0,0,0,0.12)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = rg; ctx.fillRect(0, 0, S, S);
-    realContactTex = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    realContactTex = new THREE.CanvasTexture(cv);
   }
-  const m = new THREE.Mesh(realContactGeo, realContactTex);
-  m.position.y = 0.003; m.raycast = () => {}; m.userData.contactShadow = true; m.renderOrder = 1;
-  return m;
+  return contactShadowMats[strength] || (contactShadowMats[strength] = new THREE.MeshBasicMaterial({ map: realContactTex, transparent: true, opacity: strength, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
 }
 const realContactGeo = new THREE.PlaneGeometry(0.86, 0.86).rotateX(-Math.PI / 2);
+const NO_CONTACT_SHADOW = { inkwash: 1, pixel: 1, mario: 1, contra: 1 };
 function addContactShadow(g) {
-  if (!theme().real || pieceStyle().slice(0, 2) === '2d') return;
-  g.add(realContactShadow());
+  const st = pieceStyle(), t = theme();
+  if (st.slice(0, 2) === '2d' || NO_CONTACT_SHADOW[st] || t.pixelated) return;
+  const m = new THREE.Mesh(realContactGeo, contactShadowMaterial(t.real ? 1 : 0.55));
+  m.position.y = 0.003; m.raycast = () => {}; m.userData.contactShadow = true; m.renderOrder = 1;
+  g.add(m);
 }
 function applyRealism(t) {
   const real = !!t.real;
@@ -10766,6 +10786,67 @@ function rebuildPieces() {
   }
 }
 
+// ---------- move animation: the piece glides to its square ----------
+// A moved piece used to appear on its new square at once. Now it travels there: lifted a little off the board
+// (the horse jumps in a high arc; flat 2D pieces slide), easing in and out, and settles with a small squash as it
+// lands -- which is also when the move's sound plays and a captured piece gives way (it waits on its square until
+// the mover arrives, then shrinks away; with the ragdoll option it is knocked over at that moment instead). The
+// board state is already final when the glide starts, so it is purely visual: a rebuild during it (a quick reply,
+// undo, a theme change) simply ends it. Skipped with reduced motion and in Modern Ops (its own cinematics).
+const moveGlides = [];
+const captureGhosts = new THREE.Group();
+scene.add(captureGhosts);
+function grabCaptureGhost(toSq) {
+  if (fxPrefersReducedMotion() || theme().modernFx) return null;
+  const g = pieceAt[toSq];
+  if (!g) return null;
+  captureGhosts.add(g); // (out of pieceGroup: the rebuild after the move leaves it alone)
+  return g;
+}
+// starts the glide of the piece now standing on m.to; returns its length in seconds (0: no glide)
+function startMoveGlide(m, opts) {
+  opts = opts || {};
+  const done = () => {
+    if (opts.ghost) captureGhosts.remove(opts.ghost);
+    if (opts.onLand) opts.onLand();
+  };
+  const g = pieceAt[m.to];
+  if (!g || fxPrefersReducedMotion() || theme().modernFx) { done(); return 0; }
+  const a = sqPos(m.from), b = sqPos(m.to), dist = Math.hypot(b.x - a.x, b.z - a.z);
+  if (dist < 0.01) { done(); return 0; }
+  const flat = !!g.userData.flat2dLying;
+  const knight = E.typeOf(state.board[m.to]) === E.KNIGHT && !E.isProm(state.board[m.to]);
+  const dur = Math.min(0.36, 0.17 + dist * 0.035) + (knight && !flat ? 0.06 : 0);
+  const lift = flat ? 0 : knight ? 0.62 : Math.min(0.3, 0.1 + dist * 0.035);
+  let shadow = null; g.traverse((o) => { if (o.userData.contactShadow) shadow = o; });
+  g.position.set(a.x, 0, a.z);
+  moveGlides.push({ g, a, b, dur, lift, flat, t: 0, landed: false, done, ghost: opts.ghost || null, shadow, heavy: !!opts.ghost || !!opts.heavy });
+  return dur;
+}
+let moveGlideLast = 0;
+function updateMoveGlides() {
+  const now = performance.now(), dt = Math.min(0.05, (now - moveGlideLast) / 1000) / (window.__oukAnimSlow || 1); // (__oukAnimSlow: Test-only)
+  moveGlideLast = now;
+  for (let i = moveGlides.length - 1; i >= 0; i--) {
+    const s = moveGlides[i], g = s.g;
+    if (g.parent !== pieceGroup) { if (!s.landed) s.done(); else if (s.ghost) captureGhosts.remove(s.ghost); moveGlides.splice(i, 1); continue; } // rebuilt under it
+    s.t += dt;
+    const SETTLE = 0.16;
+    if (s.t < s.dur) {
+      const k = s.t / s.dur, e = k * k * (3 - 2 * k);
+      g.position.set(s.a.x + (s.b.x - s.a.x) * e, s.lift * 4 * e * (1 - e), s.a.z + (s.b.z - s.a.z) * e);
+      if (s.shadow) s.shadow.position.y = 0.003 - g.position.y; // the contact shadow stays on the board
+      if (s.ghost && k > 0.72) s.ghost.scale.setScalar(Math.max(0.001, 1 - (k - 0.72) / 0.28)); // the captured piece gives way
+    } else {
+      if (!s.landed) { s.landed = true; g.position.set(s.b.x, 0, s.b.z); if (s.shadow) s.shadow.position.y = 0.003; s.done(); }
+      const k = Math.min(1, (s.t - s.dur) / SETTLE), amp = s.heavy ? 0.11 : 0.06, q = Math.sin(k * Math.PI) * (1 - k * 0.5);
+      if (s.flat) g.scale.setScalar(1 + amp * 0.6 * q); // a flat piece: a small pop
+      else g.scale.set(1 + amp * 0.5 * q, 1 - amp * q, 1 + amp * 0.5 * q); // squash and settle
+      if (k >= 1) { g.scale.set(1, 1, 1); moveGlides.splice(i, 1); }
+    }
+  }
+}
+
 // ---------- ragdoll: a captured piece is knocked over (an option, off by default) ----------
 // The captured piece's own 3D figure is lifted out of pieceGroup before the move (so the rebuild after it leaves the
 // figure alone), then hit away from the attacker: it tips over, falls and bounces, then rolls on its side (a lying
@@ -11961,6 +12042,27 @@ function populateBackgroundSelect() {
 }
 populateBackgroundSelect();
 let bgOverride = 'auto';
+// A plain-colour background is drawn as a softly lit room instead of a flat void: the theme's own colour, a little
+// brighter behind the board and falling away to darker corners (with a touch of grain, so the dark gradient never
+// bands). The foggy and realistic scenes and the pixel themes keep the plain colour.
+const bgVignetteCache = {};
+function vignetteBackdrop(hex) {
+  if (bgVignetteCache[hex]) return bgVignetteCache[hex];
+  const W = 512, H = 512, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const c = new THREE.Color(hex), hsl = {}; c.getHSL(hsl);
+  const css = (col) => '#' + col.getHexString();
+  const mid = c.clone().lerp(new THREE.Color(0xffffff), hsl.l < 0.5 ? 0.13 : 0.06), edge = c.clone().multiplyScalar(hsl.l < 0.5 ? 0.5 : 0.82);
+  const g = ctx.createRadialGradient(W / 2, H * 0.46, 0, W / 2, H * 0.46, W * 0.74);
+  g.addColorStop(0, css(mid)); g.addColorStop(0.45, css(c)); g.addColorStop(1, css(edge));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const img = ctx.getImageData(0, 0, W, H), d = img.data;
+  let seed = 77; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < d.length; i += 4) { const v = (rnd() - 0.5) * 3; d[i] += v; d[i + 1] += v; d[i + 2] += v; }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  return (bgVignetteCache[hex] = tex);
+}
 let bgFadeInTimer = null, bgFadeOutTimer = null;
 function updateBackground() {
   const t = theme();
@@ -11975,7 +12077,7 @@ function updateBackground() {
   else if (t.marioBackdrop) tex = buildMarioBackdrop();
   else if (t.contraBackdrop) tex = buildContraBackdrop();
   else if (t.sofisticateBackdrop) tex = buildSofisticateBackdrop();
-  else tex = null;
+  else tex = (t.fog || t.real || t.pixelated) ? null : vignetteBackdrop(t.bg);
   const fadeEl = document.getElementById('bgFade');
   // cancel any in-flight fade so rapid successive changes (theme, then
   // background) never leave the overlay stuck mid-transition
@@ -12437,10 +12539,21 @@ function noiseBurst({ dur = 0.1, filterFreq = 1000, q = 1, gain = 0.25, delay = 
 // One sound palette per board-theme style: wood thump, stone knock, soft
 // electronic tick, 8-bit blip — move/capture/check for each.
 const SFX = {
+  // a wooden piece set down on a wooden board: a sharp click, the woody ring of the piece and the low knock of the
+  // board, a little different every time (a real hand never lands twice alike); a capture knocks twice (the taken
+  // piece, then the taker); check adds a small bronze gong
   traditional(kind) {
-    if (kind === 'move') { envOsc({ freq: 180, dur: 0.09, gain: 0.35, freqTo: 110 }); noiseBurst({ dur: 0.05, filterFreq: 600, gain: 0.15 }); }
-    else if (kind === 'capture') { envOsc({ freq: 150, dur: 0.14, gain: 0.45, freqTo: 80 }); noiseBurst({ dur: 0.09, filterFreq: 500, gain: 0.3 }); }
-    else { envOsc({ freq: 520, type: 'triangle', dur: 0.14, gain: 0.3 }); envOsc({ freq: 660, type: 'triangle', dur: 0.18, gain: 0.3, delay: 0.14 }); }
+    const clack = (delay, v, gain) => {
+      noiseBurst({ dur: 0.014, filterFreq: 3200 * v, q: 0.9, gain: 0.3 * gain, delay });                    // the click
+      envOsc({ freq: 760 * v, freqTo: 600 * v, dur: 0.045, gain: 0.13 * gain, delay, attack: 0.002 });      // the piece rings
+      envOsc({ freq: 330 * v, freqTo: 250 * v, dur: 0.08, gain: 0.3 * gain, delay, attack: 0.002 });        // the wood body
+      envOsc({ freq: 150 * v, freqTo: 92, dur: 0.11, gain: 0.34 * gain, delay, attack: 0.003 });            // the board knocks back
+      noiseBurst({ dur: 0.05, filterFreq: 520, q: 0.8, gain: 0.12 * gain, delay });
+    };
+    const v = 0.94 + Math.random() * 0.12;
+    if (kind === 'move') clack(0, v, 1);
+    else if (kind === 'capture') { clack(0, v * 1.12, 0.8); clack(0.075, v * 0.86, 1.2); }
+    else { clack(0, v, 1); sfxGong(392, 0.05, 0.16); }
   },
   carved(kind) {
     if (kind === 'move') noiseBurst({ dur: 0.06, filterFreq: 1500, q: 6, gain: 0.35 });
@@ -12735,12 +12848,49 @@ const SFX = {
     }
   }
 };
+// a small bronze gong / bell: a few inharmonic partials ringing out
+function sfxGong(freq, delay, gain, dur) {
+  dur = dur || 0.9;
+  [[1, 1], [2.01, 0.5], [2.76, 0.32], [4.07, 0.16]].forEach(([m, g], i) =>
+    envOsc({ freq: freq * m, dur: dur / (1 + i * 0.45), gain: gain * g, delay, attack: 0.004 }));
+}
+// a roneat (xylophone) note: a bright strike that dies quickly
+function sfxRoneat(freq, delay, gain) {
+  envOsc({ freq, type: 'triangle', dur: 0.32, gain, delay, attack: 0.003 });
+  envOsc({ freq: freq * 2, dur: 0.14, gain: gain * 0.4, delay, attack: 0.002 });
+  noiseBurst({ dur: 0.012, filterFreq: 2600, q: 1, gain: gain * 0.35, delay });
+}
+// the end of a game: a rising pentatonic run and a gong for a win, three falling notes for a loss, two level
+// notes for a draw
+function playEndSound(result) {
+  if (!document.getElementById('sfxChk').checked) return;
+  window.__oukSfxLog.push({ kind: 'end_' + result, style: theme().style });
+  try {
+    if (result === 'win') { [587.3, 698.5, 784, 880, 1046.5, 1174.7].forEach((f, i) => sfxRoneat(f, i * 0.085, 0.22)); sfxGong(293.7, 0.55, 0.2, 1.6); }
+    else if (result === 'loss') [440, 349.2, 293.7].forEach((f, i) => sfxRoneat(f, i * 0.2, 0.16));
+    else { sfxRoneat(392, 0, 0.16); sfxRoneat(392, 0.22, 0.13); }
+  } catch (e) {}
+}
+// picking a piece up: the lightest tap
+function playSelectSound() {
+  if (!document.getElementById('sfxChk').checked) return;
+  try { const v = 0.95 + Math.random() * 0.1; envOsc({ freq: 620 * v, freqTo: 520 * v, dur: 0.035, gain: 0.07, attack: 0.002 }); noiseBurst({ dur: 0.008, filterFreq: 3000, q: 1, gain: 0.05 }); } catch (e) {}
+}
 window.__oukSfxLog = [];
-function playMoveSound(kind) {
+// delaySecs: the sound waits for the gliding piece to land (see startMoveGlide)
+function playMoveSound(kind, delaySecs) {
   if (!document.getElementById('sfxChk').checked) return;
   window.__oukSfxLog.push({ kind, style: theme().style });
   const fn = SFX[theme().style] || SFX.traditional;
-  fn(kind);
+  if (delaySecs > 0) setTimeout(() => { try { fn(kind); } catch (e) {} }, delaySecs * 1000 * (window.__oukAnimSlow || 1));
+  else fn(kind);
+}
+// a short buzz in the hand as a piece lands (phones that support it; follows the sound switch)
+function moveHaptic(kind) {
+  try {
+    if (!navigator.vibrate || !document.getElementById('sfxChk').checked) return;
+    navigator.vibrate(kind === 'capture' ? [14, 30, 22] : kind === 'win' ? [20, 60, 20, 60, 40] : 8);
+  } catch (e) {}
 }
 
 // ============ Magic theme: MOBA-style skill effects ============
@@ -15579,15 +15729,32 @@ function refreshStatus() {
     // opponent -- fine for hotseat/vs Computer, but an online rematch
     // would need a whole new coordinated match, so that button is left out
     // for online games rather than offering something that can't work.
-    const rematchBtn = mode === 'online' ? '' : '<button id="bannerRematch" class="primary">លេងម្ដងទៀត Rematch</button>';
-    bannerEl.innerHTML = d.banner +
+    // beat the computer: the next level is one tap away (when there is one, and it is open to this player)
+    const stB = timeoutResult ? null : E.gameStatus(state);
+    const winnerB = timeoutResult ? 1 - timeoutResult.loser : (stB && stB.winner !== undefined ? stB.winner : null);
+    const lvlB = mode.startsWith('ai') ? +mode.slice(2) : 0;
+    const nextLevel = (lvlB && lvlB < 5 && winnerB === humanSide && !isAiLevelLocked(lvlB + 1)) ? lvlB + 1 : 0;
+    const nextBtn = nextLevel ? '<button id="bannerNext" class="primary">កម្រិតបន្ទាប់ ' + '០១២៣៤៥'[nextLevel] + ' — Next level ' + nextLevel + '</button>' : '';
+    const rematchBtn = mode === 'online' ? '' : '<button id="bannerRematch"' + (nextLevel ? '' : ' class="primary"') + '>លេងម្ដងទៀត Rematch</button>';
+    // against the computer or a friend online, say it to the player: you won / you lost
+    const youLine = (mode !== 'hotseat' && winnerB !== null)
+      ? (winnerB === humanSide ? '<div class="bannerYou win">🏆 អ្នកឈ្នះ! — You win!</div>' : '<div class="bannerYou loss">អ្នកចាញ់ ព្យាយាមម្ដងទៀត — You lost, try again</div>') : '';
+    bannerEl.innerHTML = youLine + d.banner +
       '<div class="btnrow">' +
-      rematchBtn +
+      nextBtn + rematchBtn +
       '<button id="bannerReview">មើលឡើងវិញ Review</button>' +
       '<button id="bannerChangeMode">ប្ដូររបៀប Change Mode</button>' +
       '</div>';
     bannerEl.style.display = 'block';
     if (mode !== 'online') document.getElementById('bannerRematch').onclick = () => { if (!guestGameAllowed()) return; bannerEl.style.display = 'none'; recordGameAbandonIfInProgress(); resetGame(); };
+    if (nextLevel) document.getElementById('bannerNext').onclick = () => {
+      if (!guestGameAllowed()) return;
+      bannerEl.style.display = 'none';
+      trackEvent('next_level', { level: nextLevel });
+      pendingClock = clockCfg; pendingAiLevel = nextLevel;
+      startGameWithMode('ai' + nextLevel, humanSide);
+      flashAiChip();
+    };
     document.getElementById('bannerReview').onclick = () => enterReview();
     document.getElementById('bannerChangeMode').onclick = () => { bannerEl.style.display = 'none'; modeScreenOrigin = 'game'; openModeScreen(); };
     wrapLangRuns(bannerEl); // keep the banner's bilingual labels honoring the language toggle
@@ -15611,8 +15778,36 @@ function refreshStatus() {
       const sessionResult = winner === null ? 'draw' : (winner === humanSide ? 'win' : 'loss');
       window.__oukEndSession(sessionResult);
       recordGameStat(sessionResult, endType);
+      // two players at one screen: somebody won, so it is a celebration either way
+      celebrateGameEnd(winner === null ? 'draw' : (mode === 'hotseat' ? 'win' : sessionResult));
     }
   } else bannerEl.style.display = 'none';
+}
+
+// the end of a game is felt, not just announced: a fanfare and a shower of confetti for a win (after the last
+// piece has landed), a few soft falling notes for a loss
+function celebrateGameEnd(result) {
+  setTimeout(() => {
+    playEndSound(result);
+    if (result !== 'win') return;
+    moveHaptic('win');
+    if (fxPrefersReducedMotion()) return;
+    try {
+      const r = renderer.domElement.getBoundingClientRect();
+      const cols = ['#f2c14e', '#e8452c', '#3b6fd8', '#ffffff', '#4fd88a', '#f29a2c'];
+      for (let i = 0; i < 70; i++) {
+        const el = fxAt({ x: Math.random() * r.width, y: -12 }, 'fx-win-confetti', {
+          '--fxcol': cols[i % cols.length], '--mx': ((Math.random() - 0.5) * 160).toFixed(0) + 'px',
+          '--my': (r.height * (0.55 + Math.random() * 0.5)).toFixed(0) + 'px', '--rot': ((Math.random() < 0.5 ? -1 : 1) * (360 + Math.random() * 720)).toFixed(0) + 'deg'
+        });
+        const dur = 1700 + Math.random() * 1400, delay = Math.random() * 700;
+        el.style.animationDuration = dur + 'ms'; el.style.animationDelay = delay + 'ms';
+        el.style.width = (6 + Math.random() * 6).toFixed(0) + 'px'; el.style.height = (9 + Math.random() * 8).toFixed(0) + 'px';
+        fxSpawn(el, dur + delay + 80);
+      }
+      window.__oukFxLog.push({ tier: 3, key: 'win_confetti' });
+    } catch (e) {}
+  }, 520);
 }
 
 function refreshCountPanel() {
@@ -15920,6 +16115,7 @@ function applyMove(m) {
   const modernCaptureCue = (theme().modernFx && captured !== E.EMPTY && !fxPrefersReducedMotion())
     ? grabModernCaptureCue(m.from, m.to) : null;
   const ragdollG = captured !== E.EMPTY ? grabRagdoll(m.to) : null; // the captured figure, knocked over below
+  const ghostG = (captured !== E.EMPTY && !ragdollG) ? grabCaptureGhost(m.to) : null; // ... or left standing until the mover arrives
   if (uiMode === 'play' && moveEntries.length === 0 && gameStartTs) {
     funnel('first_move', { mode, secs: Math.round((Date.now() - gameStartTs) / 1000) });
     if (accessTier === 'guest') bumpGuestGames();
@@ -15942,7 +16138,11 @@ function applyMove(m) {
   }
   clearMarkers();
   refreshAll();
-  if (ragdollG) startRagdoll(ragdollG, m.from, m.to);
+  // the piece glides to its square; the capture, its sound and the buzz land with it
+  const glideSecs = startMoveGlide(m, { ghost: ghostG, heavy: captured !== E.EMPTY, onLand: () => {
+    if (ragdollG) { if (ragdollG.parent === ragdollGroup) startRagdoll(ragdollG, m.from, m.to); }
+    moveHaptic(captured !== E.EMPTY ? 'capture' : 'move');
+  } });
   const isCheck = E.inCheck(state, state.turn);
   const mateStatus = E.gameStatus(state);
   const isCheckmate = !!(mateStatus && mateStatus.type === 'checkmate');
@@ -15950,7 +16150,7 @@ function applyMove(m) {
   // combo counter that SFX.gems reads for its rising-pitch capture chime,
   // so the chime must see the freshly-updated combo, not last capture's.
   triggerGemEffect(m, mover, captured, isCheck, isCheckmate);
-  playMoveSound(isCheck ? 'check' : (captured !== E.EMPTY ? 'capture' : 'move'));
+  playMoveSound(isCheck ? 'check' : (captured !== E.EMPTY ? 'capture' : 'move'), glideSecs);
   triggerSkillEffect(m, mover, captured, isCheck, isCheckmate);
   triggerMarioEffect(m, mover, captured, isCheck, isCheckmate);
   triggerContraEffect(m, mover, captured, isCheck, isCheckmate);
@@ -16018,7 +16218,7 @@ function applyTrainingMove(m) {
       puzzleStep++;
       lastMove = m; flashMsg = ''; selected = -1; legalForSelected = [];
       clearMarkers(); refreshAll();
-      playMoveSound(captured !== E.EMPTY ? 'capture' : (E.inCheck(state, E.BLACK) ? 'check' : 'move'));
+      playMoveSound(captured !== E.EMPTY ? 'capture' : (E.inCheck(state, E.BLACK) ? 'check' : 'move'), startMoveGlide(m, { heavy: captured !== E.EMPTY }));
       puzzleReplying = true;
       const key = activePuzzle.key, reply = activePuzzle.line[2 * puzzleStep - 1];
       setTimeout(() => {
@@ -16030,7 +16230,7 @@ function applyTrainingMove(m) {
         E.makeMove(state, r);
         lastMove = r;
         puzzleLessonText(); refreshAll();
-        playMoveSound(cap ? 'capture' : 'move');
+        playMoveSound(cap ? 'capture' : 'move', startMoveGlide(r, { heavy: cap }));
       }, 750);
       return;
     }
@@ -16043,7 +16243,7 @@ function applyTrainingMove(m) {
     puzzleLessonText();
     clearMarkers();
     refreshAll();
-    playMoveSound('check');
+    playMoveSound('check', startMoveGlide(m, { heavy: captured !== E.EMPTY }));
     try { fxCheck(E.kingSq(state, E.BLACK)); } catch (e) { /* celebration only */ }
     return;
   }
@@ -16057,7 +16257,7 @@ function applyTrainingMove(m) {
   legalForSelected = E.genLegal(state, E.WHITE).filter(x => x.from === m.to);
   refreshAll();
   showMarkers();
-  playMoveSound(captured !== E.EMPTY ? 'capture' : 'move');
+  playMoveSound(captured !== E.EMPTY ? 'capture' : 'move', startMoveGlide(m, { heavy: captured !== E.EMPTY }));
 }
 
 // Auto-start counting when eligible -- either always for the computer's
@@ -16112,7 +16312,7 @@ function scheduleAI() {
   const level = +mode.slice(2);
   const t0 = Date.now();
   const finish = (m) => {
-    const wait = Math.max(0, 450 - (Date.now() - t0));
+    const wait = Math.max(0, 650 - (Date.now() - t0)); // (never before the player's own piece has landed and settled)
     setTimeout(() => {
       aiBusy = false;
       thinkingEl.style.display = 'none';
@@ -16196,6 +16396,7 @@ function onBoardClick(e) {
   const p = state.board[sq];
   const movableColor = uiMode === 'train' ? E.WHITE : state.turn;
   if (p !== E.EMPTY && E.colorOf(p) === movableColor) {
+    if (selected !== sq) playSelectSound();
     selected = sq;
     legalForSelected = E.genLegal(state, movableColor).filter(m => m.from === sq);
     showMarkers();
@@ -17342,8 +17543,23 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.104';
+const APP_VERSION = '1.6.105';
 const WHATS_NEW = [
+  {
+    version: '1.6.105',
+    date: '2026-11-12',
+    title: { kh: 'ល្បែងមានជីវិតជាងមុន', en: 'The game comes alive' },
+    items: [
+      { kh: 'តួអុកឥឡូវរំកិលទៅក្រឡាថ្មី (សេះលោត) ហើយចុះដោយទន់ភ្លន់ ជំនួសឲ្យការលេចភ្លាមៗ។ តួដែលត្រូវស៊ី រង់ចាំរហូតដល់តួស៊ីមកដល់។',
+        en: 'Pieces now glide to their new square (the horse jumps) and settle as they land, instead of appearing at once. A captured piece stays until the taker arrives.' },
+      { kh: 'សំឡេងថ្មី៖ សំឡេងឈើគោះក្តារដ៏ពិត (ខុសគ្នាបន្តិចរាល់ដង) សំឡេងគងតូចពេលអុក សំឡេងស្រាលពេលលើកតួ និងរំញ័រខ្លីលើទូរស័ព្ទ។',
+        en: 'New sounds: a real wooden clack on the board (a little different every time), a small gong for check, a light tap when you pick a piece up, and a short buzz on phones.' },
+      { kh: 'ពេលឈ្នះ៖ ភ្លេងរនាតខ្លី គង និងក្រដាសពណ៌ធ្លាក់ពេញក្តារ។ ឈ្នះកុំព្យូទ័រ? ប៊ូតុង «កម្រិតបន្ទាប់» នាំអ្នកទៅកម្រិតខ្ពស់ជាងភ្លាម។',
+        en: 'When you win: a short roneat fanfare, a gong and confetti over the board. Beat the computer? A Next level button takes you straight to the harder one.' },
+      { kh: 'តួអុក 3D មានស្រមោលទន់នៅក្រោម ដូចជាដាក់លើក្តារពិត ហើយផ្ទៃខាងក្រោយភ្លឺស្រាលនៅកណ្តាល ជំនួសឲ្យពណ៌ងងឹតរាបស្មើ។',
+        en: '3D pieces get a soft shadow underneath, so they sit on the board, and the background glows softly behind the board instead of being a flat dark colour.' }
+    ]
+  },
   {
     version: '1.6.104',
     date: '2026-11-11',
@@ -21153,6 +21369,7 @@ window.__ouk = {
   debugFlat2DSize: (setStyle, type) => (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type],
   debugApplyMove: (m) => applyMove(m),
   debugRenderMusic: (key, secs) => musRenderOffline(key, secs), // Test-only
+  debugGlides: () => moveGlides.map((s) => ({ t: +s.t.toFixed(3), dur: +s.dur.toFixed(3), y: +s.g.position.y.toFixed(3), landed: s.landed })), // Test-only
   debugInkFx: (secs) => { inkFxAdvance(secs); return inkFxList.length; }, // Test-only: step the watercolour move blooms
   debugBgArt: (key) => { backgroundTexture(key, 0, false); return bgArtCache[key].toDataURL('image/jpeg', 0.85); }, // Test-only
   debugPieceStyle: () => pieceStyle(), // Test-only: the piece style in use
@@ -21952,6 +22169,7 @@ function loop() {
   fxPortalsRetrack(); // keep Magic II portal glyphs pinned to their squares while the camera orbits
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   retrackOnlineThinkingTip();
+  updateMoveGlides(); // a moved piece travels to its square
   retrackFlat2DArt(); // keep 2D standee artwork facing the camera
   retrackMagicOrbFloat(); // bob Magic Orb/Orbs pieces up and down
   retrackGalacticOrbit(); // bob Galactic pieces and orbit their moons
