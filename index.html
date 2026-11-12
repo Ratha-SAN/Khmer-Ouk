@@ -379,13 +379,13 @@
   /* the marks that used to be an accent stroke are an accent tint now */
   .themeCatBtn.hasSelection { background: color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
   /* the Start pop-up's secondary buttons: clearly lighter than the dark box, with bright labels */
-  #startScreen .box #startLearnBtn { background: linear-gradient(180deg, #5a3a1f, #3d2612) !important; color: #fff3da; }
+  #startScreen .box #startLearnBtn { background: #4a3019 !important; color: #fff3da; }
   #dailyRow { background: rgba(255,214,150,.05) !important; }
-  #startScreen .box .dailyBtn { background: linear-gradient(180deg, #5a3a1f, #3d2612) !important; color: #fff3da; border: 1px solid rgba(226,182,90,.45); }
-  #startScreen .box .dailyBtn:hover { background: linear-gradient(180deg, #6b4626, #4a2f17) !important; }
-  #startScreen .box #startLangToggle { background: linear-gradient(180deg, #5a3a1f, #3d2612) !important; color: #fff3da; }
+  #startScreen .box .dailyBtn { background: #4a3019 !important; color: #fff3da; border: 1px solid rgba(226,182,90,.4); }
+  #startScreen .box .dailyBtn:hover { background: #5b3c20 !important; }
+  #startScreen .box #startLangToggle { background: #4a3019 !important; color: #fff3da; }
   .streakBadge { background: rgba(255,207,107,.16) !important; }
-  #startScreen .box .dailyBtn.rec { background: linear-gradient(180deg, #8a6226, #5c3d16) !important; border-color: var(--accent); box-shadow: none; }
+  #startScreen .box .dailyBtn.rec { background: #76531f !important; border-color: var(--accent); box-shadow: none; }
   #puzzleCard .pcLv.cur { background: color-mix(in srgb, var(--accent) 24%, var(--surface-2)); }
   /* guest-tier locked controls: dimmed but still clickable (a real
      disabled attribute would swallow the click, so a popup could never be
@@ -551,18 +551,14 @@
     font-size: 11px; color: var(--text-muted); cursor: pointer; margin: -4px 0 8px; display: inline-block;
   }
   .appVersionTag:hover { color: var(--accent); text-decoration: underline; }
-  /* full-screen overlays (start screen, mode selection, sign-in, profile, the small pop-ups): one fixed look
-     that belongs to the game itself -- a lacquered rosewood panel inlaid with a double gold line and a small
-     Khmer-style ornament in each corner, over a dark room warmed by lamplight. Implemented as a scoped override
+  /* full-screen overlays (start screen, mode selection, sign-in, profile, the small pop-ups): one fixed, flat
+     look that belongs to the game itself -- a dark rosewood panel with a gold line and a small Khmer
+     flame-petal motif in each corner, over a plain dimmed board. Implemented as a scoped override
      of the same custom properties every button/heading in these overlays already keys off (--accent,
      --panel-bg, --surface-2/3, etc.), so level-grid buttons, side picks and hover states pick it up on their own. */
   .fullOverlay {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 20; text-align: center;
-    background:
-      radial-gradient(ellipse 75% 55% at 50% 14%, rgba(226,150,60,.24), transparent 62%),
-      radial-gradient(ellipse 60% 50% at 90% 92%, rgba(150,46,30,.18), transparent 55%),
-      radial-gradient(ellipse 60% 50% at 6% 94%, rgba(212,165,72,.10), transparent 55%),
-      color-mix(in srgb, #0d0803 86%, transparent);
+    background: rgba(16,10,4,.86);
     --panel-bg: #24170c; --panel-fg: #f3e7cf; --accent: #e2b65a; --accent-dim: #8f6e30;
     --accent-hover: #f2cd7a; --on-accent: #2a1806; --surface-deep: #130c06;
     --surface-0: #1c1209; --surface-1: #281a0e; --surface-2: #322113; --surface-3: #47301a; --text-muted: #b39f7c; --text-faint: #dccdae;
@@ -575,43 +571,41 @@
     .fullOverlay, .fullOverlay .box { animation: none; }
   }
   .fullOverlay .box, .infoModal .box, #banner {
+    /* flat: one solid colour, a gold line with a second hairline inside it, and in each corner a small Khmer
+       flame-petal motif (kbach) */
     background:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Cg transform='rotate%280 17 17%29' fill='none' stroke='%23e2b65a' stroke-linecap='round'%3E%3Cpath d='M3 31V13A10 10 0 0 1 13 3H31' stroke-width='1.2' opacity='.9'/%3E%3Cpath d='M8 22V15a7 7 0 0 1 7-7h7' stroke-width='1' opacity='.55'/%3E%3Cpath d='M12.5 9.5l3 3-3 3-3-3z' fill='%23e2b65a' stroke='none' opacity='.9'/%3E%3C/g%3E%3C/svg%3E") left 6px top 6px / 26px 26px no-repeat,
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Cg transform='rotate%2890 17 17%29' fill='none' stroke='%23e2b65a' stroke-linecap='round'%3E%3Cpath d='M3 31V13A10 10 0 0 1 13 3H31' stroke-width='1.2' opacity='.9'/%3E%3Cpath d='M8 22V15a7 7 0 0 1 7-7h7' stroke-width='1' opacity='.55'/%3E%3Cpath d='M12.5 9.5l3 3-3 3-3-3z' fill='%23e2b65a' stroke='none' opacity='.9'/%3E%3C/g%3E%3C/svg%3E") right 6px top 6px / 26px 26px no-repeat,
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Cg transform='rotate%28180 17 17%29' fill='none' stroke='%23e2b65a' stroke-linecap='round'%3E%3Cpath d='M3 31V13A10 10 0 0 1 13 3H31' stroke-width='1.2' opacity='.9'/%3E%3Cpath d='M8 22V15a7 7 0 0 1 7-7h7' stroke-width='1' opacity='.55'/%3E%3Cpath d='M12.5 9.5l3 3-3 3-3-3z' fill='%23e2b65a' stroke='none' opacity='.9'/%3E%3C/g%3E%3C/svg%3E") right 6px bottom 6px / 26px 26px no-repeat,
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Cg transform='rotate%28270 17 17%29' fill='none' stroke='%23e2b65a' stroke-linecap='round'%3E%3Cpath d='M3 31V13A10 10 0 0 1 13 3H31' stroke-width='1.2' opacity='.9'/%3E%3Cpath d='M8 22V15a7 7 0 0 1 7-7h7' stroke-width='1' opacity='.55'/%3E%3Cpath d='M12.5 9.5l3 3-3 3-3-3z' fill='%23e2b65a' stroke='none' opacity='.9'/%3E%3C/g%3E%3C/svg%3E") left 6px bottom 6px / 26px 26px no-repeat,
-      repeating-linear-gradient(91deg, rgba(255,214,150,.022) 0 2px, transparent 2px 9px),
-      linear-gradient(180deg, rgba(58,37,19,.97), rgba(27,17,8,.98));
-    border: 1px solid rgba(226,182,90,.6); border-radius: 14px;
-    box-shadow: inset 0 0 0 3px rgba(20,12,5,.92), inset 0 0 0 4px rgba(226,182,90,.3),
-      0 0 46px 6px rgba(226,160,70,.15), 0 24px 60px rgba(0,0,0,.6);
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg transform='rotate%280 13 13%29' fill='%23e2b65a'%3E%3Cg transform='translate%282.5 2.5%29'%3E%3Cpath transform='rotate%2845%29 translate%282.6 0%29 scale%281.2 .8%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z'/%3E%3Cpath transform='rotate%283%29 translate%283.2 0%29 scale%28.95 .62%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z' opacity='.7'/%3E%3Cpath transform='rotate%2887%29 translate%283.2 0%29 scale%28.95 -.62%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z' opacity='.7'/%3E%3Ccircle r='1.7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") left 7px top 7px / 22px 22px no-repeat,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg transform='rotate%2890 13 13%29' fill='%23e2b65a'%3E%3Cg transform='translate%282.5 2.5%29'%3E%3Cpath transform='rotate%2845%29 translate%282.6 0%29 scale%281.2 .8%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z'/%3E%3Cpath transform='rotate%283%29 translate%283.2 0%29 scale%28.95 .62%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z' opacity='.7'/%3E%3Cpath transform='rotate%2887%29 translate%283.2 0%29 scale%28.95 -.62%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z' opacity='.7'/%3E%3Ccircle r='1.7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") right 7px top 7px / 22px 22px no-repeat,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg transform='rotate%28180 13 13%29' fill='%23e2b65a'%3E%3Cg transform='translate%282.5 2.5%29'%3E%3Cpath transform='rotate%2845%29 translate%282.6 0%29 scale%281.2 .8%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z'/%3E%3Cpath transform='rotate%283%29 translate%283.2 0%29 scale%28.95 .62%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z' opacity='.7'/%3E%3Cpath transform='rotate%2887%29 translate%283.2 0%29 scale%28.95 -.62%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z' opacity='.7'/%3E%3Ccircle r='1.7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") right 7px bottom 7px / 22px 22px no-repeat,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg transform='rotate%28270 13 13%29' fill='%23e2b65a'%3E%3Cg transform='translate%282.5 2.5%29'%3E%3Cpath transform='rotate%2845%29 translate%282.6 0%29 scale%281.2 .8%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z'/%3E%3Cpath transform='rotate%283%29 translate%283.2 0%29 scale%28.95 .62%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z' opacity='.7'/%3E%3Cpath transform='rotate%2887%29 translate%283.2 0%29 scale%28.95 -.62%29' d='M0 0C2.2-3.6 7-4.6 10.4-2.2 11.6-1.3 13-1.2 14.4-2 13.4.9 10.2 3.4 6.2 3.2 3.6 3 1.3 1.8 0 0Z' opacity='.7'/%3E%3Ccircle r='1.7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") left 7px bottom 7px / 22px 22px no-repeat,
+      #2a1b0e;
+    border: 1px solid rgba(226,182,90,.65); border-radius: 12px;
+    box-shadow: inset 0 0 0 3px #2a1b0e, inset 0 0 0 4px rgba(226,182,90,.22), 0 14px 36px rgba(0,0,0,.45);
   }
   .fullOverlay .box {
     max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 30px 26px;
     animation: overlayBoxIn .18s ease-out;
   }
-  /* the title of a pop-up sits over a thin gold rule with a diamond at its centre */
+  /* the title of a pop-up sits over a thin gold rule with a small lotus at its centre */
   .fullOverlay .box > h1::after, .fullOverlay .box > h2:first-of-type::after, .infoModal .box > h2:first-of-type::after {
-    content: ''; display: block; width: min(190px, 60%); height: 9px; margin: 9px auto 2px;
+    content: ''; display: block; width: min(200px, 62%); height: 14px; margin: 8px auto 2px;
     background:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 11 11'%3E%3Cpath d='M5.5 .5l5 5-5 5-5-5z' fill='%23e2b65a'/%3E%3C/svg%3E") center / 9px 9px no-repeat,
-      linear-gradient(90deg, transparent, rgba(226,182,90,.75) 22%, rgba(226,182,90,.75) 40%, transparent 44%, transparent 56%, rgba(226,182,90,.75) 60%, rgba(226,182,90,.75) 78%, transparent) center / 100% 1px no-repeat;
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='14' viewBox='-15 -8 30 14'%3E%3Cg fill='%23e2b65a'%3E%3Cpath d='M0-7C2.6-4.2 3-0.6 0 4.2-3-0.6-2.6-4.2 0-7Z'/%3E%3Cpath transform='rotate%28-48 0 4%29 scale%28.82%29' d='M0-7C2.6-4.2 3-0.6 0 4.2-3-0.6-2.6-4.2 0-7Z' opacity='.8'/%3E%3Cpath transform='rotate%2848 0 4%29 scale%28.82%29' d='M0-7C2.6-4.2 3-0.6 0 4.2-3-0.6-2.6-4.2 0-7Z' opacity='.8'/%3E%3Cpath transform='rotate%28-84 0 4%29 scale%28.6%29' d='M0-7C2.6-4.2 3-0.6 0 4.2-3-0.6-2.6-4.2 0-7Z' opacity='.6'/%3E%3Cpath transform='rotate%2884 0 4%29 scale%28.6%29' d='M0-7C2.6-4.2 3-0.6 0 4.2-3-0.6-2.6-4.2 0-7Z' opacity='.6'/%3E%3C/g%3E%3C/svg%3E") center / 30px 14px no-repeat,
+      linear-gradient(90deg, transparent, rgba(226,182,90,.7) 20%, rgba(226,182,90,.7) 38%, transparent 38%, transparent 62%, rgba(226,182,90,.7) 62%, rgba(226,182,90,.7) 80%, transparent) center 9px / 100% 1px no-repeat;
   }
   .infoModal .box > h2:first-of-type::after { margin-left: 0; clear: both; }
-  /* buttons inside the pop-ups: dark rosewood keys with a gold edge; the one main action is solid gold */
+  /* buttons inside the pop-ups, flat: dark rosewood keys with a gold edge; the one main action is solid gold */
   :where(.fullOverlay .box, .infoModal .box) button, #banner .btnrow button {
-    background: linear-gradient(180deg, #4b3019, #33200f); border: 1px solid rgba(226,182,90,.45); color: var(--panel-fg);
-    box-shadow: inset 0 1px 0 rgba(255,225,170,.12), 0 2px 5px rgba(0,0,0,.35); border-radius: 9px;
+    background: #3f2915; border: 1px solid rgba(226,182,90,.4); color: var(--panel-fg); box-shadow: none; border-radius: 9px;
   }
   :where(.fullOverlay .box, .infoModal .box) button:hover:not(:disabled), #banner .btnrow button:hover:not(:disabled) {
-    background: linear-gradient(180deg, #5c3b20, #402813); border-color: var(--accent);
+    background: #50341b; border-color: var(--accent);
   }
   :where(.fullOverlay .box) button.primary, #banner .btnrow button.primary {
-    background: linear-gradient(180deg, #f6d68b, #dba945 55%, #b9832a); color: var(--on-accent); font-weight: 700;
-    border: 1px solid #7a5518; box-shadow: inset 0 1px 0 rgba(255,250,225,.55), 0 0 16px 1px rgba(226,170,70,.3), 0 3px 8px rgba(0,0,0,.4);
+    background: #e0b352; color: var(--on-accent); font-weight: 700; border: 1px solid #e0b352; box-shadow: none;
   }
   :where(.fullOverlay .box) button.primary:hover:not(:disabled), #banner .btnrow button.primary:hover:not(:disabled) {
-    background: linear-gradient(180deg, #fbe2a3, #e6b854 55%, #c58f33); border-color: #7a5518;
+    background: #edc56c; border-color: #edc56c;
   }
   #modeProfileChip {
     display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
@@ -733,16 +727,12 @@
   #onlineCodeInput:focus { border-color: var(--accent); outline: none; }
   #startScreen .box h1 {
     font-size: 30px; margin-bottom: 8px;
-    background: linear-gradient(180deg, #fff1cf, #ecc468 55%, #c8913a);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 0 16px rgba(236,180,90,.35));
+    color: #e8be62;
   }
-  #startScreen .box h1::after { -webkit-text-fill-color: initial; }
   #startScreen .box p { font-size: 14px; color: var(--text-faint); margin-bottom: 24px; }
   #startScreen .box button {
-    font-size: 18px; padding: 14px 40px; background: linear-gradient(180deg, #f6d68b, #dba945 55%, #b9832a);
-    color: var(--on-accent); font-weight: 700; border: 1px solid #7a5518;
-    box-shadow: inset 0 1px 0 rgba(255,250,225,.55), 0 0 22px 2px rgba(226,170,70,.35), 0 8px 20px rgba(0,0,0,.4);
+    font-size: 18px; padding: 14px 40px; background: #e0b352;
+    color: var(--on-accent); font-weight: 700; border: 1px solid #e0b352; box-shadow: none;
   }
   #startScreen .box button:hover { filter: brightness(1.08); }
   /* first screen: one big Play now, then smaller secondary choices; the sign-in link is deliberately quiet */
@@ -759,8 +749,8 @@
   }
   #startScreen .box #startLearnBtn {
     display: block; width: 100%; margin-bottom: 12px; font-size: 15px; padding: 12px 8px;
-    background: linear-gradient(180deg, #4b3019, #33200f); color: var(--panel-fg);
-    border: 1px solid rgba(226,182,90,.45); box-shadow: none; font-weight: 600;
+    background: #3f2915; color: var(--panel-fg);
+    border: 1px solid rgba(226,182,90,.4); box-shadow: none; font-weight: 600;
   }
   /* coming back: the daily puzzle with the day streak, Add to Home Screen */
   #dailyRow { margin-bottom: 12px; padding: 10px; border-radius: 12px; border: 1px solid rgba(226,182,90,.28);
@@ -905,11 +895,9 @@
   #modeAcc .bigpick { display: flex; flex-direction: column; gap: 8px; }
   #modeAcc .bigpick button {
     display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; font-size: 15px; line-height: 1.35;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-3) 80%, transparent), color-mix(in srgb, var(--surface-1) 90%, transparent));
-    border: 1px solid var(--accent-dim); color: var(--panel-fg);
+    background: var(--surface-2); border: 1px solid var(--accent-dim); color: var(--panel-fg); box-shadow: none;
   }
-  #modeAcc .bigpick button:nth-child(1) { box-shadow: 0 0 18px 1px rgba(255,207,107,.35); border-color: rgba(255,207,107,.5); }
-  #modeAcc .bigpick button:nth-child(2) { box-shadow: 0 0 14px 1px rgba(226,150,60,.22); border-color: rgba(226,182,90,.45); }
+  #modeAcc .bigpick button:nth-child(1) { border-color: var(--accent); } /* (flat: the first choice is marked by its gold edge alone) */
   #modeAcc .bigpick button:hover { filter: brightness(1.18); }
   #pickInvite, #pickLearn { margin-top: 8px; width: 100%; padding: 10px; font-size: 14px; }
   /* selected 2 Player / vs Computer mode button, once chosen on the
@@ -15726,6 +15714,8 @@ const bannerEl = document.getElementById('banner');
 const undoBtn = document.getElementById('undoBtn');
 
 function sideName(c) { return c === E.WHITE ? 'White ស' : 'Black ខ្មៅ'; }
+// "White wins" / "ស ឈ្នះ": each language's words kept together, so showing one language alone never joins or drops a word
+function winsText(c) { return c === E.WHITE ? 'ស ឈ្នះ — White wins' : 'ខ្មៅ ឈ្នះ — Black wins'; }
 
 function describeStatus() {
   // a fallen flag ends the game even though the engine's own gameStatus
@@ -15733,13 +15723,13 @@ function describeStatus() {
   if (timeoutResult) {
     gameOver = true;
     const w = 1 - timeoutResult.loser;
-    return { text: 'Time out — ' + sideName(w) + ' wins', banner: 'អស់ពេល — Time out<br>' + sideName(w) + ' wins' };
+    return { text: 'អស់ពេល — Time out: ' + winsText(w), banner: 'អស់ពេល — Time out<br>' + winsText(w) };
   }
   const st = E.gameStatus(state);
   if (st) {
     gameOver = true;
     if (st.type === 'checkmate')
-      return { text: 'Checkmate! ' + sideName(st.winner) + ' wins', banner: 'អុកងាប់ — Checkmate<br>' + sideName(st.winner) + ' wins' };
+      return { text: 'អុកងាប់ — Checkmate! ' + winsText(st.winner), banner: 'អុកងាប់ — Checkmate<br>' + winsText(st.winner) };
     if (st.type === 'stalemate')
       return { text: 'Stalemate — draw', banner: 'Stalemate — អាប់<br>Draw ស្មើគ្នា' };
     if (st.type === 'count-limit')
@@ -17588,8 +17578,8 @@ const WHATS_NEW = [
     date: '2026-11-12',
     title: { kh: 'ផ្ទាំងលេចឡើងរចនាថ្មី', en: 'Restyled pop-ups' },
     items: [
-      { kh: 'ផ្ទាំងលេចឡើងទាំងអស់ (ចាប់ផ្តើម ប្តូររបៀប ចូលគណនី អ្វីថ្មី ច្បាប់ និងលទ្ធផលល្បែង) ឥឡូវមានរូបរាងឈើក្រហមខ្មៅ ខ្សែមាសពីរជាន់ និងក្បាច់តូចនៅជ្រុង ឲ្យស៊ីនឹងក្តារអុក ជំនួសពណ៌ស្វាយចាស់។',
-        en: 'Every pop-up (Start, Change Mode, sign-in, What\'s New, Rules and the game result) now wears dark rosewood with a double gold inlay and a small ornament in each corner, to match the board, in place of the old purple.' }
+      { kh: 'ផ្ទាំងលេចឡើងទាំងអស់ (ចាប់ផ្តើម ប្តូររបៀប ចូលគណនី អ្វីថ្មី ច្បាប់ និងលទ្ធផលល្បែង) ឥឡូវមានរូបរាងរាបស្មើពណ៌ឈើក្រហមខ្មៅ ខ្សែមាស ក្បាច់ខ្មែរតូចនៅជ្រុង និងផ្កាឈូកក្រោមចំណងជើង ឲ្យស៊ីនឹងក្តារអុក ជំនួសពណ៌ស្វាយចាស់។',
+        en: 'Every pop-up (Start, Change Mode, sign-in, What\'s New, Rules and the game result) now has a flat dark-rosewood look with a gold line, a small Khmer flame-petal motif in each corner and a lotus under the title, to match the board, in place of the old purple.' }
     ]
   },
   {
