@@ -12573,8 +12573,7 @@ function noiseBurst({ dur = 0.1, filterFreq = 1000, q = 1, gain = 0.25, delay = 
 const SFX = {
   // a wooden piece set down on a wooden board: a sharp click, the woody ring of the piece and the low knock of the
   // board, a little different every time (a real hand never lands twice alike); check adds a small bronze gong.
-  // A capture is quiet and sure, not a clatter: one soft, deep knock (most of the click taken off), and under it
-  // a warm low tone like a struck roneat bar that rings for a moment and dies away
+  // A capture is two wooden pieces knocked together -- a short bright "tock" -- and then the taker set down softly
   traditional(kind) {
     const clack = (delay, v, gain, click = 1) => {
       noiseBurst({ dur: 0.014, filterFreq: 3200 * v, q: 0.9, gain: 0.3 * gain * click, delay });            // the click
@@ -12586,11 +12585,14 @@ const SFX = {
     const v = 0.94 + Math.random() * 0.12;
     if (kind === 'move') clack(0, v, 1);
     else if (kind === 'capture') {
-      clack(0, v * 0.88, 0.9, 0.35);
-      const f = 185 * v, d = 0.03;
-      envOsc({ freq: f, dur: 0.46, gain: 0.24, delay: d, attack: 0.005 });                 // the bar's own note
-      envOsc({ freq: f * 2, dur: 0.24, gain: 0.075, delay: d, attack: 0.004 });            // its octave, shorter
-      envOsc({ freq: f * 4.02, dur: 0.07, gain: 0.03, delay: d, attack: 0.002 });          // the mallet's bright touch
+      // each piece rings at its own pitch for a few hundredths of a second: small, hard, dry
+      const ring = (f, g) => {
+        envOsc({ freq: f, freqTo: f * 0.95, dur: 0.06, gain: g, attack: 0.001 });
+        envOsc({ freq: f * 2.72, dur: 0.024, gain: g * 0.42, attack: 0.001 });
+      };
+      noiseBurst({ dur: 0.006, filterFreq: 5200, q: 0.8, gain: 0.2 });   // the instant they touch
+      ring(1180 * v, 0.31); ring(1570 * v, 0.23);
+      clack(0.09, v * 0.9, 0.7, 0.3);                                     // then the taker is set down, softly
     }
     else { clack(0, v, 1); sfxGong(392, 0.05, 0.16); }
   },
@@ -17612,8 +17614,8 @@ const WHATS_NEW = [
     items: [
       { kh: 'ផ្ទាំងលេចឡើងទាំងអស់ (ចាប់ផ្តើម ប្តូររបៀប ចូលគណនី អ្វីថ្មី ច្បាប់ និងលទ្ធផលល្បែង) ឥឡូវមានរូបរាងរាបស្មើពណ៌ឈើក្រហមខ្មៅ ខ្សែមាស ក្បាច់ខ្មែរតូចនៅជ្រុង និងផ្កាឈូកក្រោមចំណងជើង ឲ្យស៊ីនឹងក្តារអុក ជំនួសពណ៌ស្វាយចាស់។',
         en: 'Every pop-up (Start, Change Mode, sign-in, What\'s New, Rules and the game result) now has a flat dark-rosewood look with a gold line and Khmer ornament (flame-petal corners, a lotus-petal band and a lotus under the title), to match the board, in place of the old purple. Pop-ups no longer show a scroll bar.' },
-      { kh: 'សំឡេងស៊ីតួឥឡូវទន់ និងកក់ក្តៅជាងមុន៖ សំឡេងគោះជ្រៅមួយ ជាមួយសំឡេងរនាតទាបលាន់ខ្លី ជំនួសសំឡេងគោះពីរដងដ៏រឹង។',
-        en: 'The capture sound is softer and warmer: one deep knock with a short low roneat tone ringing under it, in place of the two hard clacks.' }
+      { kh: 'សំឡេងស៊ីតួថ្មី៖ សំឡេងតួឈើពីរប៉ះគ្នា «តុក» ខ្លីហើយច្បាស់ បន្ទាប់មកតួស៊ីចុះលើក្តារដោយទន់។',
+        en: 'A new capture sound: two wooden pieces knocking together, a short clear "tock", then the taker set down softly on the board.' }
     ]
   },
   {
