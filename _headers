@@ -11,3 +11,7 @@
   Cache-Control: no-cache, no-store
 /data/*
   Cache-Control: public, max-age=31536000, immutable
+/ads.js
+  Cache-Control: no-cache
+/ads-config.json
+  Cache-Control: no-cache, no-store

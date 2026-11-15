@@ -21,6 +21,7 @@
 <meta property="og:type" content="website"><meta property="og:site_name" content="Ouk Chatrang"><meta property="og:title" content="Ouk Chatrang (Khmer Chess) — play free"><meta property="og:description" content="Traditional Cambodian chess: play the computer, a friend or online, and learn the rules with diagrams and daily puzzles."><meta property="og:url" content="https://oukkhmer.com/"><meta property="og:image" content="https://oukkhmer.com/icon-512.png">
 <!-- PWA: installable + offline-capable (see manifest.webmanifest / sw.js) -->
 <link rel="manifest" href="manifest.webmanifest">
+<script src="/ads.js" defer></script>
 <link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
 <meta name="theme-color" content="#221a12">
 <!-- opened from the home screen the game runs on its own, with no browser bars (iPhone: the only way to full screen) -->
@@ -812,6 +813,15 @@
   /* Learn to Play's link to the How to play page. In free space only: under the board on a computer; top-left under the
      puzzle bar on a phone (and top-left under the title while that bar is expanded); the strip above the board on a
      landscape phone. The flat (plan) views reserve its space (planInsets), so it never covers the board. */
+  /* ads (see ads.js): drawn only when ads-config.json switches them on. A phone, while playing: a 320x50 bar at the very
+     bottom (the game shrinks by its height to leave room); the game-over card carries a 300x250 slot. Never in Learn to Play,
+     puzzles or online matches, and never over the board. */
+  #adBannerBar { display: none; position: fixed; left: 0; right: 0; bottom: 0; height: 54px; z-index: 4; align-items: center; justify-content: center; background: var(--surface-deep); }
+  body.ad-bar-on { height: calc(100% - 54px); }
+  body.ad-bar-on #adBannerBar { display: flex; }
+  #adBannerBar .oukAdLabel { display: none; }
+  #banner .adResultSlot { margin: 12px auto 0; }
+  #banner .adResultSlot:empty { display: none; }
   #learnBanner {
     position: absolute; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 4;
     display: none; align-items: center; gap: 2px; box-sizing: border-box; width: max-content; max-width: calc(100% - 24px);
@@ -2694,6 +2704,7 @@
   <button id="aiChip" type="button" aria-label="Computer level"></button>
   <div id="puzzleCard" role="status" title="ចុចដើម្បីបង្រួម / ពង្រីក — Tap to fold / unfold"></div>
   <!-- Learn to Play: a small banner on the board view that opens the full How to play page (see updateLearnBanner) -->
+  <div id="adBannerBar" aria-label="Advertisement"></div>
   <div id="learnBanner"><a href="/how-to-play/" target="_blank" rel="noopener">📄 <span class="t-kh">សៀវភៅណែនាំពេញលេញ មានរូបភាព</span><span class="t-sep"> — </span><span class="t-en">Full guide with diagrams</span> ›</a><button id="learnBannerClose" type="button" aria-label="Close" title="បិទ — Close">✕</button></div>
   <div id="installNudge" role="status">
     <span class="inIcon">📲</span>
@@ -15829,6 +15840,7 @@ function describeStatus() {
   return { text: t, banner: null };
 }
 
+let bannerSig = ''; // what the game-over card currently says (see refreshStatus)
 function refreshStatus() {
   if (uiMode === 'train') {
     const g = typeof currentGuideExample === 'function' ? currentGuideExample() : null;
@@ -15855,13 +15867,19 @@ function refreshStatus() {
     // against the computer or a friend online, say it to the player: you won / you lost
     const youLine = (mode !== 'hotseat' && winnerB !== null)
       ? (winnerB === humanSide ? '<div class="bannerYou win">🏆 អ្នកឈ្នះ! — You win!</div>' : '<div class="bannerYou loss">អ្នកចាញ់ ព្យាយាមម្ដងទៀត — You lost, try again</div>') : '';
-    bannerEl.innerHTML = youLine + d.banner +
+    // the card is built once per game over (rebuilt only if what it says changes), so its ad is requested once
+    const sigB = [d.banner, nextLevel, youLine.length, mode].join('|');
+    const rebuildB = bannerSig !== sigB || bannerEl.style.display !== 'block';
+    bannerSig = sigB;
+    if (rebuildB) bannerEl.innerHTML = youLine + d.banner +
+      '<div id="adResultSlot" class="adResultSlot"></div>' +
       '<div class="btnrow">' +
       nextBtn + rematchBtn +
       '<button id="bannerReview">មើលឡើងវិញ Review</button>' +
       '<button id="bannerChangeMode">ប្ដូររបៀប Change Mode</button>' +
       '</div>';
     bannerEl.style.display = 'block';
+    if (rebuildB && window.OukAds && window.OukAds.enabled()) window.OukAds.render(document.getElementById('adResultSlot'), 'result');
     if (mode !== 'online') document.getElementById('bannerRematch').onclick = () => { if (!guestGameAllowed()) return; bannerEl.style.display = 'none'; recordGameAbandonIfInProgress(); resetGame(); };
     if (nextLevel) document.getElementById('bannerNext').onclick = () => {
       if (!guestGameAllowed()) return;
@@ -17660,7 +17678,7 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.110';
+const APP_VERSION = '1.6.111';
 const WHATS_NEW = [
   {
     version: '1.6.110',
@@ -20408,6 +20426,17 @@ function puzzleHintText(pz) {
 // A daily puzzle's card also carries today's three levels (pick another) and a way back to the Start pop-up.
 // Learn to Play's banner linking to the How to play page: shown (by CSS, from a body class) while Learn to Play is open;
 // its ✕ hides it until Learn to Play is opened again.
+// Ads (ads.js), phone only: the bottom bar while a game is being played (vs the computer or two players on one screen).
+let adBarRendered = false;
+function refreshAdBar() {
+  const ads = window.OukAds;
+  if (!ads || !ads.enabled()) { if (document.body.classList.contains('ad-bar-on')) { document.body.classList.remove('ad-bar-on'); window.dispatchEvent(new Event('resize')); } return; }
+  const want = uiMode === 'play' && mode !== 'online' && !overlayOpen && UPRIGHT_PHONE_MQ.matches;
+  if (want && !adBarRendered) { adBarRendered = ads.render(document.getElementById('adBannerBar'), 'banner'); }
+  const on = want && adBarRendered;
+  if (on !== document.body.classList.contains('ad-bar-on')) { document.body.classList.toggle('ad-bar-on', on); window.dispatchEvent(new Event('resize')); } // refit the board to the new height
+}
+if (window.OukAds) window.OukAds.ready(() => tickHud()); // the config arrives a moment after the page: draw the bar then
 let learnBannerClosed = false;
 function updateLearnBanner() {
   const on = uiMode === 'train' && !overlayOpen && !learnBannerClosed;
@@ -20584,6 +20613,7 @@ function tickHud() {
   updateTopViewBtn();
   updatePuzzleCard();
   updateLearnBanner();
+  refreshAdBar();
   syncPlanDesk();
   // the automatic 3D fit follows the scene's size until the player moves the camera: a computer's full screen or
   // panel, a phone going full screen (Android, from the Start pop-up) or its browser bars coming and going
@@ -21574,6 +21604,7 @@ window.__ouk = {
   debugRenderMusic: (key, secs) => musRenderOffline(key, secs), // Test-only
   debugRenderSfx: (style, kind, secs) => sfxRenderOffline(style, kind, secs), // Test-only
   debugPieceArt: (setStyle, type, color, promoted) => flat2DArtTexture(setStyle, type, color, !!promoted).image.toDataURL('image/png'), // Test-only: a flat piece's art (used to draw the How to Play diagrams)
+  debugAds: () => ({ mode: window.OukAds ? window.OukAds.mode() : null, enabled: !!(window.OukAds && window.OukAds.enabled()), renders: window.OukAds ? window.OukAds.renders() : 0, barOn: document.body.classList.contains('ad-bar-on') }), // Test-only
   debugBoardRect: () => { // Test-only: the board frame's bounding box on screen (px, relative to the scene)
     const b = new THREE.Box3().setFromObject(frame), v = new THREE.Vector3(), r = renderer.domElement.getBoundingClientRect(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) { v.set(x, y, z).project(camera); const px = (v.x * 0.5 + 0.5) * r.width, py = (-v.y * 0.5 + 0.5) * r.height; x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py); }

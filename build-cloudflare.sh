@@ -13,6 +13,7 @@ cp -r how-to-play dist/how-to-play
 cp -r privacy dist/privacy
 cp -r terms dist/terms
 cp robots.txt sitemap.xml dist/
+cp ads.js ads-config.json dist/
 # safety net: the legal pages carry a placeholder until the real contact address is set (CONTACT_EMAIL when running
 # tools/build-pages.js). A production build (the main branch) with the placeholder still in it fails, so the site
 # that is live stays as it is; preview builds of other branches are unaffected.

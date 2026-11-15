@@ -1,0 +1,6 @@
+{
+  "mode": "off",
+  "client": "",
+  "requireConsent": true,
+  "slots": { "banner": "", "result": "", "content": "" }
+}

@@ -176,7 +176,9 @@ details[open] summary{margin-bottom:6px}
 footer.foot{border-top:1px solid var(--line);background:var(--card);padding:18px 0 26px;text-align:center;font-size:14px;color:var(--muted)}
 footer.foot a{margin:0 8px}
 footer.foot::before{content:'';display:block;height:7px;margin:-18px 0 14px;background:${uri(BAND)} center/12px 7px repeat-x}
-@media print{header.top,footer.foot,.cta{display:none}body{background:#fff;color:#000}}
+/* ads (see ads.js): an empty slot takes no room; it is filled only when ads are switched on */
+.adslot{margin:24px auto;text-align:center}.adslot:empty{display:none}
+@media print{.adslot,header.top,footer.foot,.cta{display:none}body{background:#fff;color:#000}}
 `;
 
 const LANG_JS = `(function(){var K='oukLangPref',v='both';try{v=localStorage.getItem(K)||'both'}catch(e){}
@@ -198,7 +200,8 @@ function layout({ file, title, desc, body, extraHead, legal }) {
 <meta property="og:type" content="website"><meta property="og:site_name" content="Ouk Chatrang"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${url}"><meta property="og:image" content="${SITE}/icon-512.png">
 <meta name="theme-color" content="#221a12">
 <link rel="icon" href="/icon.svg?v=2" type="image/svg+xml">
-${extraHead || ''}<style>${CSS}</style>
+${extraHead || ''}<script src="/ads.js" defer></script>
+<style>${CSS}</style>
 </head>
 <body>
 <header class="top"><div class="wrap">
