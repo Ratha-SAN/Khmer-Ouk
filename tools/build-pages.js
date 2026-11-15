@@ -14,6 +14,9 @@ eval(engineSrc);
 const E = globalThis.OukEngine;
 const lessonSrc = html.slice(html.indexOf('const LESSONS = {'), html.indexOf('const LESSON_ORDER'));
 const LESSONS = eval('(function(){ ' + lessonSrc + ' return LESSONS; })()');
+const puzSrc = html.slice(html.indexOf('const PUZZLES = ['), html.indexOf('\n];', html.indexOf('const PUZZLES = [')) + 3);
+const PUZZLES = eval('(function(){ ' + puzSrc + ' return PUZZLES; })()');
+const VAL = (/var VAL = \[([^\]]*)\]/.exec(engineSrc)[1]).split(',').map((x) => +x.trim()); // the engine's own piece values: -, K, Neang, Koul, Ses, Tuuk, Trey
 const ART = JSON.parse(fs.readFileSync(path.join(__dirname, 'pages', 'art-meta.json'), 'utf8'));
 const CONTACT = process.env.CONTACT_EMAIL || 'support@oukkhmer.com'; // the public contact address shown on the pages
 const SITE = 'https://oukkhmer.com';
@@ -27,7 +30,8 @@ const TYPE_FILE = { [E.KING]: 'king', [E.QUEEN]: 'queen', [E.BISHOP]: 'bishop', 
 const TYPE_NAME = { [E.KING]: 'Sdach (King)', [E.QUEEN]: 'Neang (Queen)', [E.BISHOP]: 'Koul (Bishop)', [E.KNIGHT]: 'Ses (Knight)', [E.ROOK]: 'Tuuk (Rook)', [E.PAWN]: 'Trey (Pawn)' };
 const SCALE = 0.95 * T / ART['king-w.png'].h; // every piece at one scale, as in the game: the Sdach just under one square tall
 let figN = 0;
-function boardSvg(S, focus, title) {
+function boardSvg(S, focus, title, opts) {
+  opts = opts || {};
   const id = 'fig' + (++figN);
   const W = ML + BW + MR, H = MT + BW + MB;
   let moves = [];
@@ -39,15 +43,22 @@ function boardSvg(S, focus, title) {
   g += `<rect x="${ML}" y="${MT}" width="${BW}" height="${BW}" fill="#dcb97d"/>`;
   for (let i = 0; i <= 8; i++) g += `<path d="M${ML + i * T} ${MT}V${MT + BW}M${ML} ${MT + i * T}H${ML + BW}" stroke="#a8793a" stroke-width="1" fill="none"/>`;
   if (focus != null) g += `<rect x="${px(focus)}" y="${py(focus)}" width="${T}" height="${T}" fill="#f0c75e" opacity=".6"/>`;
-  for (const t of targets) if (t.cap) g += `<rect x="${px(t.sq)}" y="${py(t.sq)}" width="${T}" height="${T}" fill="#c0392b" opacity=".18"/>`;
+  for (const t of (opts.noTargets ? [] : targets)) if (t.cap) g += `<rect x="${px(t.sq)}" y="${py(t.sq)}" width="${T}" height="${T}" fill="#c0392b" opacity=".18"/>`;
   for (let sq = 0; sq < 64; sq++) {
     const p = S.board[sq]; if (p === E.EMPTY) continue;
-    const t = E.typeOf(p), c = E.colorOf(p), f = TYPE_FILE[t] + (c === E.WHITE ? '-w' : '-b') + '.png', a = ART[f];
+    const t = E.typeOf(p), c = E.colorOf(p), f = (E.isProm(p) ? 'promoted' : TYPE_FILE[t]) + (c === E.WHITE ? '-w' : '-b') + '.png', a = ART[f];
     const w = (a.w * SCALE).toFixed(1), h = (a.h * SCALE).toFixed(1);
     const x = px(sq) + (T - w) / 2, y = t === E.PAWN ? py(sq) + (T - h) / 2 : py(sq) + T - h - 0.04 * T;
-    g += `<image href="art/${f}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w}" height="${h}"/>`;
+    g += `<image href="/how-to-play/art/${f}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w}" height="${h}"/>`;
   }
-  for (const t of targets) {
+  if (opts.arrow) { // the move: a green arrow from the middle of one square to the middle of the other, over the pieces
+    const [from, to] = opts.arrow, x0 = px(from) + T / 2, y0 = py(from) + T / 2, x1 = px(to) + T / 2, y1 = py(to) + T / 2;
+    const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, head = 12, w = 6.5;
+    const sx = x0 + ux * 8, sy = y0 + uy * 8, ex = x1 - ux * 4, ey = y1 - uy * 4, bx = ex - ux * head, by = ey - uy * head;
+    g += `<g opacity=".82"><path d="M${sx.toFixed(1)} ${sy.toFixed(1)}L${bx.toFixed(1)} ${by.toFixed(1)}" stroke="#1f7a4d" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M${ex.toFixed(1)} ${ey.toFixed(1)}L${(bx - uy * w).toFixed(1)} ${(by + ux * w).toFixed(1)}L${(bx + uy * w).toFixed(1)} ${(by - ux * w).toFixed(1)}Z" fill="#1f7a4d"/></g>`;
+  }
+  for (const sq of (opts.ring || [])) g += `<rect x="${px(sq)}" y="${py(sq)}" width="${T}" height="${T}" fill="#c0392b" opacity=".16"/><circle cx="${px(sq) + T / 2}" cy="${py(sq) + T / 2}" r="${(T * 0.46).toFixed(1)}" fill="none" stroke="#c0392b" stroke-width="3"/>`;
+  for (const t of (opts.noTargets ? [] : targets)) {
     const cx = px(t.sq) + T / 2, cy = py(t.sq) + T / 2;
     g += t.cap ? `<circle cx="${cx}" cy="${cy}" r="${(T * 0.45).toFixed(1)}" fill="none" stroke="#c0392b" stroke-width="2.6"/>` : `<circle cx="${cx}" cy="${cy}" r="${(T * 0.15).toFixed(1)}" fill="#2f8f5b" opacity=".92"/>`;
   }
@@ -58,12 +69,40 @@ function boardSvg(S, focus, title) {
     lab += `<text x="${ML - 9}" y="${MT + (7 - i) * T + T / 2 + 1}" text-anchor="middle" font-size="13" fill="#e2b65a">${RANKS_KH[i]}</text><text x="${ML - 9}" y="${MT + (7 - i) * T + T / 2 + 12}" text-anchor="middle" font-size="9" fill="#b39f7c">${i + 1}</text>`;
   }
   let desc = title + '.';
-  if (focus != null) {
+  if (opts.desc) desc = title + '. ' + opts.desc;
+  else if (focus != null) {
     const sqn = E.sqName(focus), fp = S.board[focus];
     const to = targets.filter((t) => !t.cap).map((t) => E.sqName(t.sq)), cp = targets.filter((t) => t.cap).map((t) => E.sqName(t.sq));
     desc = `${title}. The ${E.colorOf(fp) === E.WHITE ? 'white' : 'black'} ${TYPE_NAME[E.typeOf(fp)]} on ${sqn} can move to ${to.length ? to.join(', ') : 'no empty square'}` + (cp.length ? ` and capture on ${cp.join(', ')}.` : '.');
   }
   return `<svg class="board" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${id}t ${id}d" font-family="'Noto Sans Khmer','Khmer OS','Khmer MN','Leelawadee UI','Segoe UI',system-ui,sans-serif"><title id="${id}t">${esc(title)}</title><desc id="${id}d">${esc(desc)}</desc>${g}${lab}</svg>`;
+}
+// a puzzle position from the game's own puzzle set, drawn before the move with the answer as an arrow; the engine
+// checks the answer: a "mate" figure must really be checkmate, a "move" figure must be legal (else the build stops)
+const KH_NAME = { [E.KING]: 'ស្ដេច', [E.QUEEN]: 'នាង', [E.BISHOP]: 'គោល', [E.KNIGHT]: 'សេះ', [E.ROOK]: 'ទូក', [E.PAWN]: 'ត្រី' };
+const EN_NAME = { [E.KING]: 'Sdach', [E.QUEEN]: 'Neang', [E.BISHOP]: 'Koul', [E.KNIGHT]: 'Ses', [E.ROOK]: 'Tuuk', [E.PAWN]: 'Trey' };
+function puzzleFigure(key, pick) {
+  const pz = PUZZLES.find((x) => x.key === key); if (!pz) throw new Error('no puzzle ' + key);
+  const S = E.emptyState('always'); S.turn = E.WHITE; S.kingMoved = [true, true]; S.queenMoved = [true, true];
+  pz.setup((n, t, c, prom) => { S.board[E.sqIndex(n)] = E.mk(t, c, prom); }, S);
+  const legal = E.genLegal(S, E.WHITE), nmv = (m) => E.sqName(m.from) + E.sqName(m.to);
+  let moves;
+  if (pz.goal === 'mate') moves = legal.filter((m) => { const u = E.makeMove(S, m); const st = E.gameStatus(S); E.unmakeMove(S, u); return st && st.type === 'checkmate'; });
+  else moves = legal.filter((m) => nmv(m) === pz.answer.from + pz.answer.to);
+  if (!moves.length) throw new Error('puzzle ' + key + ': no answer found by the engine');
+  const m = pick ? moves.find((x) => nmv(x) === pick) : moves[0]; if (!m) throw new Error('puzzle ' + key + ': move ' + pick + ' is not an answer');
+  const p = S.board[m.from], cap = S.board[m.to] !== E.EMPTY, mate = pz.goal === 'mate';
+  const u = E.makeMove(S, m); const bk = E.kingSq(S, E.BLACK); E.unmakeMove(S, u);
+  const enMove = `${EN_NAME[E.typeOf(p)]} ${E.sqName(m.from)}${cap ? '×' : '–'}${E.sqName(m.to)}`, khMove = `${KH_NAME[E.typeOf(p)]} ${E.sqName(m.from)}${cap ? '×' : '–'}${E.sqName(m.to)}`;
+  const svg = boardSvg(S, null, `White to move: ${enMove}`, { arrow: [m.from, m.to], ring: mate ? [bk] : [], noTargets: true,
+    desc: `White to move. White plays ${enMove}${mate ? ', which is checkmate' : ''}. White: ${list(S, E.WHITE)}. Black: ${list(S, E.BLACK)}.` });
+  const alt = moves.length > 1 ? moves.filter((x) => x !== m).map((x) => EN_NAME[E.typeOf(S.board[x.from])] + ' ' + nmv(x).slice(0, 2) + '–' + nmv(x).slice(2)) : [];
+  return { svg, khCap: `ខាងសដើរ — ${khMove}${mate ? ' ជាអុកងាប់។' : '។'}`, enCap: `White to move — ${enMove}${mate ? ' is checkmate.' : '.'}${alt.length ? ' (' + alt.join(' also works, and ') + ' also works.)' : ''}`.replace(' also works, and ', ' and ').replace('also works.)', 'also mate.)') };
+}
+function list(S, c) { const o = []; for (let i = 0; i < 64; i++) { const q = S.board[i]; if (q !== E.EMPTY && E.colorOf(q) === c) o.push(`${EN_NAME[E.typeOf(q)]}${E.isProm(q) ? ' (promoted)' : ''} on ${E.sqName(i)}`); } return o.join(', '); }
+function puzzleFig(spec) {
+  const [key, pick] = spec.split('@'); const f = puzzleFigure(key, pick);
+  return `<figure class="puzfig">${f.svg}<figcaption><span class="kh">${f.khCap}</span><span class="en">${f.enCap}</span></figcaption></figure>`;
 }
 function lessonBoard(type, level) {
   const S = E.emptyState('always');
@@ -85,7 +124,7 @@ function pieceCards() {
     const L = LESSONS[p.t];
     const img = TYPE_FILE[p.t] + '-w.png';
     return `<article class="card piece" id="${p.id}">
-<h3><img class="pic" src="art/${img}" alt="" width="${Math.round(ART[img].w * 0.2)}" height="${Math.round(ART[img].h * 0.2)}" loading="lazy"><span class="kh">${p.kh}</span> <span class="tr">${p.tr}</span> <span class="en">(${p.en})</span></h3>
+<h3><img class="pic" src="/how-to-play/art/${img}" alt="" width="${Math.round(ART[img].w * 0.2)}" height="${Math.round(ART[img].h * 0.2)}" loading="lazy"><span class="kh">${p.kh}</span> <span class="tr">${p.tr}</span> <span class="en">(${p.en})</span></h3>
 <div class="figs"><figure>${lessonBoard(p.t, 'basic')}<figcaption><span class="kh">ការដើរមូលដ្ឋាន</span><span class="en">How it moves</span></figcaption></figure>
 <figure>${lessonBoard(p.t, 'adv')}<figcaption><span class="kh">គួរដឹង</span><span class="en">Good to know</span></figcaption></figure></div>
 <p><span class="kh">${esc(staticKh(L.basic.kh))}</span><span class="en">${esc(staticEn(L.basic.en))}</span></p>
@@ -93,8 +132,51 @@ function pieceCards() {
 </article>`;
   }).join('\n');
 }
+// the engine's piece values, as a table (Trey = 1): the page text quotes these, so they are read, not typed
+function valuesTable() {
+  const rows = [[E.PAWN, VAL[6]], [E.QUEEN, VAL[2]], [E.BISHOP, VAL[3]], [E.KNIGHT, VAL[4]], [E.ROOK, VAL[5]]];
+  return `<table><tr><th><kh>កូនអុក</kh><en>Piece</en></th><th><kh>តម្លៃប្រហាក់ប្រហែល (ត្រី = ១)</kh><en>Rough value (Trey = 1)</en></th><th><kh>តម្លៃក្នុងម៉ាស៊ីន</kh><en>Engine score</en></th></tr>` +
+    rows.map(([t, v]) => `<tr><td><span class="kh">${KH_NAME[t]}</span> <span class="en">${EN_NAME[t]}</span></td><td>${(v / VAL[6]).toFixed(1)}</td><td>${v}</td></tr>`).join('') +
+    `<tr><td><span class="kh">${KH_NAME[E.KING]}</span> <span class="en">${EN_NAME[E.KING]}</span></td><td colspan="2"><kh>គ្មានតម្លៃ — បាត់ស្ដេច គឺចាញ់</kh><en>priceless: lose it and the game is lost</en></td></tr></table>`;
+}
+function countTable() {
+  return `<table><tr><th><kh>ខាងខ្លាំងមាន…</kh><en>Stronger side has…</en></th><th><kh>ដែនកំណត់</kh><en>Limit</en></th></tr>` +
+    E.PIECE_HONOR_TABLE.map((r) => `<tr><td><span class="kh">${r.count === 2 ? KH_NAME[r.piece] + 'ពីរ' : KH_NAME[r.piece] + 'មួយ'}</span><span class="en">${r.count === 2 ? 'Two' : 'One'} ${EN_NAME[r.piece]}</span></td><td>${r.limit}</td></tr>`).join('') +
+    `<tr><td><kh>កូនអុកផ្សេងទៀត (ឧទាហរណ៍ មានតែនាង)</kh><en>Anything else (for example only a Neang)</en></td><td>${E.PIECE_HONOR_DEFAULT_LIMIT}</td></tr></table>`;
+}
+// the worked counting examples quoted in counting-rules.html: run through the engine, and the build stops if they are not what the text says
+function checkCounting() {
+  const S = E.emptyState('always'); S.kingMoved = [true, true]; S.queenMoved = [true, true]; S.turn = E.WHITE;
+  const put = (n, t, c) => { S.board[E.sqIndex(n)] = E.mk(t, c); };
+  put('a1', E.KING, E.WHITE); put('b1', E.ROOK, E.WHITE); put('c1', E.ROOK, E.WHITE); put('h8', E.KING, E.BLACK);
+  if (!E.canCountPiece(S, E.BLACK)) throw new Error('counting example: Black should be able to count');
+  E.startCounting(S, E.BLACK, 'piece');
+  if (S.counting.count !== 4 || S.counting.limit !== 8) throw new Error('counting example: expected count 4 / limit 8, got ' + JSON.stringify(S.counting));
+  const T = E.emptyState('always'); T.kingMoved = [true, true]; T.queenMoved = [true, true]; T.turn = E.WHITE;
+  T.board[E.sqIndex('a1')] = E.mk(E.KING, E.WHITE); T.board[E.sqIndex('b1')] = E.mk(E.ROOK, E.WHITE); T.board[E.sqIndex('h8')] = E.mk(E.KING, E.BLACK);
+  E.startCounting(T, E.BLACK, 'piece');
+  if (T.counting.count !== 3 || T.counting.limit !== 16) throw new Error('counting example: one Tuuk should give 3 / 16, got ' + JSON.stringify(T.counting));
+  const B = E.emptyState('always'); B.kingMoved = [true, true]; B.queenMoved = [true, true]; B.turn = E.WHITE;
+  B.board[E.sqIndex('a1')] = E.mk(E.KING, E.WHITE); B.board[E.sqIndex('b1')] = E.mk(E.ROOK, E.WHITE); B.board[E.sqIndex('c1')] = E.mk(E.KNIGHT, E.WHITE); B.board[E.sqIndex('h8')] = E.mk(E.KING, E.BLACK); B.board[E.sqIndex('g8')] = E.mk(E.PAWN, E.BLACK);
+  if (E.canCountBoard(B, E.BLACK) !== true) throw new Error("counting example: two Black pieces vs four White should allow Board's Honor");
+  E.startCounting(B, E.BLACK, 'board');
+  if (B.counting.count !== 1 || B.counting.limit !== 64) throw new Error("Board's Honor should start at 1 with limit 64");
+}
+checkCounting();
 function startBoard() { return boardSvg(E.initialState('always'), null, 'The starting position of Ouk Chatrang: White (bottom) and Black (top)'); }
 
+// ---------- the guides (articles): one list drives the cards, the footer, the structured data and the sitemap ----------
+const GUIDES = [
+  { file: 'how-to-play', kh: 'វិធីលេង', en: 'How to play', d: 'The board, every piece and its moves, special moves, promotion and checkmate, with a diagram for each piece.' },
+  { file: 'strategy', kh: 'យុទ្ធសាស្ត្រ', en: 'Strategy guide', d: 'What each piece is worth, opening principles, tactics such as the fork and the Koul\'s blind spot, trading, promotion and endgames.' },
+  { file: 'checkmate-patterns', kh: 'លំនាំអុកងាប់', en: 'Checkmate patterns', d: 'Eight mating patterns with diagrams: the box, the ladder, the back rank, the smothered mate and more.' },
+  { file: 'counting-rules', kh: 'ច្បាប់ការរាប់', en: 'Counting rules', d: "Board's Honor and Piece's Honor explained, with the limits table and worked examples." },
+  { file: 'glossary', kh: 'វាក្យសព្ទ', en: 'Glossary', d: 'Khmer chess terms with their English meanings: pieces, board, check, checkmate, counting.' },
+  { file: 'history', kh: 'ប្រវត្តិ', en: 'History and origins', d: 'Where Ouk Chatrang comes from, the names of its pieces and how it relates to Makruk and international chess.' }
+];
+function guideCards(except) {
+  return '<div class="guides">' + GUIDES.filter((g) => g.file !== except).map((g) => `<a class="guide" href="/${g.file}/"><b><span class="kh">${g.kh}</span><span class="en">${g.en}</span></b><span class="d">${esc(g.d)}</span></a>`).join('') + '</div>';
+}
 // ---------- the Khmer ornament (kbach): a lotus and a petal band, drawn small and flat ----------
 const BUD = 'M0-7C2.6-4.2 3-0.6 0 4.2-3-0.6-2.6-4.2 0-7Z';
 const LOTUS = `<svg xmlns='http://www.w3.org/2000/svg' width='30' height='14' viewBox='-15 -8 30 14'><g fill='#e2b65a'><path d='${BUD}'/><path transform='rotate(-48 0 4) scale(.82)' d='${BUD}' opacity='.8'/><path transform='rotate(48 0 4) scale(.82)' d='${BUD}' opacity='.8'/><path transform='rotate(-84 0 4) scale(.6)' d='${BUD}' opacity='.6'/><path transform='rotate(84 0 4) scale(.6)' d='${BUD}' opacity='.6'/></g></svg>`;
@@ -151,6 +233,14 @@ body.lang-kh .card h3 .tr{display:none}
 @media(min-width:640px){.figs{grid-template-columns:1fr 1fr}}
 figure{text-align:center}
 figcaption{font-size:14px;color:var(--muted);margin-top:4px}
+.puzfig{margin:16px auto;max-width:420px}
+.guides{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0}
+@media(min-width:640px){.guides{grid-template-columns:1fr 1fr}}
+a.guide{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--text);text-decoration:none}
+a.guide:hover{border-color:var(--gold)}a.guide b{display:block;color:var(--gold);margin-bottom:2px}
+a.guide .d{display:block;font-size:14px;color:var(--muted);line-height:1.6}
+.toc{font-size:15px}.toc a{margin-right:10px;white-space:nowrap}
+.byline{text-align:center;color:var(--muted);font-size:14px;margin-top:6px}
 svg.board{width:100%;height:auto;max-width:392px;display:block;margin:0 auto}
 .extra{border-left:3px solid var(--line);padding-left:12px;color:#e3d5b7}
 .legend{font-size:14px;color:var(--muted);text-align:center}
@@ -189,6 +279,9 @@ document.querySelectorAll('.lang button').forEach(function(b){b.addEventListener
 
 function layout({ file, title, desc, body, extraHead, legal }) {
   const url = SITE + '/' + file + '/';
+  if (!legal) { // an article: say so to search engines (schema.org)
+    extraHead = (extraHead || '') + '<script type="application/ld+json">' + JSON.stringify({ '@context': 'https://schema.org', '@type': 'Article', headline: title.split(' — ')[0], description: desc, inLanguage: ['km', 'en'], mainEntityOfPage: url, dateModified: UPDATED, image: SITE + '/icon-512.png', publisher: { '@type': 'Organization', name: 'Ouk Chatrang', url: SITE + '/', logo: { '@type': 'ImageObject', url: SITE + '/icon-512.png' } } }) + '</script>\n';
+  }
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -214,7 +307,8 @@ ${extraHead || ''}<script src="/ads.js" defer></script>
 ${body}
 </div></main>
 <footer class="foot"><div class="wrap">
-<a href="/"><kh>លេង</kh><en>Play</en></a> · <a href="/how-to-play/"><kh>វិធីលេង</kh><en>How to play</en></a> · <a href="/privacy/"><kh>ឯកជនភាព</kh><en>Privacy</en></a> · <a href="/terms/"><kh>លក្ខខណ្ឌ</kh><en>Terms</en></a> · <a href="mailto:${CONTACT}"><kh>ទំនាក់ទំនង</kh><en>Contact</en></a>
+<p>${GUIDES.map((g) => `<a href="/${g.file}/"><kh>${g.kh}</kh><en>${g.en}</en></a>`).join(' · ')}</p>
+<p style="margin-top:6px"><a href="/"><kh>លេង</kh><en>Play</en></a> · <a href="/about/"><kh>អំពី</kh><en>About</en></a> · <a href="/privacy/"><kh>ឯកជនភាព</kh><en>Privacy</en></a> · <a href="/terms/"><kh>លក្ខខណ្ឌ</kh><en>Terms</en></a> · <a href="mailto:${CONTACT}"><kh>ទំនាក់ទំនង</kh><en>Contact</en></a></p>
 <p style="margin-top:8px">© 2026 Ouk Chatrang · oukkhmer.com</p>
 </div></footer>
 <script>${LANG_JS}</script>
@@ -224,15 +318,29 @@ ${body}
 }
 function transform(s) {
   return s.replace(/<kh>/g, '<span class="kh">').replace(/<\/kh>/g, '</span>').replace(/<en>/g, '<span class="en">').replace(/<\/en>/g, '</span>')
-    .replace(/\{\{CONTACT\}\}/g, `<a href="mailto:${CONTACT}">${CONTACT}</a>`).replace(/\{\{UPDATED\}\}/g, UPDATED)
-    .replace(/\{\{BOARD:start\}\}/g, () => startBoard()).replace(/\{\{PIECES\}\}/g, () => pieceCards());
+    .replace(/\{\{CONTACT\}\}/g, `<a href="mailto:${CONTACT}">${CONTACT}</a>`).replace(/\{\{CONTACTADDR\}\}/g, CONTACT).replace(/\{\{UPDATED\}\}/g, UPDATED)
+    .replace(/\{\{BOARD:start\}\}/g, () => startBoard()).replace(/\{\{PIECES\}\}/g, () => pieceCards())
+    .replace(/\{\{PUZ:([a-z0-9@]+)\}\}/g, (_, k) => puzzleFig(k)).replace(/\{\{VALUES\}\}/g, () => valuesTable()).replace(/\{\{COUNTTABLE\}\}/g, () => countTable())
+    .replace(/\{\{GUIDES\}\}/g, () => guideCards());
 }
 function read(f) { return fs.readFileSync(path.join(__dirname, 'pages', f), 'utf8'); }
 const PAGES = [
   { file: 'how-to-play', src: 'how-to-play.html', title: 'How to play Ouk Chatrang (Khmer chess) — រៀនលេងអុកចត្រង្គ',
-    desc: 'Learn to play Ouk Chatrang, traditional Cambodian chess: the board, how every piece moves, special moves, promotion, checkmate and the counting rules, with diagrams. Free to play online.' },
-  { file: 'privacy', src: 'privacy.html', legal: true, title: 'Privacy Policy — Ouk Chatrang', desc: 'How Ouk Chatrang (oukkhmer.com) collects, uses and protects your information, and the choices you have.' },
-  { file: 'terms', src: 'terms.html', legal: true, title: 'Terms of Use — Ouk Chatrang', desc: 'The terms for using the Ouk Chatrang game at oukkhmer.com.' }
+    desc: 'Learn to play Ouk Chatrang, traditional Cambodian chess: the board, how every piece moves, special moves, promotion, checkmate and the counting rules, with diagrams. Free to play online.', prio: '0.8' },
+  { file: 'strategy', src: 'strategy.html', title: 'Ouk Chatrang strategy guide: piece values, openings, tactics and endgames — យុទ្ធសាស្ត្រ',
+    desc: 'A practical strategy guide to Ouk Chatrang (Cambodian chess): what each piece is worth, how to open, tactics like the Ses fork and the Koul\'s blind spot, trading, promotion and endgames, with diagrams.', prio: '0.7' },
+  { file: 'checkmate-patterns', src: 'checkmate-patterns.html', title: 'Checkmate patterns in Ouk Chatrang (Cambodian chess), with diagrams — លំនាំអុកងាប់',
+    desc: 'Eight checkmate patterns in Ouk Chatrang with engine-checked diagrams: the box mate, the ladder, back-rank mate, smothered mate, mates with the Koul and Neang, discovered mate.', prio: '0.7' },
+  { file: 'counting-rules', src: 'counting-rules.html', title: "Counting rules in Ouk Chatrang explained: Board's Honor and Piece's Honor — ច្បាប់ការរាប់",
+    desc: "How the counting rules of Ouk Chatrang (Cambodian chess) work: Board's Honor, Piece's Honor, the limits table and worked examples.", prio: '0.7' },
+  { file: 'glossary', src: 'glossary.html', title: 'Ouk Chatrang glossary: Khmer chess terms and their English meanings — វាក្យសព្ទ',
+    desc: 'Khmer chess vocabulary for Ouk Chatrang: the six pieces, board terms, check, checkmate, stalemate, promotion and the counting rules, in Khmer and English.', prio: '0.6' },
+  { file: 'history', src: 'history.html', title: 'History and origins of Ouk Chatrang, Cambodian chess — ប្រវត្តិអុកចត្រង្គ',
+    desc: 'A short overview of where Ouk Chatrang comes from: the chaturanga family, the names of the pieces, and how it relates to Thai Makruk and international chess.', prio: '0.6' },
+  { file: 'about', src: 'about.html', title: 'About Ouk Chatrang (oukkhmer.com) — អំពីអុកចត្រង្គ',
+    desc: 'About the free Ouk Chatrang web game: what you can do, how the computer opponent works, languages, accounts, and how to contact us.', prio: '0.5' },
+  { file: 'privacy', src: 'privacy.html', legal: true, title: 'Privacy Policy — Ouk Chatrang', desc: 'How Ouk Chatrang (oukkhmer.com) collects, uses and protects your information, and the choices you have.', prio: '0.3' },
+  { file: 'terms', src: 'terms.html', legal: true, title: 'Terms of Use — Ouk Chatrang', desc: 'The terms for using the Ouk Chatrang game at oukkhmer.com.', prio: '0.3' }
 ];
 for (const p of PAGES) {
   const out = layout({ file: p.file, title: p.title, desc: p.desc, legal: p.legal, body: transform(read(p.src)) });
@@ -241,3 +349,6 @@ for (const p of PAGES) {
   fs.writeFileSync(path.join(dir, 'index.html'), transform(out));
   console.log(p.file + '/index.html', Math.round(out.length / 1024) + ' KB');
 }
+// the sitemap is generated from the same list, so a new page can never be forgotten
+fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+  [{ file: '', prio: '1.0' }].concat(PAGES).map((p) => `  <url><loc>${SITE}/${p.file ? p.file + '/' : ''}</loc><lastmod>${UPDATED}</lastmod><priority>${p.prio}</priority></url>`).join('\n') + '\n</urlset>\n');

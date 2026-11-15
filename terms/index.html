@@ -60,6 +60,14 @@ body.lang-kh .card h3 .tr{display:none}
 @media(min-width:640px){.figs{grid-template-columns:1fr 1fr}}
 figure{text-align:center}
 figcaption{font-size:14px;color:var(--muted);margin-top:4px}
+.puzfig{margin:16px auto;max-width:420px}
+.guides{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0}
+@media(min-width:640px){.guides{grid-template-columns:1fr 1fr}}
+a.guide{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--text);text-decoration:none}
+a.guide:hover{border-color:var(--gold)}a.guide b{display:block;color:var(--gold);margin-bottom:2px}
+a.guide .d{display:block;font-size:14px;color:var(--muted);line-height:1.6}
+.toc{font-size:15px}.toc a{margin-right:10px;white-space:nowrap}
+.byline{text-align:center;color:var(--muted);font-size:14px;margin-top:6px}
 svg.board{width:100%;height:auto;max-width:392px;display:block;margin:0 auto}
 .extra{border-left:3px solid var(--line);padding-left:12px;color:#e3d5b7}
 .legend{font-size:14px;color:var(--muted);text-align:center}
@@ -168,7 +176,8 @@ footer.foot::before{content:'';display:block;height:7px;margin:-18px 0 14px;back
 
 </div></main>
 <footer class="foot"><div class="wrap">
-<a href="/"><span class="kh">លេង</span><span class="en">Play</span></a> · <a href="/how-to-play/"><span class="kh">វិធីលេង</span><span class="en">How to play</span></a> · <a href="/privacy/"><span class="kh">ឯកជនភាព</span><span class="en">Privacy</span></a> · <a href="/terms/"><span class="kh">លក្ខខណ្ឌ</span><span class="en">Terms</span></a> · <a href="mailto:support@oukkhmer.com"><span class="kh">ទំនាក់ទំនង</span><span class="en">Contact</span></a>
+<p><a href="/how-to-play/"><span class="kh">វិធីលេង</span><span class="en">How to play</span></a> · <a href="/strategy/"><span class="kh">យុទ្ធសាស្ត្រ</span><span class="en">Strategy guide</span></a> · <a href="/checkmate-patterns/"><span class="kh">លំនាំអុកងាប់</span><span class="en">Checkmate patterns</span></a> · <a href="/counting-rules/"><span class="kh">ច្បាប់ការរាប់</span><span class="en">Counting rules</span></a> · <a href="/glossary/"><span class="kh">វាក្យសព្ទ</span><span class="en">Glossary</span></a> · <a href="/history/"><span class="kh">ប្រវត្តិ</span><span class="en">History and origins</span></a></p>
+<p style="margin-top:6px"><a href="/"><span class="kh">លេង</span><span class="en">Play</span></a> · <a href="/about/"><span class="kh">អំពី</span><span class="en">About</span></a> · <a href="/privacy/"><span class="kh">ឯកជនភាព</span><span class="en">Privacy</span></a> · <a href="/terms/"><span class="kh">លក្ខខណ្ឌ</span><span class="en">Terms</span></a> · <a href="mailto:support@oukkhmer.com"><span class="kh">ទំនាក់ទំនង</span><span class="en">Contact</span></a></p>
 <p style="margin-top:8px">© 2026 Ouk Chatrang · oukkhmer.com</p>
 </div></footer>
 <script>(function(){var K='oukLangPref',v='both';try{v=localStorage.getItem(K)||'both'}catch(e){}

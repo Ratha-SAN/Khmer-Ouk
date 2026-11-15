@@ -60,6 +60,14 @@ body.lang-kh .card h3 .tr{display:none}
 @media(min-width:640px){.figs{grid-template-columns:1fr 1fr}}
 figure{text-align:center}
 figcaption{font-size:14px;color:var(--muted);margin-top:4px}
+.puzfig{margin:16px auto;max-width:420px}
+.guides{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0}
+@media(min-width:640px){.guides{grid-template-columns:1fr 1fr}}
+a.guide{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--text);text-decoration:none}
+a.guide:hover{border-color:var(--gold)}a.guide b{display:block;color:var(--gold);margin-bottom:2px}
+a.guide .d{display:block;font-size:14px;color:var(--muted);line-height:1.6}
+.toc{font-size:15px}.toc a{margin-right:10px;white-space:nowrap}
+.byline{text-align:center;color:var(--muted);font-size:14px;margin-top:6px}
 svg.board{width:100%;height:auto;max-width:392px;display:block;margin:0 auto}
 .extra{border-left:3px solid var(--line);padding-left:12px;color:#e3d5b7}
 .legend{font-size:14px;color:var(--muted);text-align:center}
@@ -107,7 +115,7 @@ footer.foot::before{content:'';display:block;height:7px;margin:-18px 0 14px;back
 <li>អ្នកអាចលេងជាភ្ញៀវ ដោយមិនចាំបាច់ផ្ដល់ឈ្មោះ ឬអ៊ីមែល។</li>
 <li>បើអ្នកចូលគណនី (Google, Facebook ឬអ៊ីមែល) យើងរក្សាទុកឈ្មោះ អ៊ីមែល រូបថតប្រូហ្វាល់ និងស្ថិតិល្បែងរបស់អ្នក ដើម្បីឲ្យគណនីដំណើរការ។</li>
 <li>យើងប្រើ Google Firebase សម្រាប់គណនី ទិន្នន័យ និងស្ថិតិប្រើប្រាស់ ហើយប្រើ Cloudflare សម្រាប់បង្ហោះគេហទំព័រ។</li>
-<li>យើងមិនលក់ទិន្នន័យផ្ទាល់ខ្លួនរបស់អ្នកទេ ហើយបច្ចុប្បន្នគ្មានការផ្សាយពាណិជ្ជកម្មទេ។</li>
+<li>យើងមិនលក់ទិន្នន័យផ្ទាល់ខ្លួនរបស់អ្នកទេ ហើយបច្ចុប្បន្នគ្មានការផ្សាយពាណិជ្ជកម្មទេ។ បើមានពេលក្រោយ វានឹងមកពី Google AdSense ហើយយើងនឹងសុំការយល់ព្រមពីអ្នកតាមដែលច្បាប់តម្រូវ។</li>
 <li>អ្នកអាចស្នើសុំមើល កែ ឬលុបទិន្នន័យរបស់អ្នក តាមអ៊ីមែលនៅខាងក្រោម។</li>
 <li>អត្ថបទអង់គ្លេសខាងក្រោមជាកំណែផ្លូវការ។</li>
 </ul>
@@ -121,7 +129,7 @@ footer.foot::before{content:'';display:block;height:7px;margin:-18px 0 14px;back
 <li>You can play as a <strong>guest</strong> without giving us your name or email.</li>
 <li>If you sign in, we store the details needed to run your account and your game statistics.</li>
 <li>We use Google Firebase for accounts, data storage and usage statistics, and Cloudflare to host the site.</li>
-<li>We do <strong>not sell</strong> your personal information. We do not show advertising at the moment.</li>
+<li>We do <strong>not sell</strong> your personal information. We do not show advertising at the moment; if we do in future it will be provided by Google AdSense, with your consent where the law requires it (section 6).</li>
 <li>You can ask us to show, correct or delete your data at any time.</li>
 </ul>
 
@@ -161,7 +169,14 @@ footer.foot::before{content:'';display:block;height:7px;margin:-18px 0 14px;back
 </ul>
 
 <h2>6. Advertising</h2>
-<p>We do not currently show advertising or share your information for advertising. If we add advertising in the future we will update this policy first and, where the law requires, ask for your consent before any advertising cookies or similar technologies are used.</p>
+<p>At the time this policy was last updated, the game does not show advertising. We are preparing to show some on certain pages, such as the guides and the end-of-game screen. When we switch advertising on, it will be provided by <strong>Google AdSense</strong>, a third-party advertising service, and this section describes what will then apply.</p>
+<ul>
+<li><strong>What ad providers may collect.</strong> Google and its advertising partners may use cookies and similar technologies, and information such as your IP address, browser type and the pages you view, to show and measure ads, to limit how often you see an ad, and to detect fraud and abuse. See <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">How Google uses information from sites or apps that use its services</a>.</li>
+<li><strong>Your consent.</strong> Where the law requires it (for example in the European Economic Area, the United Kingdom and Switzerland), we will ask for your consent through a consent tool before ads that use cookies for personalisation are shown, and you will be able to change your choice later.</li>
+<li><strong>Your controls.</strong> You can manage personalised advertising from Google at <a href="https://adssettings.google.com" rel="noopener">adssettings.google.com</a> and find opt-out tools for many advertising companies at <a href="https://www.aboutads.info" rel="noopener">aboutads.info</a>. You can also block or delete cookies in your browser; the game keeps working.</li>
+<li><strong>What we do not do.</strong> We do not sell your personal information. We keep ads away from game controls, and we do not use ads to collect information from you beyond what this policy describes. An advertiser does not receive your name or email address from us.</li>
+</ul>
+<p>Advertisers and ad providers are third parties with their own privacy policies, and we do not control them. Before advertising is switched on we will make sure this section is up to date.</p>
 
 <h2>7. International transfers</h2>
 <p>Our providers run services worldwide, so your information may be processed in countries other than your own, including the United States. They describe the safeguards they use in their own policies, linked above.</p>
@@ -201,7 +216,8 @@ footer.foot::before{content:'';display:block;height:7px;margin:-18px 0 14px;back
 
 </div></main>
 <footer class="foot"><div class="wrap">
-<a href="/"><span class="kh">លេង</span><span class="en">Play</span></a> · <a href="/how-to-play/"><span class="kh">វិធីលេង</span><span class="en">How to play</span></a> · <a href="/privacy/"><span class="kh">ឯកជនភាព</span><span class="en">Privacy</span></a> · <a href="/terms/"><span class="kh">លក្ខខណ្ឌ</span><span class="en">Terms</span></a> · <a href="mailto:support@oukkhmer.com"><span class="kh">ទំនាក់ទំនង</span><span class="en">Contact</span></a>
+<p><a href="/how-to-play/"><span class="kh">វិធីលេង</span><span class="en">How to play</span></a> · <a href="/strategy/"><span class="kh">យុទ្ធសាស្ត្រ</span><span class="en">Strategy guide</span></a> · <a href="/checkmate-patterns/"><span class="kh">លំនាំអុកងាប់</span><span class="en">Checkmate patterns</span></a> · <a href="/counting-rules/"><span class="kh">ច្បាប់ការរាប់</span><span class="en">Counting rules</span></a> · <a href="/glossary/"><span class="kh">វាក្យសព្ទ</span><span class="en">Glossary</span></a> · <a href="/history/"><span class="kh">ប្រវត្តិ</span><span class="en">History and origins</span></a></p>
+<p style="margin-top:6px"><a href="/"><span class="kh">លេង</span><span class="en">Play</span></a> · <a href="/about/"><span class="kh">អំពី</span><span class="en">About</span></a> · <a href="/privacy/"><span class="kh">ឯកជនភាព</span><span class="en">Privacy</span></a> · <a href="/terms/"><span class="kh">លក្ខខណ្ឌ</span><span class="en">Terms</span></a> · <a href="mailto:support@oukkhmer.com"><span class="kh">ទំនាក់ទំនង</span><span class="en">Contact</span></a></p>
 <p style="margin-top:8px">© 2026 Ouk Chatrang · oukkhmer.com</p>
 </div></footer>
 <script>(function(){var K='oukLangPref',v='both';try{v=localStorage.getItem(K)||'both'}catch(e){}

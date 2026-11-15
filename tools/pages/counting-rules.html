@@ -1,0 +1,41 @@
+<h1><kh>ច្បាប់ការរាប់</kh><en>The counting rules of Ouk Chatrang</en></h1>
+<p class="byline"><kh>ធ្វើបច្ចុប្បន្នភាព {{UPDATED}}</kh><en>Updated {{UPDATED}}</en></p>
+<p class="note kh" style="text-align:center">អត្ថបទនេះសរសេរជាភាសាអង់គ្លេស ជាមួយសេចក្ដីសង្ខេបជាភាសាខ្មែរ។</p>
+<p class="lead kh">សេចក្ដីសង្ខេប៖ ច្បាប់ការរាប់ការពារខាងខ្សោយពីការលេងចុងដែលមិនចេះចប់។ មានពីរបែប៖ កិត្តិយសក្ដារ (អ្នកមានបីកូនអុក ឬតិចជាងនេះ រាបពី ១ ដល់ ៦៤) និងកិត្តិយសកូនអុក (អ្នកនៅសល់តែស្ដេចទទេ រាប់ពីចំនួនកូនអុកសរុបនៅលើក្ដារ ដោយមានដែនកំណត់តាមកម្លាំងរបស់ខាងខ្លាំង)។ បើការរាប់ដល់ដែនកំណត់មុនអុកងាប់ ល្បែងស្មើ។</p>
+<p class="lead">Many chess games would go on for ever if a lone Sdach could be chased around the board without end. Ouk Chatrang solves this with <em>counting rules</em>: the weaker side may start a count, and if the stronger side has not delivered checkmate before the count reaches a limit, the game is drawn. The rules are one of the most distinctive features of the game and the least familiar to players coming from international chess. This page explains them as the game implements them.</p>
+<div class="cta"><a class="btn" href="/"><kh>▸ លេងឥឡូវ</kh><en>▸ Play now</en></a><a class="btn alt" href="/strategy/"><kh>យុទ្ធសាស្ត្រ</kh><en>Strategy guide</en></a></div>
+
+<h2 id="why"><kh>ហេតុអ្វីមានការរាប់</kh><en>Why there is a count</en></h2>
+<p>Pieces in Ouk Chatrang move only a short way, so forcing checkmate takes technique. The counting rules say that a side with a large advantage must prove it: win within the limit, or draw. The weaker side is not required to count, and counting is a choice. In the game, a "Start count" button appears for a side that is allowed to count, and the optional "Auto-count" setting starts the count automatically as soon as a side qualifies. The computer opponent always decides for itself.</p>
+
+<h2 id="board"><kh>កិត្តិយសក្ដារ</kh><en>Board's Honor</en></h2>
+<p>A side may start Board's Honor when it has <strong>three pieces or fewer</strong> and <strong>fewer pieces than its opponent</strong>. The count starts at 1, the limit is 64, and the count goes up by one with each move made by the side that is counting. If the count reaches 64 before checkmate, the game is a draw. The player who is counting may pause and start again at their own discretion; a restart begins from 1 again, so the limit applies to each run of the count, not to the whole game.</p>
+
+<h2 id="piece"><kh>កិត្តិយសកូនអុក</kh><en>Piece's Honor</en></h2>
+<p>Piece's Honor applies to the very end of a game. It may be started only when <strong>no unpromoted Trey remain on the board</strong> and the player counting has <strong>only the bare Sdach</strong> left. The count does not start at 1. It starts at the total number of pieces on the board, both sides and both Sdach included. The limit depends on what the <em>stronger</em> side has, and the game uses the smallest value that applies:</p>
+{{COUNTTABLE}}
+<p>The limit is fixed the moment counting starts and never changes afterwards. Each move by the counting side adds one to the count. If any piece is captured, by either side, the count restarts from the new total number of pieces on the board, but the limit stays what it was. If the count reaches the limit before checkmate, the game is a draw.</p>
+
+<h2 id="examples"><kh>ឧទាហរណ៍</kh><en>Worked examples</en></h2>
+<h3>Two Tuuk against a bare Sdach</h3>
+<p>White has a Sdach and two Tuuk, and Black has only a Sdach. That is four pieces on the board, so Black starts Piece's Honor with the count at <strong>4</strong>, and because White has two Tuuk the limit is <strong>8</strong>. Each Black move adds one, so Black needs to make four more moves, and if White has not mated by then, the game is a draw. Four moves is enough to build the ladder mate, but only for a player who knows it, which is why the mating patterns are worth learning.</p>
+<div class="adslot" data-ad="content"></div>
+<h3>One Tuuk against a bare Sdach</h3>
+<p>With only one Tuuk the total is three pieces, so the count starts at <strong>3</strong>, and the limit is <strong>16</strong>. That gives the stronger side thirteen of the weaker side's moves, which is more room, but a lone Tuuk cannot mate without the help of its own Sdach, so a careless player can still run out of count.</p>
+<h3>A capture restarts the count</h3>
+<p>Suppose White had two Tuuk (limit 8, count 4), and a Tuuk is captured. The count is reset to the new total of three pieces, and the limit stays at 8, not 16. The count therefore goes up from 3 again. This is why trading off a piece in a counted ending is usually a mistake for the stronger side.</p>
+<h3>Board's Honor in practice</h3>
+<p>Black has a Sdach and a Trey (two pieces) against White's Sdach, Tuuk and Ses (three or more). Black has fewer pieces than White and has three pieces or fewer, so Black may start Board's Honor: the count begins at 1 with a limit of 64.</p>
+
+<h2 id="variations"><kh>ភាពខុសគ្នា</kh><en>Variations between sources</en></h2>
+<p>Written sources, and players in Cambodia and Thailand, do not agree on every detail of the counting rules. The table of limits above is the commonly cited one, and the exact values differ slightly between sources. The game keeps the whole table in one clearly marked place in its code, so it can be adjusted if a better source is found. If you know of a variation that your family or club uses, or you spot an error on this page, please <a href="mailto:{{CONTACTADDR}}">write to us</a>.</p>
+
+<h2 id="tips"><kh>គន្លឹះ</kh><en>Practical advice</en></h2>
+<ul>
+<li>If you are ahead, aim for a mate you know. Two Tuuk or a Tuuk and a close Sdach (see the <a href="/checkmate-patterns/">checkmate patterns</a>) take only a few moves.</li>
+<li>Before you trade a piece in an ending, check whether the capture resets the count to your disadvantage.</li>
+<li>If you are behind, trading down to three pieces or fewer gives you access to Board's Honor, and a bare Sdach with no opposing Trey left gives you Piece's Honor.</li>
+<li>Watch the count, which the game shows on screen.</li>
+</ul>
+<p>For the other rules of the game, see <a href="/how-to-play/">How to play</a>.</p>
+{{GUIDES}}

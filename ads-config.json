@@ -1,6 +1,7 @@
 {
   "mode": "off",
   "client": "",
-  "requireConsent": true,
+  "consent": "own",
+  "cmpScript": "",
   "slots": { "banner": "", "result": "", "content": "" }
 }

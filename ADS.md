@@ -4,24 +4,29 @@ Ads are built but **off**. Nothing is requested from an ad network, and the layo
 `ads-config.json` is changed. The file is never cached by the service worker or the CDN (see `_headers`, `sw.js`),
 so an edit takes effect on the next visit without an app update.
 
-## Placements (the five scenes chosen)
+## Placements (built; only `content` is advised for AdSense)
 | Placement | Where | Size | Config slot |
 |---|---|---|---|
 | Phone bar | bottom of the screen, upright phone, while playing (not Learn to Play, puzzles or online) | 320x50 | `banner` |
 | Result card | inside the game-over card, phone and computer | 300x250 | `result` |
-| How to play | between "Special moves" and "Check", phone and computer | 336x280 | `content` |
+| Guides | one slot in the middle of each guide page (How to play, Strategy, Checkmate patterns, Counting rules, Glossary, History) | 336x280 | `content` |
 
 ## See where they go (no network, this tab only)
 Open `https://oukkhmer.com/?adspreview=1` (or any page with `?adspreview=1`). Turn it off with `?adspreview=0`.
 
 ## Turning real ads on (all of these are needed)
 1. Be approved by the ad network (e.g. Google AdSense) for oukkhmer.com. Put the `ads.txt` line they give you at `/ads.txt`.
-2. **Add a consent banner** that calls `OukAds.setConsent(true)` when a visitor agrees (and `false` when they refuse).
-   Until it does, `requireConsent: true` keeps every ad switched off. Do not set `requireConsent` to `false` for EU / UK visitors.
-3. Update the Privacy Policy (`tools/pages/privacy.html`, section 6) to describe advertising, then run `node tools/build-pages.js`.
-4. Create three ad units (banner, result, content) and fill in `ads-config.json`:
-   `{ "mode": "live", "client": "ca-pub-...", "requireConsent": true, "slots": { "banner": "...", "result": "...", "content": "..." } }`
-5. A placement with an empty slot id is skipped. To switch everything off again: `"mode": "off"`.
+2. **Consent.** For personalised ads in the EEA, UK and Switzerland Google requires a *certified* consent tool (a CMP). Use
+   Google's own consent message (AdSense > Privacy & messaging) and set `"consent": "cmp"` with `"cmpScript"` = the https address of the
+   script it gives you. The loader loads it first and shows no ad until it has loaded; if the address is missing or fails, there are no ads.
+   (`"consent": "own"`, the default, only serves ads after `OukAds.setConsent(true)` has been called by a banner of our own; that is
+   not enough for the EEA/UK. There is no setting that skips consent.)
+3. The Privacy Policy (`tools/pages/privacy.html`, section 6) already describes AdSense advertising and says none is shown yet. When ads go
+   live, edit its first paragraph (and the date is refreshed by `node tools/build-pages.js`).
+4. Create the ad units and fill in `ads-config.json`:
+   `{ "mode": "live", "client": "ca-pub-...", "consent": "cmp", "cmpScript": "https://...", "slots": { "banner": "", "result": "", "content": "..." } }`
+5. A placement with an empty slot id is skipped. **For the AdSense application, leave `banner` and `result` empty** and use only `content`:
+   Google advises against content ads on game screens and near play or navigation buttons. To switch everything off again: `"mode": "off"`.
 
 ## Notes
 - The game-over card is built once per game over, so its ad is requested once per game.

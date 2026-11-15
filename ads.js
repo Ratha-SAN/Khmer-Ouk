@@ -3,8 +3,13 @@
  * Nothing shows, and nothing is requested from an ad network, unless ads-config.json says so:
  *   "mode":  "off"  (default) -- no ads, no layout change;  "live" -- real ads.
  *   "client": the ad network publisher id (ca-pub-...);  "slots": the ad unit id for each placement.
- *   "requireConsent": true -- live ads load only after the visitor has agreed (localStorage oukAdsConsent = "granted",
- *                     set by OukAds.setConsent(true) from a consent banner). Leave it true.
+ *   "consent": how consent is obtained before any real ad is requested (there is no setting that skips it):
+ *       "own" (default) -- live ads load only after the visitor has agreed: localStorage oukAdsConsent = "granted", set by
+ *                          OukAds.setConsent(true) from a consent banner of ours. (Not enough for personalised ads in the EEA,
+ *                          UK and Switzerland, which need a certified consent tool.)
+ *       "cmp"           -- a certified consent management platform (for AdSense: Google's own consent message, set up under
+ *                          Privacy & messaging) does it. "cmpScript" must be the https:// address of that tool's script; it is
+ *                          loaded first, ads wait for it, and if it is missing or fails to load there are no ads.
  * A placement with no slot id is skipped. Add ?adspreview=1 to any address to see where the ads would go, drawn as
  * labelled sample boxes (no network, this tab only; ?adspreview=0 turns it off).
  *
@@ -15,8 +20,8 @@
 (function () {
   'use strict';
   var KEY_PREVIEW = 'oukAdsPreview', KEY_CONSENT = 'oukAdsConsent';
-  var cfg = { mode: 'off', client: '', requireConsent: true, slots: {} };
-  var ready = false, waiting = [], scriptAdded = false, renders = 0, preview = false;
+  var cfg = { mode: 'off', client: '', consent: 'own', cmpScript: '', slots: {} };
+  var cmpOk = false, ready = false, waiting = [], scriptAdded = false, renders = 0, preview = false;
   try {
     var m = /[?&]adspreview=([^&#]*)/.exec(location.search);
     if (m) { if (m[1] === '0' || m[1] === 'off') sessionStorage.removeItem(KEY_PREVIEW); else sessionStorage.setItem(KEY_PREVIEW, '1'); }
@@ -24,8 +29,15 @@
   } catch (e) { preview = /[?&]adspreview=(?!0|off)/.test(location.search); }
 
   function consentOk() {
-    if (cfg.requireConsent === false) return true;
+    if (cfg.consent === 'cmp') return cmpOk; // the certified tool's script has loaded (see loadCmp)
     try { return localStorage.getItem(KEY_CONSENT) === 'granted'; } catch (e) { return false; }
+  }
+  // a certified consent tool: its script is loaded before anything else, and only an https address is accepted
+  function loadCmp(next) {
+    if (cfg.consent !== 'cmp' || cfg.mode !== 'live' || !/^https:\/\//.test(cfg.cmpScript || '')) { next(); return; }
+    var s = document.createElement('script'); s.async = true; s.src = cfg.cmpScript;
+    s.onload = function () { cmpOk = true; next(); }; s.onerror = function () { cmpOk = false; next(); };
+    document.head.appendChild(s);
   }
   function mode() { return preview ? 'preview' : (cfg.mode === 'live' && cfg.client && consentOk() ? 'live' : 'off'); }
   function enabled() { return ready && mode() !== 'off'; }
@@ -84,13 +96,13 @@
   }
   window.OukAds = {
     ready: function (cb) { if (ready) { try { cb(); } catch (e) {} } else waiting.push(cb); },
-    enabled: enabled, mode: mode, render: render,
+    enabled: enabled, mode: mode, render: render, cmpLoaded: function () { return cmpOk; },
     setConsent: function (granted) { try { localStorage.setItem(KEY_CONSENT, granted ? 'granted' : 'denied'); } catch (e) {} },
     renders: function () { return renders; } // (a test hook: how many placements have been filled)
   };
   // the config: always fresh from the network (a failed fetch, e.g. offline, simply means no ads)
   try {
     fetch('/ads-config.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (j && typeof j === 'object') cfg = Object.assign(cfg, j); }).catch(function () {}).then(done);
+      .then(function (j) { if (j && typeof j === 'object') cfg = Object.assign(cfg, j); }).catch(function () {}).then(function () { loadCmp(done); });
   } catch (e) { done(); }
 })();

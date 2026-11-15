@@ -18,6 +18,7 @@
 <title>អុកចត្រង្គ — Ouk Chatrang (Khmer Chess)</title>
 <meta name="description" content="Play Ouk Chatrang, traditional Cambodian (Khmer) chess, free in your browser: against the computer, with a friend or online. Learn the rules with diagrams and daily puzzles.">
 <link rel="canonical" href="https://oukkhmer.com/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Ouk Chatrang","alternateName":["អុកចត្រង្គ","Khmer chess","Cambodian chess"],"url":"https://oukkhmer.com/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","inLanguage":["km","en"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Play Ouk Chatrang, traditional Cambodian (Khmer) chess, free in your browser: against the computer, with a friend or online."}</script>
 <meta property="og:type" content="website"><meta property="og:site_name" content="Ouk Chatrang"><meta property="og:title" content="Ouk Chatrang (Khmer Chess) — play free"><meta property="og:description" content="Traditional Cambodian chess: play the computer, a friend or online, and learn the rules with diagrams and daily puzzles."><meta property="og:url" content="https://oukkhmer.com/"><meta property="og:image" content="https://oukkhmer.com/icon-512.png">
 <!-- PWA: installable + offline-capable (see manifest.webmanifest / sw.js) -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -2815,6 +2816,16 @@
   </div>
 </div>
 
+<noscript>
+  <div style="max-width:640px;margin:40px auto;padding:0 18px;font:16px/1.7 system-ui,sans-serif;color:#f3e7cf;background:#1b110a">
+    <h1 style="color:#e2b65a">អុកចត្រង្គ — Ouk Chatrang</h1>
+    <p>Ouk Chatrang is traditional Cambodian (Khmer) chess. This game needs JavaScript to run in your browser; please turn it on to play. Meanwhile you can read about the game:</p>
+    <ul>
+      <li><a href="/how-to-play/" style="color:#e2b65a">How to play</a> &middot; <a href="/strategy/" style="color:#e2b65a">Strategy</a> &middot; <a href="/checkmate-patterns/" style="color:#e2b65a">Checkmate patterns</a></li>
+      <li><a href="/counting-rules/" style="color:#e2b65a">Counting rules</a> &middot; <a href="/glossary/" style="color:#e2b65a">Glossary</a> &middot; <a href="/history/" style="color:#e2b65a">History</a> &middot; <a href="/about/" style="color:#e2b65a">About</a></li>
+    </ul>
+  </div>
+</noscript>
 <div id="startScreen" class="fullOverlay">
   <div class="box">
     <div id="startLangRow"><button id="startLangToggle" type="button" title="Language ភាសា">🌐 <span class="t-kh">English</span><span class="t-sep"> / </span><span class="t-en">ខ្មែរ</span></button></div>
@@ -2998,7 +3009,6 @@
       <option value="inkFlat">Ink &amp; Watercolour 2D — ទឹកខ្មៅ និងពណ៌ទឹក 2D</option>
       <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
-      <option value="tfBattle">Transformers: Autobots vs Decepticons</option>
       <option value="lowPoly">Low Poly — ឈើកាត់</option>
       <option value="inkwash">Ink &amp; Watercolour — ទឹកខ្មៅ និងពណ៌ទឹក</option>
       <option value="okKids">Kids — កុមារ</option>
@@ -3017,7 +3027,6 @@
       <option value="inkwash" data-kh="កូនអុក៖ ទឹកខ្មៅ និងពណ៌ទឹក" data-en="Pieces: Ink &amp; Watercolour">កូនអុក៖ ទឹកខ្មៅ និងពណ៌ទឹក — Pieces: Ink &amp; Watercolour</option>
       <option value="galactic" data-kh="កូនអុក៖ ចក្រវាឡ" data-en="Pieces: Galactic">កូនអុក៖ ចក្រវាឡ — Pieces: Galactic</option>
       <option value="modern" data-kh="កូនអុក៖ យោធាទំនើប" data-en="Pieces: Modern Military">កូនអុក៖ យោធាទំនើប — Pieces: Modern Military</option>
-      <option value="tfbattle" data-kh="កូនអុក៖ Transformers" data-en="Pieces: Transformers">កូនអុក៖ Transformers — Pieces: Transformers</option>
       <option value="2dkhmer" data-kh="កូនអុក៖ សិល្បៈខ្មែរ 2D" data-en="Pieces: 2D Khmer Art">កូនអុក៖ សិល្បៈខ្មែរ 2D — Pieces: 2D Khmer Art</option>
       <option value="2dflat" data-kh="កូនអុក៖ រាបស្មើ 2D" data-en="Pieces: Flat 2D tokens">កូនអុក៖ រាបស្មើ 2D — Pieces: Flat 2D tokens</option>
       <option value="2dink" data-kh="កូនអុក៖ ទឹកខ្មៅ និងពណ៌ទឹក 2D" data-en="Pieces: Ink &amp; Watercolour 2D">កូនអុក៖ ទឹកខ្មៅ និងពណ៌ទឹក 2D — Pieces: Ink &amp; Watercolour 2D</option>
@@ -3136,7 +3145,7 @@
     </div>
   </details>
 
-  <p class="siteLinks panelLinks"><a href="/how-to-play/" target="_blank" rel="noopener"><span class="t-kh">វិធីលេង</span><span class="t-sep"> — </span><span class="t-en">How to play</span></a> · <a href="/privacy/" target="_blank" rel="noopener"><span class="t-kh">ឯកជនភាព</span><span class="t-sep"> — </span><span class="t-en">Privacy</span></a> · <a href="/terms/" target="_blank" rel="noopener"><span class="t-kh">លក្ខខណ្ឌ</span><span class="t-sep"> — </span><span class="t-en">Terms</span></a></p>
+  <p class="siteLinks panelLinks"><a href="/how-to-play/" target="_blank" rel="noopener"><span class="t-kh">វិធីលេង</span><span class="t-sep"> — </span><span class="t-en">How to play</span></a> · <a href="/strategy/" target="_blank" rel="noopener"><span class="t-kh">យុទ្ធសាស្ត្រ</span><span class="t-sep"> — </span><span class="t-en">Strategy</span></a> · <a href="/checkmate-patterns/" target="_blank" rel="noopener"><span class="t-kh">លំនាំអុកងាប់</span><span class="t-sep"> — </span><span class="t-en">Checkmate patterns</span></a> · <a href="/counting-rules/" target="_blank" rel="noopener"><span class="t-kh">ច្បាប់ការរាប់</span><span class="t-sep"> — </span><span class="t-en">Counting rules</span></a> · <a href="/glossary/" target="_blank" rel="noopener"><span class="t-kh">វាក្យសព្ទ</span><span class="t-sep"> — </span><span class="t-en">Glossary</span></a> · <a href="/history/" target="_blank" rel="noopener"><span class="t-kh">ប្រវត្តិ</span><span class="t-sep"> — </span><span class="t-en">History</span></a><br><a href="/about/" target="_blank" rel="noopener"><span class="t-kh">អំពី</span><span class="t-sep"> — </span><span class="t-en">About</span></a> · <a href="/privacy/" target="_blank" rel="noopener"><span class="t-kh">ឯកជនភាព</span><span class="t-sep"> — </span><span class="t-en">Privacy</span></a> · <a href="/terms/" target="_blank" rel="noopener"><span class="t-kh">លក្ខខណ្ឌ</span><span class="t-sep"> — </span><span class="t-en">Terms</span></a></p>
 </div>
 
 <!-- Change Mode: a pop-up (opened from the panel's 🎮 button, or by anything that asks to change the mode) -->
@@ -3358,13 +3367,11 @@
      <span class="en">On its first move the <strong>Sdach</strong> may jump like a knight (never a capture, never while in check).
      On its first move the <strong>Neang</strong> may leap two squares straight forward (never a capture; it may
      pass over an occupied square).</span></p>
-  <p class="note"><span class="kh">ឯកសារនីមួយៗខ្វែងគំនិតគ្នាអំពីពេលដែលសិទ្ធិលោតទាំងនេះបាត់។ លំនាំដើមទីនេះ៖ សិទ្ធិទាំងពីរបាត់ភ្លាមៗពេលមានការស៊ីកូនអុកណាមួយកើតឡើង។
-     ជម្រើសផ្សេង (អាចជ្រើសរើសបានក្នុងការកំណត់)៖ សិទ្ធិលោតរបស់ស្ដេចបាត់ជាអចិន្ត្រៃយ៍ភ្លាមៗពេលទូកសត្រូវតម្រង់ជួរដេក ឬជួរឈរដូចគ្នានឹងស្ដេច —
-     ទោះបីជាទូកនោះផ្លាស់ទីចេញក្រោយមកក៏ដោយ ហើយទោះបីជាមានកូនអុកផ្សេងឈរខណ្ឌនៅចន្លោះក៏ដោយ។</span>
-     <span class="en">Sources conflict on when these jumps are forfeited. Default here: both jumps are lost once
-     <em>any</em> piece has been captured. Alternative (selectable in settings): the King's jump is permanently
-     lost once an enemy Tuuk aligns on the King's rank or file — even if the Tuuk later moves away, and even
-     if other pieces stand between.</span></p>
+  <p class="note"><span class="kh">ឯកសារនីមួយៗខ្វែងគំនិតគ្នាអំពីពេលដែលសិទ្ធិលោតទាំងនេះបាត់។ លំនាំដើមទីនេះ៖ សិទ្ធិលោតនីមួយៗនៅតែមានរហូតដល់កូនអុកនោះដើរជើងដំបូងរបស់ខ្លួន។ ជម្រើសផ្សេងពីរ (អាចជ្រើសរើសបានក្នុងការកំណត់)៖ សិទ្ធិទាំងពីរបាត់ភ្លាមៗពេលមានការស៊ីកូនអុកណាមួយកើតឡើង ឬសិទ្ធិលោតរបស់ស្ដេចបាត់ជាអចិន្ត្រៃយ៍ភ្លាមៗពេលទូកសត្រូវតម្រង់ជួរដេក ឬជួរឈរដូចគ្នានឹងស្ដេច — ទោះបីជាទូកនោះផ្លាស់ទីចេញក្រោយមកក៏ដោយ ហើយទោះបីជាមានកូនអុកផ្សេងឈរខណ្ឌនៅចន្លោះក៏ដោយ។</span>
+     <span class="en">Sources conflict on when these jumps are forfeited. Default here: each jump stays available until that
+     piece has made its own first move. Two alternatives can be selected in settings: both jumps are lost once
+     <em>any</em> piece has been captured; or the King's jump is permanently lost once an enemy Tuuk aligns on the
+     King's rank or file — even if the Tuuk later moves away, and even if other pieces stand between.</span></p>
 
   <h3><span class="kh">ការឡើងនាង</span><span class="en">Promotion</span></h3>
   <p><span class="kh">ត្រីត្រូវឡើងជានាងភ្លាមៗជាកាតព្វកិច្ច ពេលទៅដល់ជួរទី<strong>ប្រាំមួយ</strong> (ជួរទីបីរបស់សត្រូវ) ហើយបន្ទាប់មកដើរដូចនាង។</span>
@@ -3734,7 +3741,8 @@
     return n;
   }
   function anyUnpromotedPawns(S) {
-    for (var i = 0; i < 64; i++) if (typeOf(S.board[i]) === PAWN) return true;
+    // (a promoted Trey keeps the Trey type with a "promoted" flag: it must not count here)
+    for (var i = 0; i < 64; i++) if (typeOf(S.board[i]) === PAWN && !isProm(S.board[i])) return true;
     return false;
   }
   function canCountBoard(S, side) {
@@ -4266,6 +4274,18 @@
       eq(limitFor([E.KNIGHT]), 64, '1 Ses');
       eq(limitFor([E.QUEEN]), 64, 'Neang only');
       eq(limitFor([E.ROOK, E.BISHOP, E.BISHOP]), 16, 'minimum applicable wins (Tuuk beats Koul pair)');
+    });
+    T("piece's honor: only an UNPROMOTED Trey blocks it (a promoted one is a Neang)", function () {
+      var S = E.emptyState();
+      put(S, 'a1', E.KING, E.WHITE); put(S, 'c1', E.ROOK, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      S.kingMoved = [true, true]; S.turn = E.BLACK;
+      assert(E.canCountPiece(S, E.BLACK), 'bare Sdach, no Trey: may count');
+      put(S, 'd4', E.PAWN, E.WHITE);
+      assert(!E.canCountPiece(S, E.BLACK), 'an unpromoted Trey on the board blocks the count');
+      put(S, 'd4', E.PAWN, E.WHITE, true);
+      assert(E.canCountPiece(S, E.BLACK), 'a promoted Trey does not block it');
+      E.startCounting(S, E.BLACK, 'piece');
+      eq(S.counting.count, 4, 'count starts at the total number of pieces (4)');
     });
     T("piece's honor: a capture restarts the count but never re-fixes the limit", function () {
       var S = E.emptyState();
@@ -5379,7 +5399,11 @@ THEMES.okKids = Object.assign({}, THEMES.night, {
   bg: 0x16181d, frame: 0x23262e, tileLight: 0x9aa1ad, tileDark: 0x5b616d, labelInk: '#e4e8ef', tray: 0x1b1d23,
   pieceW: 0xdfe6f2, pieceB: 0x3a3f4d, reflectOpacity: 0.22
 });
-// Transformers: White fields the Autobots, Black the Decepticons (the models' own painted colours), on a steel board
+// Transformers: RETIRED (it is a licensed franchise: its names and character models are not ours to publish, and ad networks
+// refuse sites carrying copyrighted content). The theme is no longer in any menu; a saved choice falls back to the default
+// (see restoreSavePayload / applyProfileDefaultTheme), and data/baked-tf.js is no longer published (build-cloudflare.sh,
+// firebase.json). To bring it back: restore its menu entries, remove those two exclusions.
+// White fielded the Autobots, Black the Decepticons (the models' own painted colours), on a steel board
 THEMES.tfBattle = Object.assign({}, THEMES.night, {
   name: 'Transformers: Autobots vs Decepticons', style: 'transformers', pieceStyle: 'tfbattle',
   bg: 0x090c12, frame: 0x242a35, tileLight: 0x9aa4b4, tileDark: 0x464e5e, labelInk: '#dfe7f3', tray: 0x141922,
@@ -16598,8 +16622,8 @@ const LESSONS = {
       setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d4', E.QUEEN, E.WHITE); put('c5', E.PAWN, E.BLACK); return 'd4'; }
     },
     adv: {
-      kh: 'ក្នុងការដើរលើកដំបូង នាងអាចលោតទៅមុខត្រង់ពីរក្រឡា (មិនមែនស៊ី ហើយអាចលោតរំលងក្រឡាដែលមានកូនអុក)។ មើល៖ នាងនៅ d1 អាចលោតរំលងត្រី d2 ទៅ d3 បាន។ តាមច្បាប់លំនាំដើម សិទ្ធិនេះបាត់ បន្ទាប់ពីមានការស៊ីកូនអុកណាមួយ។',
-      en: 'On its first move the Neang may leap two squares straight forward — never a capture, and it may pass over an occupied square. See: the Neang on d1 leaps over the Trey on d2 to d3. Under the default rule this right is lost once any piece has been captured.',
+      kh: 'ក្នុងការដើរលើកដំបូង នាងអាចលោតទៅមុខត្រង់ពីរក្រឡា (មិនមែនស៊ី ហើយអាចលោតរំលងក្រឡាដែលមានកូនអុក)។ មើល៖ នាងនៅ d1 អាចលោតរំលងត្រី d2 ទៅ d3 បាន។ តាមច្បាប់លំនាំដើម សិទ្ធិនេះនៅតែមានរហូតដល់នាងដើរជើងដំបូងរបស់ខ្លួន (ជម្រើសតឹងរ៉ឹងជាងនេះនៅក្នុងការកំណត់ លុបសិទ្ធិនេះបន្ទាប់ពីមានការស៊ីកូនអុកណាមួយ)។',
+      en: 'On its first move the Neang may leap two squares straight forward — never a capture, and it may pass over an occupied square. See: the Neang on d1 leaps over the Trey on d2 to d3. Under the default rule this right stays until the Neang has moved once (a stricter option in the settings removes it after any capture).',
       setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d1', E.QUEEN, E.WHITE); put('d2', E.PAWN, E.WHITE); return 'd1'; }
     }
   },
@@ -16610,8 +16634,8 @@ const LESSONS = {
       setup(S, put) { put('d4', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('c5', E.PAWN, E.BLACK); S.kingMoved = [true, true]; return 'd4'; }
     },
     adv: {
-      kh: 'ក្នុងការដើរលើកដំបូង (ពេលមិនជាប់អុក) ស្ដេចអាចលោតដូចសេះម្ដង ដោយមិនស៊ីកូនអុក។ តាមច្បាប់លំនាំដើម សិទ្ធិនេះបាត់បន្ទាប់ពីមានការស៊ីកូនអុក; តាមច្បាប់ជម្រើស វាបាត់ពេលទូកសត្រូវតម្រង់ជួរ ឬជួរឈរមកស្ដេច។',
-      en: 'On its first move, while not in check, the Sdach may leap once like a Ses — never capturing. Default rule: the right is lost after any capture; alternative rule: it is lost once an enemy Tuuk aligns on the Sdach’s rank or file.',
+      kh: 'ក្នុងការដើរលើកដំបូង (ពេលមិនជាប់អុក) ស្ដេចអាចលោតដូចសេះម្ដង ដោយមិនស៊ីកូនអុក។ តាមច្បាប់លំនាំដើម សិទ្ធិនេះនៅតែមានរហូតដល់ស្ដេចដើរជើងដំបូងរបស់ខ្លួន; តាមច្បាប់ជម្រើសក្នុងការកំណត់ វាបាត់បន្ទាប់ពីមានការស៊ីកូនអុក ឬពេលទូកសត្រូវតម្រង់ជួរដេក ឬជួរឈរមកស្ដេច។',
+      en: 'On its first move, while not in check, the Sdach may leap once like a Ses — never capturing. Default rule: the right stays until the Sdach has moved once; alternative rules in the settings: it is lost after any capture, or once an enemy Tuuk aligns on the Sdach’s rank or file.',
       setup(S, put) { put('e1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); return 'e1'; }
     }
   }
@@ -17678,8 +17702,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.111';
+const APP_VERSION = '1.6.112';
 const WHATS_NEW = [
+  {
+    version: '1.6.112',
+    date: '2026-11-15',
+    title: { kh: 'សៀវភៅណែនាំថ្មី និងការកែតម្រូវច្បាប់', en: 'New guides, and rule fixes' },
+    items: [
+      { kh: 'មានទំព័រណែនាំថ្មី ៦ ក្នុងភាសាអង់គ្លេសជាមួយសេចក្ដីសង្ខេបជាភាសាខ្មែរ៖ យុទ្ធសាស្ត្រ លំនាំអុកងាប់ ច្បាប់ការរាប់ វាក្យសព្ទ ប្រវត្តិ និងអំពី។ រូបភាពទាំងអស់ត្រូវបានម៉ាស៊ីនល្បែងផ្ទៀងផ្ទាត់។ តំណមាននៅក្នុងផ្ទាំងការកំណត់។',
+        en: 'Six new guides (written in English, with a Khmer summary on each): Strategy, Checkmate patterns, Counting rules, Glossary, History and About. Every diagram is checked by the game engine. The links are in the settings panel.' },
+      { kh: 'ជួសជុលច្បាប់៖ នៅក្នុងផ្ទាំងច្បាប់ និងមេរៀន ពាក្យថា «សិទ្ធិលោតបាត់បន្ទាប់ពីមានការស៊ីកូនអុក» ជាជម្រើសក្នុងការកំណត់ មិនមែនលំនាំដើមទេ។ លំនាំដើមពិតប្រាកដគឺ សិទ្ធិលោតនៅតែមានរហូតដល់កូនអុកនោះដើរជើងដំបូង។ ម្យ៉ាងទៀត ត្រីដែលបានឡើងនាងហើយ លែងរារាំងការរាប់កិត្តិយសកូនអុកទៀតហើយ ដូចដែលច្បាប់ចែងទុក។',
+        en: "Rule fixes: the Rules and lessons said the first-move jumps are lost after any capture by default; that is an option in the settings, and the real default is that each jump stays until that piece has moved. Also, a promoted Trey no longer blocks Piece's Honor counting, as the rules say." },
+      { kh: 'ស្បែក Transformers ត្រូវបានដកចេញ ព្រោះជាម៉ាកពាណិជ្ជកម្មរបស់អ្នកដទៃ។ ល្បែងដែលបានរក្សាទុកដោយប្រើស្បែកនោះ នឹងបើកជាមួយស្បែកលំនាំដើមវិញ។',
+        en: 'The Transformers theme has been retired, because it uses someone else\'s trademarks. A saved game that used it now opens with the default theme.' }
+    ]
+  },
   {
     version: '1.6.110',
     date: '2026-11-15',
@@ -21369,7 +21406,7 @@ function applyAccessTier() {
 const THEME_CATEGORIES = [
   { key: 'original', label: 'ដើម Original', themes: ['wood', 'woodReal', 'okCartoon', 'okWood', 'okGems', 'okNaga', 'okNight', 'okStone'] },
   { key: 'flat', label: 'រាបស្មើ Flat 2D', themes: ['flatVec', 'flatClassic', 'flatKhmer', 'flatPaper', 'flatNight', 'inkFlat'] },
-  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'tfBattle', 'lowPoly', 'inkwash'] }
+  { key: 'custom', label: 'ច្នៃប្រឌិត Custom', themes: ['flat2d', 'yantra', 'magic2', 'gems', 'modern', 'galactic', 'okKids', 'lowPoly', 'inkwash'] }
 ];
 function themeCategoryOf(key) { return THEME_CATEGORIES.find(c => c.themes.includes(key)); }
 let openThemeCatKey = null;

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Counting rules in Ouk Chatrang explained: Board's Honor and Piece's Honor — ច្បាប់ការរាប់</title>
+<meta name="description" content="How the counting rules of Ouk Chatrang (Cambodian chess) work: Board's Honor, Piece's Honor, the limits table and worked examples.">
+<link rel="canonical" href="https://oukkhmer.com/counting-rules/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Ouk Chatrang"><meta property="og:title" content="Counting rules in Ouk Chatrang explained: Board's Honor and Piece's Honor — ច្បាប់ការរាប់"><meta property="og:description" content="How the counting rules of Ouk Chatrang (Cambodian chess) work: Board's Honor, Piece's Honor, the limits table and worked examples."><meta property="og:url" content="https://oukkhmer.com/counting-rules/"><meta property="og:image" content="https://oukkhmer.com/icon-512.png">
+<meta name="theme-color" content="#221a12">
+<link rel="icon" href="/icon.svg?v=2" type="image/svg+xml">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Counting rules in Ouk Chatrang explained: Board's Honor and Piece's Honor","description":"How the counting rules of Ouk Chatrang (Cambodian chess) work: Board's Honor, Piece's Honor, the limits table and worked examples.","inLanguage":["km","en"],"mainEntityOfPage":"https://oukkhmer.com/counting-rules/","dateModified":"2026-11-15","image":"https://oukkhmer.com/icon-512.png","publisher":{"@type":"Organization","name":"Ouk Chatrang","url":"https://oukkhmer.com/","logo":{"@type":"ImageObject","url":"https://oukkhmer.com/icon-512.png"}}}</script>
+<script src="/ads.js" defer></script>
+<style>
+:root{--bg:#1b110a;--card:#2a1b0e;--card2:#33220f;--line:#5a4424;--gold:#e2b65a;--gold2:#edc56c;--text:#f3e7cf;--muted:#b39f7c;--on-gold:#2a1806;--ok:#2f8f5b;--bad:#c0392b}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font:17px/1.75 "Noto Sans Khmer","Khmer OS","Khmer MN","Leelawadee UI","Segoe UI",system-ui,sans-serif}
+a{color:var(--gold);text-underline-offset:3px}a:hover{color:var(--gold2)}
+.wrap{max-width:780px;margin:0 auto;padding:0 18px}
+header.top{border-bottom:1px solid var(--line);background:var(--card)}
+header.top .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;font-weight:700;margin-right:auto}
+.brand img{width:34px;height:34px;border-radius:8px}
+.brand small{display:block;font-weight:400;font-size:12px;color:var(--muted);line-height:1.2}
+nav.top{display:flex;gap:16px;align-items:center}
+nav.top a{font-size:15px;color:var(--text);text-decoration:none}
+nav.top a.play{color:var(--on-gold);background:var(--gold);padding:6px 14px;border-radius:999px;font-weight:700}
+nav.top a.play:hover{background:var(--gold2);color:var(--on-gold)}
+.brk{display:none}
+@media(max-width:600px){.brk{display:block;flex-basis:100%;height:0;order:2}.lang{order:3;margin:0 auto}.brand small{display:none}}
+nav.top a:hover{color:var(--gold2)}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.lang button{font:inherit;font-size:13px;line-height:1;padding:7px 11px;background:transparent;color:var(--muted);border:0;cursor:pointer}
+.lang button[aria-pressed=true]{background:var(--gold);color:var(--on-gold);font-weight:700}
+.btn{display:inline-block;font:inherit;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;background:var(--gold);color:var(--on-gold);border:1px solid var(--gold)}
+.btn:hover{background:var(--gold2);color:var(--on-gold)}
+.btn.alt{background:#3f2915;color:var(--text);border-color:rgba(226,182,90,.4);font-weight:600}
+.btn.alt:hover{background:#50341b;color:var(--text)}
+main{padding:26px 0 40px}
+h1{font-size:30px;line-height:1.35;color:var(--gold);text-align:center}
+h1 .en{font-size:.62em;color:var(--text);font-weight:600}
+h1::after{content:'';display:block;width:min(230px,62%);height:14px;margin:12px auto 4px;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2730%27%20height%3D%2714%27%20viewBox%3D%27-15%20-8%2030%2014%27%3E%3Cg%20fill%3D%27%23e2b65a%27%3E%3Cpath%20d%3D%27M0-7C2.6-4.2%203-0.6%200%204.2-3-0.6-2.6-4.2%200-7Z%27%2F%3E%3Cpath%20transform%3D%27rotate(-48%200%204)%20scale(.82)%27%20d%3D%27M0-7C2.6-4.2%203-0.6%200%204.2-3-0.6-2.6-4.2%200-7Z%27%20opacity%3D%27.8%27%2F%3E%3Cpath%20transform%3D%27rotate(48%200%204)%20scale(.82)%27%20d%3D%27M0-7C2.6-4.2%203-0.6%200%204.2-3-0.6-2.6-4.2%200-7Z%27%20opacity%3D%27.8%27%2F%3E%3Cpath%20transform%3D%27rotate(-84%200%204)%20scale(.6)%27%20d%3D%27M0-7C2.6-4.2%203-0.6%200%204.2-3-0.6-2.6-4.2%200-7Z%27%20opacity%3D%27.6%27%2F%3E%3Cpath%20transform%3D%27rotate(84%200%204)%20scale(.6)%27%20d%3D%27M0-7C2.6-4.2%203-0.6%200%204.2-3-0.6-2.6-4.2%200-7Z%27%20opacity%3D%27.6%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") center/30px 14px no-repeat,linear-gradient(90deg,transparent,rgba(226,182,90,.7) 20%,rgba(226,182,90,.7) 38%,transparent 38%,transparent 62%,rgba(226,182,90,.7) 62%,rgba(226,182,90,.7) 80%,transparent) center 9px/100% 1px no-repeat}
+h2{font-size:23px;line-height:1.4;color:var(--gold);margin:36px 0 8px;padding-top:6px;border-top:1px solid var(--line)}
+h2 .en{display:block;font-size:.72em;color:var(--muted);font-weight:600}
+h3{font-size:19px;color:var(--gold);margin:22px 0 6px}
+p,ul,ol,table,details,figure{margin:10px 0}
+ul,ol{padding-left:24px}li{margin:5px 0}
+.kh,.en{display:block}
+body.lang-kh .en,body.lang-en .kh{display:none}
+body.lang-both .en,body:not(.lang-kh):not(.lang-en) .en{color:#d6c7a6}
+.lead{font-size:18px;text-align:center;margin:14px 0 18px}
+.cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:16px 0}
+.card h3{margin:0 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 .kh,.card h3 .en,.card h3 .tr{display:inline}
+body.lang-kh .card h3 .tr{display:none}
+.card h3 .en{color:var(--muted);font-weight:500;font-size:.8em}
+.pic{height:44px;width:auto;margin-right:4px}
+.figs{display:grid;grid-template-columns:1fr;gap:14px;margin:6px 0 10px}
+@media(min-width:640px){.figs{grid-template-columns:1fr 1fr}}
+figure{text-align:center}
+figcaption{font-size:14px;color:var(--muted);margin-top:4px}
+.puzfig{margin:16px auto;max-width:420px}
+.guides{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0}
+@media(min-width:640px){.guides{grid-template-columns:1fr 1fr}}
+a.guide{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--text);text-decoration:none}
+a.guide:hover{border-color:var(--gold)}a.guide b{display:block;color:var(--gold);margin-bottom:2px}
+a.guide .d{display:block;font-size:14px;color:var(--muted);line-height:1.6}
+.toc{font-size:15px}.toc a{margin-right:10px;white-space:nowrap}
+.byline{text-align:center;color:var(--muted);font-size:14px;margin-top:6px}
+svg.board{width:100%;height:auto;max-width:392px;display:block;margin:0 auto}
+.extra{border-left:3px solid var(--line);padding-left:12px;color:#e3d5b7}
+.legend{font-size:14px;color:var(--muted);text-align:center}
+.legend i{display:inline-block;vertical-align:-3px;margin:0 4px 0 10px}
+.legend .d{width:13px;height:13px;border-radius:50%;background:var(--ok)}
+.legend .r{width:15px;height:15px;border-radius:50%;border:2.4px solid var(--bad)}
+.legend .s{width:15px;height:15px;background:#f0c75e;opacity:.8}
+table{border-collapse:collapse;width:100%;font-size:15px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{color:var(--gold);background:var(--card2)}
+td .kh,td .en,th .kh,th .en{display:block}
+.note{font-size:14px;color:var(--muted)}
+@media(max-width:640px){table.stack tr:first-child{display:none}table.stack,table.stack tbody{display:block}table.stack tr{display:block;margin:12px 0;border:1px solid var(--line);border-radius:10px;background:var(--card)}table.stack td{display:block;border:0;padding:3px 12px}table.stack td:first-child{font-weight:700;color:var(--gold);padding-top:8px}table.stack td:last-child{color:var(--muted);font-size:14px;padding-bottom:9px}table.stack td:last-child::before{content:'Why: ';font-weight:700}}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px}
+summary{cursor:pointer;font-weight:700;color:var(--gold);list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'▸ ';color:var(--gold)}
+details[open] summary::before{content:'▾ '}
+details[open] summary{margin-bottom:6px}
+.summary{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:12px 18px;margin:18px 0}
+.summary h2{border:0;margin:0 0 4px;padding:0;font-size:19px}
+.legal h2{font-size:20px}.legal .updated{text-align:center;color:var(--muted);font-size:14px;margin-top:6px}
+footer.foot{border-top:1px solid var(--line);background:var(--card);padding:18px 0 26px;text-align:center;font-size:14px;color:var(--muted)}
+footer.foot a{margin:0 8px}
+footer.foot::before{content:'';display:block;height:7px;margin:-18px 0 14px;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2712%27%20height%3D%277%27%20viewBox%3D%270%200%2012%207%27%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%23e2b65a%27%20stroke-opacity%3D%27.5%27%20stroke-width%3D%27.8%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M0%20.4C2.8%20.9%205%203%206%206.4%207%203%209.2%20.9%2012%20.4%27%2F%3E%3Cpath%20d%3D%27M3.9%20.4C5%201.2%205.6%202.2%206%203.6%206.4%202.2%207%201.2%208.1%20.4%27%20opacity%3D%27.7%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") center/12px 7px repeat-x}
+/* ads (see ads.js): an empty slot takes no room; it is filled only when ads are switched on */
+.adslot{margin:24px auto;text-align:center}.adslot:empty{display:none}
+@media print{.adslot,header.top,footer.foot,.cta{display:none}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<a class="brand" href="/"><img src="/icon-192.png" alt="" width="34" height="34"><span><span class="kh">អុកចត្រង្គ</span><span class="en">Ouk Chatrang</span><small><span class="kh">លេងឥឡូវ ឥតគិតថ្លៃ</span><span class="en">Play free</span></small></span></a>
+<nav class="top"><a href="/how-to-play/"><span class="kh">វិធីលេង</span><span class="en">How to play</span></a><a class="play" href="/"><span class="kh">▸ លេង</span><span class="en">▸ Play</span></a></nav>
+<span class="brk"></span>
+<div class="lang" role="group" aria-label="Language"><button type="button" data-l="kh">ខ្មែរ</button><button type="button" data-l="en">EN</button><button type="button" data-l="both">ខ្មែរ+EN</button></div>
+</div></header>
+<main><div class="wrap">
+<h1><span class="kh">ច្បាប់ការរាប់</span><span class="en">The counting rules of Ouk Chatrang</span></h1>
+<p class="byline"><span class="kh">ធ្វើបច្ចុប្បន្នភាព 2026-11-15</span><span class="en">Updated 2026-11-15</span></p>
+<p class="note kh" style="text-align:center">អត្ថបទនេះសរសេរជាភាសាអង់គ្លេស ជាមួយសេចក្ដីសង្ខេបជាភាសាខ្មែរ។</p>
+<p class="lead kh">សេចក្ដីសង្ខេប៖ ច្បាប់ការរាប់ការពារខាងខ្សោយពីការលេងចុងដែលមិនចេះចប់។ មានពីរបែប៖ កិត្តិយសក្ដារ (អ្នកមានបីកូនអុក ឬតិចជាងនេះ រាបពី ១ ដល់ ៦៤) និងកិត្តិយសកូនអុក (អ្នកនៅសល់តែស្ដេចទទេ រាប់ពីចំនួនកូនអុកសរុបនៅលើក្ដារ ដោយមានដែនកំណត់តាមកម្លាំងរបស់ខាងខ្លាំង)។ បើការរាប់ដល់ដែនកំណត់មុនអុកងាប់ ល្បែងស្មើ។</p>
+<p class="lead">Many chess games would go on for ever if a lone Sdach could be chased around the board without end. Ouk Chatrang solves this with <em>counting rules</em>: the weaker side may start a count, and if the stronger side has not delivered checkmate before the count reaches a limit, the game is drawn. The rules are one of the most distinctive features of the game and the least familiar to players coming from international chess. This page explains them as the game implements them.</p>
+<div class="cta"><a class="btn" href="/"><span class="kh">▸ លេងឥឡូវ</span><span class="en">▸ Play now</span></a><a class="btn alt" href="/strategy/"><span class="kh">យុទ្ធសាស្ត្រ</span><span class="en">Strategy guide</span></a></div>
+
+<h2 id="why"><span class="kh">ហេតុអ្វីមានការរាប់</span><span class="en">Why there is a count</span></h2>
+<p>Pieces in Ouk Chatrang move only a short way, so forcing checkmate takes technique. The counting rules say that a side with a large advantage must prove it: win within the limit, or draw. The weaker side is not required to count, and counting is a choice. In the game, a "Start count" button appears for a side that is allowed to count, and the optional "Auto-count" setting starts the count automatically as soon as a side qualifies. The computer opponent always decides for itself.</p>
+
+<h2 id="board"><span class="kh">កិត្តិយសក្ដារ</span><span class="en">Board's Honor</span></h2>
+<p>A side may start Board's Honor when it has <strong>three pieces or fewer</strong> and <strong>fewer pieces than its opponent</strong>. The count starts at 1, the limit is 64, and the count goes up by one with each move made by the side that is counting. If the count reaches 64 before checkmate, the game is a draw. The player who is counting may pause and start again at their own discretion; a restart begins from 1 again, so the limit applies to each run of the count, not to the whole game.</p>
+
+<h2 id="piece"><span class="kh">កិត្តិយសកូនអុក</span><span class="en">Piece's Honor</span></h2>
+<p>Piece's Honor applies to the very end of a game. It may be started only when <strong>no unpromoted Trey remain on the board</strong> and the player counting has <strong>only the bare Sdach</strong> left. The count does not start at 1. It starts at the total number of pieces on the board, both sides and both Sdach included. The limit depends on what the <em>stronger</em> side has, and the game uses the smallest value that applies:</p>
+<table><tr><th><span class="kh">ខាងខ្លាំងមាន…</span><span class="en">Stronger side has…</span></th><th><span class="kh">ដែនកំណត់</span><span class="en">Limit</span></th></tr><tr><td><span class="kh">ទូកពីរ</span><span class="en">Two Tuuk</span></td><td>8</td></tr><tr><td><span class="kh">ទូកមួយ</span><span class="en">One Tuuk</span></td><td>16</td></tr><tr><td><span class="kh">គោលពីរ</span><span class="en">Two Koul</span></td><td>22</td></tr><tr><td><span class="kh">សេះពីរ</span><span class="en">Two Ses</span></td><td>32</td></tr><tr><td><span class="kh">គោលមួយ</span><span class="en">One Koul</span></td><td>44</td></tr><tr><td><span class="kh">សេះមួយ</span><span class="en">One Ses</span></td><td>64</td></tr><tr><td><span class="kh">កូនអុកផ្សេងទៀត (ឧទាហរណ៍ មានតែនាង)</span><span class="en">Anything else (for example only a Neang)</span></td><td>64</td></tr></table>
+<p>The limit is fixed the moment counting starts and never changes afterwards. Each move by the counting side adds one to the count. If any piece is captured, by either side, the count restarts from the new total number of pieces on the board, but the limit stays what it was. If the count reaches the limit before checkmate, the game is a draw.</p>
+
+<h2 id="examples"><span class="kh">ឧទាហរណ៍</span><span class="en">Worked examples</span></h2>
+<h3>Two Tuuk against a bare Sdach</h3>
+<p>White has a Sdach and two Tuuk, and Black has only a Sdach. That is four pieces on the board, so Black starts Piece's Honor with the count at <strong>4</strong>, and because White has two Tuuk the limit is <strong>8</strong>. Each Black move adds one, so Black needs to make four more moves, and if White has not mated by then, the game is a draw. Four moves is enough to build the ladder mate, but only for a player who knows it, which is why the mating patterns are worth learning.</p>
+<div class="adslot" data-ad="content"></div>
+<h3>One Tuuk against a bare Sdach</h3>
+<p>With only one Tuuk the total is three pieces, so the count starts at <strong>3</strong>, and the limit is <strong>16</strong>. That gives the stronger side thirteen of the weaker side's moves, which is more room, but a lone Tuuk cannot mate without the help of its own Sdach, so a careless player can still run out of count.</p>
+<h3>A capture restarts the count</h3>
+<p>Suppose White had two Tuuk (limit 8, count 4), and a Tuuk is captured. The count is reset to the new total of three pieces, and the limit stays at 8, not 16. The count therefore goes up from 3 again. This is why trading off a piece in a counted ending is usually a mistake for the stronger side.</p>
+<h3>Board's Honor in practice</h3>
+<p>Black has a Sdach and a Trey (two pieces) against White's Sdach, Tuuk and Ses (three or more). Black has fewer pieces than White and has three pieces or fewer, so Black may start Board's Honor: the count begins at 1 with a limit of 64.</p>
+
+<h2 id="variations"><span class="kh">ភាពខុសគ្នា</span><span class="en">Variations between sources</span></h2>
+<p>Written sources, and players in Cambodia and Thailand, do not agree on every detail of the counting rules. The table of limits above is the commonly cited one, and the exact values differ slightly between sources. The game keeps the whole table in one clearly marked place in its code, so it can be adjusted if a better source is found. If you know of a variation that your family or club uses, or you spot an error on this page, please <a href="mailto:support@oukkhmer.com">write to us</a>.</p>
+
+<h2 id="tips"><span class="kh">គន្លឹះ</span><span class="en">Practical advice</span></h2>
+<ul>
+<li>If you are ahead, aim for a mate you know. Two Tuuk or a Tuuk and a close Sdach (see the <a href="/checkmate-patterns/">checkmate patterns</a>) take only a few moves.</li>
+<li>Before you trade a piece in an ending, check whether the capture resets the count to your disadvantage.</li>
+<li>If you are behind, trading down to three pieces or fewer gives you access to Board's Honor, and a bare Sdach with no opposing Trey left gives you Piece's Honor.</li>
+<li>Watch the count, which the game shows on screen.</li>
+</ul>
+<p>For the other rules of the game, see <a href="/how-to-play/">How to play</a>.</p>
+<div class="guides"><a class="guide" href="/how-to-play/"><b><span class="kh">វិធីលេង</span><span class="en">How to play</span></b><span class="d">The board, every piece and its moves, special moves, promotion and checkmate, with a diagram for each piece.</span></a><a class="guide" href="/strategy/"><b><span class="kh">យុទ្ធសាស្ត្រ</span><span class="en">Strategy guide</span></b><span class="d">What each piece is worth, opening principles, tactics such as the fork and the Koul's blind spot, trading, promotion and endgames.</span></a><a class="guide" href="/checkmate-patterns/"><b><span class="kh">លំនាំអុកងាប់</span><span class="en">Checkmate patterns</span></b><span class="d">Eight mating patterns with diagrams: the box, the ladder, the back rank, the smothered mate and more.</span></a><a class="guide" href="/counting-rules/"><b><span class="kh">ច្បាប់ការរាប់</span><span class="en">Counting rules</span></b><span class="d">Board's Honor and Piece's Honor explained, with the limits table and worked examples.</span></a><a class="guide" href="/glossary/"><b><span class="kh">វាក្យសព្ទ</span><span class="en">Glossary</span></b><span class="d">Khmer chess terms with their English meanings: pieces, board, check, checkmate, counting.</span></a><a class="guide" href="/history/"><b><span class="kh">ប្រវត្តិ</span><span class="en">History and origins</span></b><span class="d">Where Ouk Chatrang comes from, the names of its pieces and how it relates to Makruk and international chess.</span></a></div>
+
+</div></main>
+<footer class="foot"><div class="wrap">
+<p><a href="/how-to-play/"><span class="kh">វិធីលេង</span><span class="en">How to play</span></a> · <a href="/strategy/"><span class="kh">យុទ្ធសាស្ត្រ</span><span class="en">Strategy guide</span></a> · <a href="/checkmate-patterns/"><span class="kh">លំនាំអុកងាប់</span><span class="en">Checkmate patterns</span></a> · <a href="/counting-rules/"><span class="kh">ច្បាប់ការរាប់</span><span class="en">Counting rules</span></a> · <a href="/glossary/"><span class="kh">វាក្យសព្ទ</span><span class="en">Glossary</span></a> · <a href="/history/"><span class="kh">ប្រវត្តិ</span><span class="en">History and origins</span></a></p>
+<p style="margin-top:6px"><a href="/"><span class="kh">លេង</span><span class="en">Play</span></a> · <a href="/about/"><span class="kh">អំពី</span><span class="en">About</span></a> · <a href="/privacy/"><span class="kh">ឯកជនភាព</span><span class="en">Privacy</span></a> · <a href="/terms/"><span class="kh">លក្ខខណ្ឌ</span><span class="en">Terms</span></a> · <a href="mailto:support@oukkhmer.com"><span class="kh">ទំនាក់ទំនង</span><span class="en">Contact</span></a></p>
+<p style="margin-top:8px">© 2026 Ouk Chatrang · oukkhmer.com</p>
+</div></footer>
+<script>(function(){var K='oukLangPref',v='both';try{v=localStorage.getItem(K)||'both'}catch(e){}
+function set(x,save){document.body.classList.remove('lang-kh','lang-en','lang-both');document.body.classList.add('lang-'+(x==='kh'||x==='en'?x:'both'));
+document.querySelectorAll('.lang button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.l===(x==='kh'||x==='en'?x:'both')))});
+if(save){try{localStorage.setItem(K,x)}catch(e){}}}
+document.querySelectorAll('.lang button').forEach(function(b){b.addEventListener('click',function(){set(b.dataset.l,true)})});set(v,false)})();</script>
+</body>
+</html>
