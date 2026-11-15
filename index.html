@@ -16,6 +16,9 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>អុកចត្រង្គ — Ouk Chatrang (Khmer Chess)</title>
+<meta name="description" content="Play Ouk Chatrang, traditional Cambodian (Khmer) chess, free in your browser: against the computer, with a friend or online. Learn the rules with diagrams and daily puzzles.">
+<link rel="canonical" href="https://oukkhmer.com/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Ouk Chatrang"><meta property="og:title" content="Ouk Chatrang (Khmer Chess) — play free"><meta property="og:description" content="Traditional Cambodian chess: play the computer, a friend or online, and learn the rules with diagrams and daily puzzles."><meta property="og:url" content="https://oukkhmer.com/"><meta property="og:image" content="https://oukkhmer.com/icon-512.png">
 <!-- PWA: installable + offline-capable (see manifest.webmanifest / sw.js) -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
@@ -761,6 +764,14 @@
   /* coming back: the daily puzzle with the day streak, Add to Home Screen */
   #dailyRow { margin-bottom: 12px; padding: 10px; border-radius: 12px; border: 1px solid rgba(226,182,90,.28);
     background: rgba(255,214,150,.05); }
+  /* links to the How to play / Privacy / Terms pages (Start screen, settings panel, Learn to Play, sign-up) */
+  .siteLinks { font-size: 12px; margin: 14px 0 0; color: var(--text-muted); text-align: center; line-height: 1.9; }
+  .siteLinks a { color: var(--accent); text-underline-offset: 3px; white-space: nowrap; }
+  .siteLinks a:hover { color: var(--accent-hover, var(--accent)); }
+  .panelLinks { margin: 16px 0 8px; }
+  .guideLink { margin: 10px 0 0; font-size: 13px; }
+  .legalNote { text-align: center; margin: 10px 0 4px; }
+  .legalNote a { color: var(--accent); }
   .dailyHead { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--panel-fg); margin-bottom: 8px; }
   .dailyBtns { display: flex; gap: 6px; }
   #startScreen .box .dailyBtn {
@@ -2710,6 +2721,7 @@
         <button id="signupEmailBtn" class="accountBtn" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span><span class="t-kh">ចុះឈ្មោះដោយអ៊ីមែល</span><span class="t-sep"> — </span><span class="t-en">Sign up with email</span></span></button>
         <button id="signinEmailBtn" class="accountBtn" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg><span><span class="t-kh">ចូលដោយអ៊ីមែល</span><span class="t-sep"> — </span><span class="t-en">Sign in with email</span></span></button>
       </div>
+      <p class="loginHint legalNote"><span class="t-kh">ការបន្តមានន័យថាអ្នកយល់ព្រមតាម <a href="/terms/" target="_blank" rel="noopener">លក្ខខណ្ឌប្រើប្រាស់</a> និង <a href="/privacy/" target="_blank" rel="noopener">គោលការណ៍ឯកជនភាព</a>។</span><span class="t-sep"> — </span><span class="t-en">By continuing you agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Use</a> and the <a href="/privacy/" target="_blank" rel="noopener">Privacy Policy</a>.</span></p>
       <button id="loginAccountBackBtn" type="button">← <span class="t-kh">ត្រឡប់</span><span class="t-sep"> — </span><span class="t-en">Back</span></button>
     </div>
     <div id="loginGuestPanel" style="display:none">
@@ -2777,6 +2789,7 @@
     <p id="streakNote" class="streakNote" style="display:none"></p>
     <button id="startLearnBtn" type="button">📖 <span class="t-kh">រៀនលេង</span><span class="t-sep"> — </span><span class="t-en">Learn to Play</span></button>
     <button id="startBtn" type="button"><span class="t-kh">ចុះឈ្មោះ / ចូលគណនី</span><span class="t-sep"> ▸ </span><span class="t-en">Sign in / Create account</span></button>
+    <p class="siteLinks"><a href="/how-to-play/" target="_blank" rel="noopener"><span class="t-kh">វិធីលេង</span><span class="t-sep"> — </span><span class="t-en">How to play</span></a> · <a href="/privacy/" target="_blank" rel="noopener"><span class="t-kh">ឯកជនភាព</span><span class="t-sep"> — </span><span class="t-en">Privacy</span></a> · <a href="/terms/" target="_blank" rel="noopener"><span class="t-kh">លក្ខខណ្ឌ</span><span class="t-sep"> — </span><span class="t-en">Terms</span></a></p>
   </div>
 </div>
 <script>
@@ -2883,6 +2896,7 @@
       <div class="btnrow" style="margin-top:8px">
         <button id="lessonReset">ចាប់ផ្ដើមឡើងវិញ Reset</button>
       </div>
+      <p class="siteLinks guideLink"><a href="/how-to-play/" target="_blank" rel="noopener">📄 <span class="t-kh">មើលសៀវភៅណែនាំពេញលេញ មានរូបភាព</span><span class="t-sep"> — </span><span class="t-en">Full guide with diagrams</span></a></p>
       </div>
     </details>
     <details class="acc" id="trainGuideSec">
@@ -3072,6 +3086,7 @@
     </div>
   </details>
 
+  <p class="siteLinks panelLinks"><a href="/how-to-play/" target="_blank" rel="noopener"><span class="t-kh">វិធីលេង</span><span class="t-sep"> — </span><span class="t-en">How to play</span></a> · <a href="/privacy/" target="_blank" rel="noopener"><span class="t-kh">ឯកជនភាព</span><span class="t-sep"> — </span><span class="t-en">Privacy</span></a> · <a href="/terms/" target="_blank" rel="noopener"><span class="t-kh">លក្ខខណ្ឌ</span><span class="t-sep"> — </span><span class="t-en">Terms</span></a></p>
 </div>
 
 <!-- Change Mode: a pop-up (opened from the panel's 🎮 button, or by anything that asks to change the mode) -->
@@ -17605,8 +17620,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.106';
+const APP_VERSION = '1.6.107';
 const WHATS_NEW = [
+  {
+    version: '1.6.107',
+    date: '2026-11-15',
+    title: { kh: 'ទំព័រណែនាំ ឯកជនភាព និងលក្ខខណ្ឌ', en: 'A how-to-play guide, Privacy and Terms' },
+    items: [
+      { kh: 'ទំព័រថ្មី «វិធីលេង» ពន្យល់ក្ដារ កូនអុកទាំងប្រាំមួយ ជើងពិសេស អុកងាប់ និងច្បាប់ការរាប់ ជាមួយរូបភាពក្ដារត្រឹមត្រូវពីម៉ាស៊ីនល្បែង (ខ្មែរ និងអង់គ្លេស)។',
+        en: 'A new How to play page explains the board, the six pieces, special moves, checkmate and the counting rules, with diagrams drawn from the game engine itself (in Khmer and English).' },
+      { kh: 'មានទំព័រគោលការណ៍ឯកជនភាព និងលក្ខខណ្ឌប្រើប្រាស់ ដែលភ្ជាប់ពីអេក្រង់ចាប់ផ្ដើម ផ្ទាំងការកំណត់ ផ្ទាំងរៀនលេង និងអេក្រង់ចូលគណនី។',
+        en: 'There are now Privacy Policy and Terms of Use pages, linked from the Start screen, the settings panel, Learn to Play and the sign-in screen.' }
+    ]
+  },
   {
     version: '1.6.106',
     date: '2026-11-12',
@@ -21443,6 +21469,7 @@ window.__ouk = {
   debugApplyMove: (m) => applyMove(m),
   debugRenderMusic: (key, secs) => musRenderOffline(key, secs), // Test-only
   debugRenderSfx: (style, kind, secs) => sfxRenderOffline(style, kind, secs), // Test-only
+  debugPieceArt: (setStyle, type, color, promoted) => flat2DArtTexture(setStyle, type, color, !!promoted).image.toDataURL('image/png'), // Test-only: a flat piece's art (used to draw the How to Play diagrams)
   debugGlides: () => moveGlides.map((s) => ({ t: +s.t.toFixed(3), dur: +s.dur.toFixed(3), y: +s.g.position.y.toFixed(3), landed: s.landed })), // Test-only
   debugInkFx: (secs) => { inkFxAdvance(secs); return inkFxList.length; }, // Test-only: step the watercolour move blooms
   debugBgArt: (key) => { backgroundTexture(key, 0, false); return bgArtCache[key].toDataURL('image/jpeg', 0.85); }, // Test-only
