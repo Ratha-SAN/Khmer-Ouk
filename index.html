@@ -769,6 +769,18 @@
   .siteLinks a { color: var(--accent); text-underline-offset: 3px; white-space: nowrap; }
   .siteLinks a:hover { color: var(--accent-hover, var(--accent)); }
   .panelLinks { margin: 16px 0 8px; }
+  /* the Terms / Privacy tick box on the Start pop-up: ticked by default; unticked, play-starting buttons are dimmed and refuse */
+  .agreeRow { display: flex; align-items: flex-start; gap: 10px; text-align: left; margin: 0 0 12px; padding: 10px 12px; font-size: 13px; line-height: 1.55;
+    color: var(--text-faint); border: 1px solid rgba(226,182,90,.3); border-radius: 10px; background: rgba(255,214,150,.05); cursor: pointer; }
+  .agreeRow input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--accent); cursor: pointer; }
+  .agreeRow a { color: var(--accent); text-underline-offset: 3px; }
+  #startScreen .box p.agreeNeed { display: none; margin: -6px 0 10px; font-size: 12.5px; font-weight: 600; color: #ff9d8f; text-align: center; }
+  #startScreen.agreeOff .box p.agreeNeed { display: block; }
+  #startScreen.agreeOff .agreeRow { border-color: #e0674f; }
+  #startScreen.agreeOff #playNowBtn, #startScreen.agreeOff #startLearnBtn, #startScreen.agreeOff #startBtn, #startScreen.agreeOff #dailyRow { opacity: .38; cursor: not-allowed; }
+  .agreeRow.flash { animation: agreeFlash .55s ease-out; }
+  @keyframes agreeFlash { 0%, 100% { transform: translateX(0); } 18% { transform: translateX(-7px); } 36% { transform: translateX(6px); } 54% { transform: translateX(-4px); } 72% { transform: translateX(3px); } }
+  @media (prefers-reduced-motion: reduce) { .agreeRow.flash { animation: none; } }
   .guideLink { margin: 10px 0 0; font-size: 13px; }
   .legalNote { text-align: center; margin: 10px 0 4px; }
   .legalNote a { color: var(--accent); }
@@ -2776,6 +2788,8 @@
       <span class="t-kh">ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។</span><span class="t-sep"> — </span><span class="t-en">Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
       <button type="button" class="iabCopyBtn"><span class="t-kh">ចម្លងតំណ</span><span class="t-sep"> — </span><span class="t-en">Copy link</span></button>
     </div>
+    <label id="agreeRow" class="agreeRow"><input type="checkbox" id="agreeChk" checked autocomplete="off"><span><span class="t-kh">ខ្ញុំយល់ព្រមតាម <a href="/terms/" target="_blank" rel="noopener">លក្ខខណ្ឌប្រើប្រាស់</a> និង <a href="/privacy/" target="_blank" rel="noopener">គោលការណ៍ឯកជនភាព</a></span><span class="t-sep"> — </span><span class="t-en">I agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Use</a> and the <a href="/privacy/" target="_blank" rel="noopener">Privacy Policy</a></span></span></label>
+    <p class="agreeNeed" id="agreeNeed"><span class="t-kh">សូមធីកប្រអប់ខាងលើ ដើម្បីលេង</span><span class="t-sep"> — </span><span class="t-en">Tick the box above to play</span></p>
     <button id="playNowBtn" type="button"><span class="t-kh">លេងឥឡូវ</span><span class="t-sep"> ▸ </span><span class="t-en">PLAY NOW</span><small><span class="t-kh">ជាមួយកុំព្យូទ័រ កម្រិត ១</span><span class="t-sep"> — </span><span class="t-en">vs Computer, level 1</span></small></button>
     <p id="guestGamesNote" class="guestGamesNote"><span class="t-kh">ហ្គេមឥតគិតថ្លៃថ្ងៃនេះ៖ នៅសល់ <b class="ggLeft">3</b> / 3 · ចូលគណនីដើម្បីលេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free games today: <b class="ggLeft">3</b> of 3 left · sign in for unlimited</span></p>
     <div id="dailyRow">
@@ -2789,7 +2803,7 @@
     <p id="streakNote" class="streakNote" style="display:none"></p>
     <button id="startLearnBtn" type="button">📖 <span class="t-kh">រៀនលេង</span><span class="t-sep"> — </span><span class="t-en">Learn to Play</span></button>
     <button id="startBtn" type="button"><span class="t-kh">ចុះឈ្មោះ / ចូលគណនី</span><span class="t-sep"> ▸ </span><span class="t-en">Sign in / Create account</span></button>
-    <p class="siteLinks"><a href="/how-to-play/" target="_blank" rel="noopener"><span class="t-kh">វិធីលេង</span><span class="t-sep"> — </span><span class="t-en">How to play</span></a> · <a href="/privacy/" target="_blank" rel="noopener"><span class="t-kh">ឯកជនភាព</span><span class="t-sep"> — </span><span class="t-en">Privacy</span></a> · <a href="/terms/" target="_blank" rel="noopener"><span class="t-kh">លក្ខខណ្ឌ</span><span class="t-sep"> — </span><span class="t-en">Terms</span></a></p>
+    <p class="siteLinks"><a href="/how-to-play/" target="_blank" rel="noopener"><span class="t-kh">វិធីលេង</span><span class="t-sep"> — </span><span class="t-en">How to play</span></a></p>
   </div>
 </div>
 <script>
@@ -17620,8 +17634,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.107';
+const APP_VERSION = '1.6.108';
 const WHATS_NEW = [
+  {
+    version: '1.6.108',
+    date: '2026-11-15',
+    title: { kh: 'ប្រអប់យល់ព្រមលក្ខខណ្ឌ', en: 'Agree to the Terms to play' },
+    items: [
+      { kh: 'អេក្រង់ចាប់ផ្ដើមមានប្រអប់ «ខ្ញុំយល់ព្រមតាមលក្ខខណ្ឌប្រើប្រាស់ និងគោលការណ៍ឯកជនភាព» ដែលបានធីកស្រាប់។ បើអ្នកដកធីកចេញ នឹងមិនអាចចុចលេងឥឡូវ ល្បែងប្រាជ្ញា រៀនលេង ឬចូលគណនីបានទេ។',
+        en: 'The Start screen has an "I agree to the Terms of Use and the Privacy Policy" box, already ticked. If you untick it, Play now, the daily puzzles, Learn to Play and Sign in will not work until you tick it again.' }
+    ]
+  },
   {
     version: '1.6.107',
     date: '2026-11-15',
@@ -19656,6 +19679,26 @@ document.getElementById('installNudgeLater').onclick = () => {
   try { localStorage.setItem(INSTALL_NUDGE_KEY, JSON.stringify(r)); localStorage.setItem('oukInstallBannerOff', String(Date.now())); } catch (e) {}
   trackEvent('install_banner_close', { no: r.no });
 };
+// Terms and Privacy tick box on the Start pop-up: ticked every time it opens. Unticked, nothing on the Start pop-up that
+// begins play (Play now, a daily puzzle, Learn to Play, Sign in) works: the tap is caught before the button sees it and
+// only shakes the tick box. (Listening on the pop-up itself, in the capture phase, covers every one of those buttons
+// whichever handler they have.)
+(function () {
+  const pop = document.getElementById('startScreen'), chk = document.getElementById('agreeChk'), row = document.getElementById('agreeRow');
+  const GATED = '#playNowBtn, #startLearnBtn, #startBtn, .dailyBtn';
+  const sync = () => {
+    pop.classList.toggle('agreeOff', !chk.checked);
+    pop.querySelectorAll(GATED).forEach((b) => b.setAttribute('aria-disabled', String(!chk.checked)));
+  };
+  chk.addEventListener('change', sync);
+  window.addEventListener('pageshow', () => { chk.checked = true; sync(); }); // (a browser may restore an unticked box on reload)
+  pop.addEventListener('click', (e) => {
+    if (chk.checked || !e.target.closest(GATED)) return;
+    e.stopPropagation(); e.preventDefault();
+    row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
+  }, true);
+  sync();
+})();
 document.getElementById('startLearnBtn').onclick = () => {
   funnel('start_learn_click');
   ensureGuest().then(() => { trackEvent('mode_access', { mode: 'learn' }); hideOverlays(); setUiMode('train'); });
