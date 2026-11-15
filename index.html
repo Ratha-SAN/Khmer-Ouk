@@ -810,11 +810,11 @@
     font-size: 13px; line-height: 1.45; box-shadow: 0 4px 14px rgba(0,0,0,.3);
   }
   /* Learn to Play's link to the How to play page. In free space only: under the board on a computer; top-left under the
-     title on a phone (the puzzle card and the install banner use the bottom there); the strip above the board on a
+     puzzle bar on a phone (and top-left under the title while that bar is expanded); the strip above the board on a
      landscape phone. The flat (plan) views reserve its space (planInsets), so it never covers the board. */
   #learnBanner {
     position: absolute; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 4;
-    display: none; align-items: center; gap: 2px; box-sizing: border-box; max-width: calc(100% - 24px);
+    display: none; align-items: center; gap: 2px; box-sizing: border-box; width: max-content; max-width: calc(100% - 24px);
     padding: 4px 4px 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; line-height: 1.35;
     background: var(--panel-bg); border: 1px solid var(--accent-dim); box-shadow: 0 4px 14px rgba(0,0,0,.35);
   }
@@ -888,10 +888,14 @@
     body.puzzle-open #installNudge { bottom: auto; top: 118px; } /* the puzzle card has the bottom: the space under the camera buttons is free */
   }
   @media (max-width: 820px), (max-height: 560px) {
-    #learnBanner { top: 62px; bottom: auto; left: 10px; transform: none; max-width: calc(100% - 140px); border-radius: 12px; padding: 3px 3px 3px 8px; font-size: 12px; }
+    /* a phone: at the bottom too, a little smaller; with a puzzle open it stands just above the puzzle bar (updateLearnBanner
+       sets --lbBottom), and while that bar is expanded it moves to the top-left under the title instead */
+    #learnBanner { padding: 3px 3px 3px 10px; font-size: 12px; }
+    body.puzzle-open #learnBanner { bottom: var(--lbBottom, 62px); }
+    body.learn-open #learnBanner[data-pos=top] { top: 62px; bottom: auto; left: 10px; transform: none; max-width: calc(100% - 140px); border-radius: 12px; padding: 3px 3px 3px 8px; }
   }
   @media (max-height: 560px) and (orientation: landscape) { /* the strip above the board, between the title column and the camera buttons */
-    #learnBanner { top: 8px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 300px); }
+    body.learn-open #learnBanner { top: 8px; bottom: auto; left: 50%; transform: translateX(-50%); max-width: calc(100% - 300px); }
   }
   @media (max-height: 560px) and (orientation: landscape) {
     #installNudge { left: auto; right: 8px; transform: none; top: 92px; bottom: auto; width: 170px; flex-wrap: wrap; }
@@ -17656,8 +17660,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.109';
+const APP_VERSION = '1.6.110';
 const WHATS_NEW = [
+  {
+    version: '1.6.110',
+    date: '2026-11-15',
+    title: { kh: 'បដាសៀវភៅណែនាំនៅខាងក្រោមលើទូរស័ព្ទ', en: 'The guide banner at the bottom on phones' },
+    items: [
+      { kh: 'លើទូរស័ព្ទ បដាសៀវភៅណែនាំក្នុង «រៀនលេង» ឥឡូវនៅខាងក្រោម ដូចលើកុំព្យូទ័រ។ ពេលមានល្បែងប្រាជ្ញា វាឈរពីលើរបារល្បែងប្រាជ្ញា។',
+        en: 'On phones the Learn to Play guide banner is now at the bottom, as on a computer. With a puzzle open it stands just above the puzzle bar.' }
+    ]
+  },
   {
     version: '1.6.109',
     date: '2026-11-15',
@@ -20397,7 +20410,15 @@ function puzzleHintText(pz) {
 // its ✕ hides it until Learn to Play is opened again.
 let learnBannerClosed = false;
 function updateLearnBanner() {
-  document.body.classList.toggle('learn-open', uiMode === 'train' && !overlayOpen && !learnBannerClosed);
+  const on = uiMode === 'train' && !overlayOpen && !learnBannerClosed;
+  document.body.classList.toggle('learn-open', on);
+  if (!on) return;
+  const el = document.getElementById('learnBanner'), pc = document.getElementById('puzzleCard');
+  const bar = document.body.classList.contains('puzzle-open') && pc.offsetHeight > 0; // the puzzle card (a bar at the bottom of an upright phone)
+  const upright = UPRIGHT_PHONE_MQ.matches;
+  const pos = upright && bar && pc.classList.contains('open') ? 'top' : 'bottom'; // an expanded bar leaves no room above it
+  if (el.dataset.pos !== pos) el.dataset.pos = pos;
+  if (upright && bar && pos === 'bottom') el.style.setProperty('--lbBottom', Math.round(sceneDiv.getBoundingClientRect().bottom - pc.getBoundingClientRect().top + 8) + 'px');
 }
 document.getElementById('learnBannerClose').onclick = () => { learnBannerClosed = true; tickHud(); };
 function updatePuzzleCard() {
@@ -20461,8 +20482,8 @@ const UPRIGHT_PHONE_MQ = matchMedia('(max-width: 820px) and (min-height: 561px),
 document.getElementById('puzzleCard').onclick = (e) => {
   const t = e.target.closest('[data-act]'), act = t ? t.dataset.act : 'fold';
   const card = document.getElementById('puzzleCard');
-  if (act === 'open') { card.classList.add('open'); return; }
-  if (act === 'fold') { if (UPRIGHT_PHONE_MQ.matches) card.classList.remove('open'); else card.classList.toggle('folded'); return; }
+  if (act === 'open') { card.classList.add('open'); updateLearnBanner(); return; }
+  if (act === 'fold') { if (UPRIGHT_PHONE_MQ.matches) card.classList.remove('open'); else card.classList.toggle('folded'); updateLearnBanner(); return; }
   if (act === 'hint') { puzzleHintOpen = true; trackEvent('puzzle_hint', { key: activePuzzle && activePuzzle.key }); updatePuzzleCard(); return; }
   if (act === 'lv') { const k = dailyPuzzleFor(t.dataset.lv).key; if (!activePuzzle || activePuzzle.key !== k) loadPuzzle(k); return; }
   if (act === 'back') { showStartScreen(); }
