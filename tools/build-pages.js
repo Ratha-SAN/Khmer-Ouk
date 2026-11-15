@@ -1,5 +1,5 @@
 // Builds the static pages (how-to-play/, privacy/, terms/) from the sources in tools/pages/.
-//   node tools/build-pages.js            (run from the repo root; set CONTACT_EMAIL to the public contact address)
+//   node tools/build-pages.js            (run from the repo root; CONTACT_EMAIL overrides the public contact address)
 // - Content lives in tools/pages/*.html, written with <kh>..</kh> / <en>..</en> pairs: one language each, shown or hidden by
 //   the language switch (the same oukLangPref setting the game uses; with no setting, both are shown).
 // - The board diagrams are drawn here from the game's own engine (extracted from index.html), so they can never disagree
@@ -15,7 +15,7 @@ const E = globalThis.OukEngine;
 const lessonSrc = html.slice(html.indexOf('const LESSONS = {'), html.indexOf('const LESSON_ORDER'));
 const LESSONS = eval('(function(){ ' + lessonSrc + ' return LESSONS; })()');
 const ART = JSON.parse(fs.readFileSync(path.join(__dirname, 'pages', 'art-meta.json'), 'utf8'));
-const CONTACT = process.env.CONTACT_EMAIL || 'CONTACT_EMAIL_HERE';
+const CONTACT = process.env.CONTACT_EMAIL || 'support@oukkhmer.com'; // the public contact address shown on the pages
 const SITE = 'https://oukkhmer.com';
 const UPDATED = '2026-11-15';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
