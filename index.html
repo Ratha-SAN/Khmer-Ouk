@@ -3973,7 +3973,8 @@
   //  1: about 60% as strong as level 2, meaning it scores about 3 points to level 2's 5 when they play each
   //     other (37.5%). The same recipe as level 2 with a wider choice of "nearly as good" moves (the best 6
   //     instead of 5, up to 250 points off instead of 200), so it drops a little material more often. Measured
-  //     over 820 self-play games: 34% with a level-3 share of 0.30, 41% with 0.33, 42% with 0.36 -- hence 0.32.
+  //     over 1,120 self-play games: 34% with a level-3 share of 0.30, 42% with 0.32, 41% with 0.33 and 42% with
+  //     0.36 (each give or take 3 points) -- the line through those puts 37.5% at 0.31.
   //     It never plays a blind random move: even one in twenty of those makes it lose nearly every game.
   //  2: 3 moves in 10 are level 3's own; the rest are plausible but not the best -- picked at random from the few
   //     moves that look nearly as good two plies ahead -- so it plays soundly and rarely throws pieces away. (It
@@ -3984,7 +3985,7 @@
   //  5: iterative-deepening alpha-beta, full time budget (~1.7s, hardest).
   var TUNE = {
     l0Take: 0.3,                                      // level 0 takes a piece this often when it can
-    l1Slip: 0, l1Best: 0.32, l1Top: 6, l1Within: 250,  // level 1: blind random moves (none), level-3 moves, the others' range
+    l1Slip: 0, l1Best: 0.31, l1Top: 6, l1Within: 250,  // level 1: blind random moves (none), level-3 moves, the others' range
     l2Best: 0.3, l2Top: 5, l2Within: 200
   };
 
