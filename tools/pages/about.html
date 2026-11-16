@@ -6,7 +6,7 @@
 
 <h2 id="what"><kh>អ្វីដែលអ្នកអាចធ្វើបាន</kh><en>What you can do</en></h2>
 <ul>
-<li><strong>Play the computer</strong> at five levels, from easy to expert, and move up a level after each win.</li>
+<li><strong>Play the computer</strong> at six levels, from a starter level for a very first game up to expert, and move up a level after each win.</li>
 <li><strong>Play with a friend</strong> on one device, or online by sending an invitation link.</li>
 <li><strong>Learn to play</strong> with lessons for every piece on a real board, and with the <a href="/how-to-play/">How to play</a> guide.</li>
 <li><strong>Solve the daily puzzles</strong>: three checkmate and tactics problems a day, at three difficulty levels.</li>
@@ -20,12 +20,13 @@
 <h2 id="computer"><kh>កុំព្យូទ័រលេងយ៉ាងដូចម្តេច</kh><en>How the computer opponent works</en></h2>
 <p>The computer uses the same rules engine that checks every move on the board, so it never makes an illegal move. How strong it is depends on the level:</p>
 <ul>
-<li><strong>Level 1</strong> mostly plays simple captures and otherwise picks moves at random. It is meant for beginners.</li>
+<li><strong>Level 0</strong>, the starter, picks its moves at random and takes a piece only now and then. It is there for a very first game: to try moving, capturing and giving checkmate.</li>
+<li><strong>Level 1</strong> looks one move ahead for each side like the levels above it, but it often settles for a weaker move and now and then makes a careless one. It is about 60% as strong as level 2.</li>
 <li><strong>Level 2</strong> mixes a short look-ahead search with a choice among several reasonable moves.</li>
-<li><strong>Level 3</strong> searches two plies ahead (one move by each side).</li>
+<li><strong>Level 3</strong> searches two plies ahead (one move by each side), and a little deeper once the other side has almost nothing left, so that it can finish a won game.</li>
 <li><strong>Levels 4 and 5</strong> search progressively deeper within a time limit of roughly one to two seconds, and level 5 thinks the longest.</li>
 </ul>
-<p>It evaluates positions mainly by material, using the piece values you can see in the <a href="/strategy/">strategy guide</a>, and it knows the counting rules. It is a hobby engine, not a world-class one, so patient players can beat the top levels.</p>
+<p>It evaluates positions mainly by material, using the piece values you can see in the <a href="/strategy/">strategy guide</a>, and it knows the counting rules: it treats a count that runs out as the draw it is, and it avoids shuffling a piece back and forth. It is a hobby engine, not a world-class one, so patient players can beat the top levels.</p>
 
 <h2 id="why"><kh>ហេតុអ្វី</kh><en>Why this site exists</en></h2>
 <p>The aim of this site is simple: to make Ouk Chatrang easy to play and to learn, in Khmer as well as in English, with rules that follow the Cambodian game. Because sources and players differ on some details, the game offers settings for them and says so openly (see the <a href="/history/">history</a> and <a href="/counting-rules/">counting rules</a> pages).</p>
