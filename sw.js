@@ -33,19 +33,27 @@ self.addEventListener('fetch', (e) => {
   if (sameOrigin && url.pathname.endsWith('/version.json')) return; // the update check: always the network's answer
   if (sameOrigin && (url.pathname.endsWith('/ads.js') || url.pathname.endsWith('/ads-config.json'))) return; // the ads switch: always the network's answer
 
-  // the page itself is network-first so game updates land on the next
-  // online visit, with the cached copy as the offline fallback
+  // The page itself is network-first, so a game update lands on the next online visit -- but a stalled connection
+  // does not hold the game up: when the network has not answered within 3 seconds and there is a saved copy, the
+  // saved copy opens at once. The fresh page is still stored when it does arrive, and the game's own update bar
+  // (it reads version.json) offers the newer version.
   const isPage = sameOrigin && (url.pathname.endsWith('/') || url.pathname.endsWith('/index.html'));
   if (isPage) {
-    e.respondWith(
-      fetch(e.request)
-        .then((r) => {
-          const copy = r.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
-          return r;
-        })
-        .catch(() => caches.match(e.request))
-    );
+    e.respondWith(new Promise((resolve) => {
+      let settled = false;
+      const saved = () => caches.match(e.request);
+      const net = fetch(e.request).then((r) => {
+        const copy = r.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        return r;
+      });
+      const timer = setTimeout(() => {
+        saved().then((hit) => { if (hit && !settled) { settled = true; resolve(hit); } });
+      }, 3000);
+      net.then((r) => { clearTimeout(timer); if (!settled) { settled = true; resolve(r); } })
+        .catch(() => { clearTimeout(timer); saved().then((hit) => { if (!settled) { settled = true; resolve(hit || Response.error()); } }); });
+      e.waitUntil(net.catch(() => {})); // (keep the worker alive until the fresh copy is stored)
+    }));
     return;
   }
 
