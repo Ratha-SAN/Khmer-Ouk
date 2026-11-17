@@ -7,7 +7,8 @@
   // old Firebase address (oukkhmer.web.app, and the older khmer-ouk-datacollection.web.app mirror) and from GitHub
   // Pages, so a visit there is sent on to the new address, keeping the path, query string (invite links: ?join=CODE)
   // and hash. Placed first in <head>, before any other tag, so it happens before the game loads. Anywhere else
-  // (the new address, a Firebase preview channel, a local file:// open) is left alone.
+  // (the new address, a Firebase preview channel, a local file:// open) is left alone -- and so is ouk.bykhmer.com, a
+  // second address the game is served at on purpose (oukkhmer.com stays the main one: see the canonical link).
   var oukOldHosts = { 'oukkhmer.web.app': '', 'khmer-ouk-datacollection.web.app': '', 'ratha-san.github.io': '/Khmer-Ouk' };
   if (Object.prototype.hasOwnProperty.call(oukOldHosts, location.hostname)) {
     var oukPath = location.pathname.indexOf(oukOldHosts[location.hostname]) === 0 ? location.pathname.slice(oukOldHosts[location.hostname].length) : location.pathname;

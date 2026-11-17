@@ -20,7 +20,7 @@ const VAL = (/var VAL = \[([^\]]*)\]/.exec(engineSrc)[1]).split(',').map((x) => 
 const ART = JSON.parse(fs.readFileSync(path.join(__dirname, 'pages', 'art-meta.json'), 'utf8'));
 const CONTACT = process.env.CONTACT_EMAIL || 'support@oukkhmer.com'; // the public contact address shown on the pages
 const SITE = 'https://oukkhmer.com';
-const UPDATED = '2026-11-15';
+const UPDATED = '2026-11-17';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // ---------- board diagrams ----------
@@ -339,8 +339,8 @@ const PAGES = [
     desc: 'A short overview of where Ouk Chatrang comes from: the chaturanga family, the names of the pieces, and how it relates to Thai Makruk and international chess.', prio: '0.6' },
   { file: 'about', src: 'about.html', title: 'About Ouk Chatrang (oukkhmer.com) — អំពីអុកចត្រង្គ',
     desc: 'About the free Ouk Chatrang web game: what you can do, how the computer opponent works, languages, accounts, and how to contact us.', prio: '0.5' },
-  { file: 'privacy', src: 'privacy.html', legal: true, title: 'Privacy Policy — Ouk Chatrang', desc: 'How Ouk Chatrang (oukkhmer.com) collects, uses and protects your information, and the choices you have.', prio: '0.3' },
-  { file: 'terms', src: 'terms.html', legal: true, title: 'Terms of Use — Ouk Chatrang', desc: 'The terms for using the Ouk Chatrang game at oukkhmer.com.', prio: '0.3' }
+  { file: 'privacy', src: 'privacy.html', legal: true, title: 'Privacy Policy — Ouk Chatrang', desc: 'How Ouk Chatrang (oukkhmer.com and ouk.bykhmer.com) collects, uses and protects your information, and the choices you have.', prio: '0.3' },
+  { file: 'terms', src: 'terms.html', legal: true, title: 'Terms of Use — Ouk Chatrang', desc: 'The terms for using the Ouk Chatrang game at oukkhmer.com and ouk.bykhmer.com.', prio: '0.3' }
 ];
 for (const p of PAGES) {
   const out = layout({ file: p.file, title: p.title, desc: p.desc, legal: p.legal, body: transform(read(p.src)) });
