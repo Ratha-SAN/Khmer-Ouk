@@ -4038,8 +4038,8 @@
   //     was 6 in 10 before level 3 learned to see a mate in one and to finish a won game; 3 in 10 keeps level 2
   //     as strong as it was: 53% against the old level 2 over 200 games.)
   //  3: a fixed two-ply search (four plies once the other side is nearly bare, so that a won game gets finished).
-  //  4: iterative-deepening alpha-beta, moderate time budget (~0.9s).
-  //  5: iterative-deepening alpha-beta, full time budget (~1.7s, hardest).
+  //  4: the strong search (see strongMove), up to 1 s of thinking.
+  //  5: the strong search, up to 2.6 s (hardest): about one ply deeper than level 4.
   var TUNE = {
     l0Take: 0.3,                                      // level 0 takes a piece this often when it can
     l1Slip: 0, l1Best: 0.31, l1Top: 6, l1Within: 250,  // level 1: blind random moves (none), level-3 moves, the others' range
@@ -4091,6 +4091,233 @@
     return best;
   }
 
+  // ---- the strong search (levels 4 and 5) -----------------------------------
+  // Levels 0-3 keep the plain search above, on which their strengths were measured. Levels 4 and 5 use this one:
+  //  - a transposition table: a position reached again by another order of moves is not searched again, and the
+  //    best move found for it last time is tried first;
+  //  - move ordering by the table's move, then captures (most valuable victim first), then "killer" quiet moves
+  //    that refuted a sibling position, then quiet moves that have often been good (history);
+  //  - principal-variation search (after the first move, the rest are only checked to be no better), and late
+  //    quiet moves are first searched one ply shallower;
+  //  - a side in check is always searched one ply further, so mating attacks and escapes are not cut off;
+  //  - a fuller judgement of a position (evaluateStrong): mobility, open files for the Tuuk, protected and
+  //    doubled Trey, and pieces left hanging.
+  var TT_BITS = 18, TT_SIZE = 1 << TT_BITS, TT_MASK = TT_SIZE - 1;
+  var ttKey = new Int32Array(TT_SIZE), ttMove = new Int32Array(TT_SIZE), ttScore = new Int32Array(TT_SIZE);
+  var ttDepth = new Int8Array(TT_SIZE), ttFlag = new Int8Array(TT_SIZE); // flag: 0 empty, 1 exact, 2 lower bound, 3 upper bound
+  var Z1 = new Int32Array(32 * 64 + 64), Z2 = new Int32Array(32 * 64 + 64);
+  (function () { // fixed pseudo-random numbers (xorshift), the same in every copy of the engine
+    var x = 0x2545f491;
+    function nx() { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return x | 0; }
+    for (var i = 0; i < Z1.length; i++) { Z1[i] = nx(); Z2[i] = nx(); }
+  })();
+  var _h1 = 0, _h2 = 0;
+  function hashState(S) {
+    var a = 0, b = 0, i, p;
+    for (i = 0; i < 64; i++) { p = S.board[i]; if (p !== EMPTY) { a ^= Z1[p * 64 + i]; b ^= Z2[p * 64 + i]; } }
+    var f = (S.turn ? 1 : 0) | (S.kingMoved[0] ? 2 : 0) | (S.kingMoved[1] ? 4 : 0) | (S.queenMoved[0] ? 8 : 0) |
+            (S.queenMoved[1] ? 16 : 0) | (S.kingJumpLostRook[0] ? 32 : 0) | (S.kingJumpLostRook[1] ? 64 : 0) |
+            (S.captureOccurred ? 128 : 0) | (S.variant === 'capture' ? 256 : S.variant === 'rook' ? 512 : 0);
+    a ^= Math.imul(f + 1, 0x9e3779b1); b ^= Math.imul(f + 7, 0x85ebca6b);
+    if (S.counting) {
+      var c = (S.counting.side + 1) * 131 + (S.counting.mode === 'board' ? 7 : 11) * 977 + S.counting.count * 7919 + S.counting.limit * 104729;
+      a ^= Math.imul(c, 0xc2b2ae35); b ^= Math.imul(c + 3, 0x27d4eb2f);
+    }
+    _h1 = a; _h2 = b;
+  }
+  function encMove(m) { return m.from | (m.to << 6) | (m.special << 12); }
+
+  var killers = []; // per ply: two quiet moves (encoded) that caused a cut-off there
+  var hist = new Int32Array(64 * 64);
+  function clearHeuristics() { killers = []; for (var i = 0; i < hist.length; i++) hist[i] >>= 3; }
+
+  function evaluateStrong(S, forColor) {
+    var score = evaluate(S, forColor), b = S.board, i, p, c, ty, t, k, n;
+    var pawnFiles = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]];
+    for (i = 0; i < 64; i++) { p = b[i]; if (p !== EMPTY && typeOf(p) === PAWN && !isProm(p)) pawnFiles[colorOf(p)][fileOf(i)]++; }
+    var extra = [0, 0];
+    for (i = 0; i < 64; i++) {
+      p = b[i];
+      if (p === EMPTY) continue;
+      c = colorOf(p); ty = typeOf(p);
+      if (ty === ROOK) {
+        n = 0;
+        for (k = 0; k < 4; k++) {
+          t = shift(i, ORTH_D[k][0], ORTH_D[k][1]);
+          while (t >= 0) { n++; if (b[t] !== EMPTY) break; t = shift(t, ORTH_D[k][0], ORTH_D[k][1]); }
+        }
+        extra[c] += 3 * n;                                                   // a free Tuuk is a strong Tuuk
+        if (!pawnFiles[c][fileOf(i)]) extra[c] += pawnFiles[1 - c][fileOf(i)] ? 10 : 18; // (half-)open file
+      } else if (ty === KNIGHT) {
+        n = 0;
+        for (k = 0; k < 8; k++) { t = shift(i, KNIGHT_D[k][0], KNIGHT_D[k][1]); if (t >= 0 && (b[t] === EMPTY || colorOf(b[t]) !== c)) n++; }
+        extra[c] += 3 * n;
+      } else if (ty === BISHOP || ty === QUEEN) {
+        var r = rankOf(i), f = fileOf(i);
+        extra[c] += 4 * (3 - Math.max(Math.abs(f - 3.5), Math.abs(r - 3.5)) | 0); // the short steppers belong in the middle
+      } else if (ty === PAWN && !isProm(p)) {
+        var back = c === WHITE ? -1 : 1;
+        var l = shift(i, -1, back), rr = shift(i, 1, back);
+        if ((l >= 0 && b[l] === mk(PAWN, c)) || (rr >= 0 && b[rr] === mk(PAWN, c))) extra[c] += 8; // a protected Trey
+        if (pawnFiles[c][fileOf(i)] > 1) extra[c] -= 6;                                          // doubled
+      }
+      // a piece attacked and not defended is about to be lost (the side to move can save its own, so it counts
+      // half for them and in full for the other side)
+      if (ty !== KING && isAttacked(S, i, 1 - c) && !isAttacked(S, i, c)) extra[c] -= (c === S.turn ? 0.15 : 0.45) * pieceVal(p);
+    }
+    score += Math.round((extra[forColor] - extra[1 - forColor]) * (S.counting ? 0.3 : 1));
+    return score + (S.turn === forColor ? 8 : -8); // the move itself is worth something
+  }
+
+  function qsearchStrong(S, alpha, beta, color, qdepth) {
+    if (S.result) return 0;
+    var stand = evaluateStrong(S, color);
+    if (stand >= beta) return stand;
+    if (stand > alpha) alpha = stand;
+    if (qdepth <= 0) return alpha;
+    var moves = genPseudo(S, color), caps = [];
+    for (var i = 0; i < moves.length; i++) {
+      var v = S.board[moves[i].to];
+      if (v === EMPTY) continue;
+      if (stand + pieceVal(v) + 120 < alpha) continue; // even winning this piece cannot catch up
+      moves[i]._s = pieceVal(v) * 16 - pieceVal(S.board[moves[i].from]);
+      caps.push(moves[i]);
+    }
+    caps.sort(function (a, b) { return b._s - a._s; });
+    for (i = 0; i < caps.length; i++) {
+      var u = makeMove(S, caps[i]);
+      if (inCheck(S, color)) { unmakeMove(S, u); continue; }
+      var sc = -qsearchStrong(S, -beta, -alpha, 1 - color, qdepth - 1);
+      unmakeMove(S, u);
+      if (sc >= beta) return sc;
+      if (sc > alpha) alpha = sc;
+    }
+    return alpha;
+  }
+
+  function orderStrong(S, moves, ttm, ply) {
+    var k1 = killers[ply * 2] || -1, k2 = killers[ply * 2 + 1] || -1;
+    for (var i = 0; i < moves.length; i++) {
+      var m = moves[i], e = encMove(m), v = S.board[m.to];
+      m._e = e;
+      if (e === ttm) m._s = 1e7;
+      else if (v !== EMPTY) m._s = 1e6 + pieceVal(v) * 16 - pieceVal(S.board[m.from]);
+      else if (e === k1) m._s = 9e5;
+      else if (e === k2) m._s = 8e5;
+      else m._s = hist[m.from * 64 + m.to];
+    }
+    moves.sort(function (a, b) { return b._s - a._s; });
+  }
+
+  function searchStrong(S, depth, alpha, beta, color, ply) {
+    if (((++_nodes) & 1023) === 0 && _deadline && Date.now() > _deadline) throw new TimeUp();
+    if (S.result) return 0;
+    var check = inCheck(S, color);
+    if (check && ply < MAX_PLY) depth++;               // never stop looking while in check
+    if (depth <= 0) return qsearchStrong(S, alpha, beta, color, 8);
+    if (ply >= 40) return evaluateStrong(S, color);
+    var alpha0 = alpha;
+    hashState(S);
+    var h1 = _h1, h2 = _h2, slot = h1 & TT_MASK, ttm = -1;
+    if (ttKey[slot] === h2 && ttFlag[slot]) {
+      ttm = ttMove[slot];
+      if (ttDepth[slot] >= depth) {
+        var ts = ttScore[slot];
+        if (ts > MATE - 1000) ts -= ply; else if (ts < -MATE + 1000) ts += ply;
+        var fl = ttFlag[slot];
+        if (fl === 1 || (fl === 2 && ts >= beta) || (fl === 3 && ts <= alpha)) return ts;
+      }
+    }
+    var moves = genPseudo(S, color);
+    orderStrong(S, moves, ttm, ply);
+    var legal = 0, best = -Infinity, bestE = -1;
+    for (var i = 0; i < moves.length; i++) {
+      var m = moves[i], quiet = S.board[m.to] === EMPTY;
+      var u = makeMove(S, m);
+      if (inCheck(S, color)) { unmakeMove(S, u); continue; }
+      legal++;
+      var sc;
+      if (legal === 1) sc = -searchStrong(S, depth - 1, -beta, -alpha, 1 - color, ply + 1);
+      else {
+        var red = (quiet && !check && depth >= 3 && legal > 4 && m._s < 8e5 && !inCheck(S, 1 - color)) ? 1 : 0;
+        sc = -searchStrong(S, depth - 1 - red, -alpha - 1, -alpha, 1 - color, ply + 1);
+        if (sc > alpha && (red || sc < beta)) sc = -searchStrong(S, depth - 1, -beta, -alpha, 1 - color, ply + 1);
+      }
+      unmakeMove(S, u);
+      if (sc > best) { best = sc; bestE = m._e; }
+      if (sc > alpha) {
+        alpha = sc;
+        if (alpha >= beta) {
+          if (quiet) {
+            if (killers[ply * 2] !== m._e) { killers[ply * 2 + 1] = killers[ply * 2]; killers[ply * 2] = m._e; }
+            hist[m.from * 64 + m.to] = Math.min(7e5, hist[m.from * 64 + m.to] + depth * depth);
+          }
+          break;
+        }
+      }
+    }
+    if (legal === 0) return check ? -(MATE - ply) : 0; // checkmate, or stalemate (a draw)
+    var store = best;
+    if (store > MATE - 1000) store += ply; else if (store < -MATE + 1000) store -= ply;
+    if (depth >= ttDepth[slot] || ttKey[slot] !== h2) {
+      ttKey[slot] = h2; ttMove[slot] = bestE; ttScore[slot] = store; ttDepth[slot] = depth;
+      ttFlag[slot] = best >= beta ? 2 : best <= alpha0 ? 3 : 1;
+    }
+    return best;
+  }
+
+  // the best move at `depth`, searching the root moves in the order given (best first, from the last iteration)
+  function rootStrong(S, depth, moves, avoid, noise) {
+    var color = S.turn, alpha = -Infinity, beta = Infinity, best = null, bestScore = -Infinity;
+    for (var i = 0; i < moves.length; i++) {
+      var m = moves[i];
+      var u = makeMove(S, m);
+      var pen = (avoid && avoid[posKey(S)]) ? REPEAT : 0, bonus = noise ? noise[m._e] || 0 : 0;
+      var sc;
+      if (i === 0) sc = -searchStrong(S, depth - 1, -Infinity, Infinity, 1 - color, 1);
+      else {
+        var a = alpha + pen - bonus;
+        sc = -searchStrong(S, depth - 1, -a - 1, -a, 1 - color, 1);
+        if (sc > a) sc = -searchStrong(S, depth - 1, -Infinity, -a, 1 - color, 1);
+      }
+      unmakeMove(S, u);
+      sc = sc - pen + bonus;
+      m._r = sc;
+      if (sc > bestScore) { bestScore = sc; best = m; if (sc > alpha) alpha = sc; }
+    }
+    return { move: best, score: bestScore };
+  }
+
+  // levels 4 and 5: deepen one ply at a time until the thinking time is used up. A new depth is only started while
+  // less than 45% of the time is gone (the next one usually takes three or four times as long as the last).
+  var _lastDepth = 0; // (the depth the last strong search completed: for tests)
+  function strongMove(S, legal, budget, ropts) {
+    var W = toJSON(S), start = Date.now(), best = null;
+    clearHeuristics();
+    var moves = legal.map(function (m) { var c = { from: m.from, to: m.to, special: m.special }; c._e = encMove(c); return c; });
+    orderStrong(W, moves, -1, 0);
+    var noise = null;
+    if (!S.captureOccurred) { // a little variety in the opening: the same position need not always get the same move
+      noise = {};
+      for (var k = 0; k < moves.length; k++) noise[moves[k]._e] = (Math.random() * 10) | 0;
+    }
+    _deadline = start + budget;
+    for (var d = 1; d <= 30; d++) {
+      try {
+        var r = rootStrong(W, d, moves, ropts && ropts.avoid, noise);
+        if (r.move) { best = r.move; _lastDepth = d; }
+        moves.sort(function (a, b) { return b._r - a._r; }); // the best first next time
+        if (Math.abs(r.score) >= MATE - 100) break;    // a forced mate (for either side) is settled
+      } catch (e) {
+        if (!(e instanceof TimeUp)) throw e;
+        break;
+      }
+      if (Date.now() - start > budget * 0.45) break;
+    }
+    _deadline = 0;
+    return best;
+  }
+
   // opts (optional): { recent: [posKey, ...] } -- the positions of the last few moves of the game
   function chooseAiMove(S, level, opts) {
     var legal = genLegal(S, S.turn);
@@ -4116,22 +4343,14 @@
       } catch (e) { return legal[(Math.random() * legal.length) | 0]; } // (out of time: only on a very slow device)
       finally { _deadline = 0; }
     }
-    // levels 4-5 search on a working copy: a mid-search timeout must never leave the real game state mutated
-    var W = toJSON(S);
-    var budget = level === 4 ? 900 : 1700; // level 5 is the hardest, ~1.7s
-    _deadline = Date.now() + budget;
-    var best = null;
-    for (var d = 2; d <= 10; d++) {
-      try {
-        var r = searchRoot(W, d, best, ropts);
-        if (r.move) best = r.move;
-        if (r.score >= MATE - 100) break;
-      } catch (e) { break; }
-      if (Date.now() > _deadline - 150) break;
-    }
-    _deadline = 0;
-    return best || legal[0];
+    // levels 4-5: the strong search, on a working copy (a timeout mid-search must never leave the game mutated)
+    var best = strongMove(S, legal, (opts && opts.budget) || STRONG_BUDGET[level >= 5 ? 5 : 4], ropts);
+    if (!best) return legal[0];
+    for (var j = 0; j < legal.length; j++)
+      if (legal[j].from === best.from && legal[j].to === best.to && legal[j].special === best.special) return legal[j];
+    return legal[0];
   }
+  var STRONG_BUDGET = { 4: 1000, 5: 2600 }; // thinking time in ms: level 5 thinks longest and looks furthest ahead
 
   // ---- helpers for UI / tests ---------------------------------------------
   function sqName(sq) { return 'abcdefgh'[fileOf(sq)] + (rankOf(sq) + 1); }
@@ -4158,7 +4377,8 @@
     canCountBoard: canCountBoard, canCountPiece: canCountPiece,
     pieceHonorLimit: pieceHonorLimit, startCounting: startCounting, stopCounting: stopCounting,
     kingJumpAvailable: kingJumpAvailable, queenJumpAvailable: queenJumpAvailable,
-    evaluate: evaluate, chooseAiMove: chooseAiMove, posKey: posKey
+    evaluate: evaluate, chooseAiMove: chooseAiMove, posKey: posKey,
+    lastSearchDepth: function () { return _lastDepth; }
   };
 })(typeof self !== 'undefined' ? self : globalThis);
 
@@ -4529,7 +4749,7 @@
           'level ' + lvl + ' move is legal');
       }
     });
-    T('AI level 5 (hardest): replies within 2 s on a midgame position', function () {
+    T('AI level 5 (hardest): replies within 3 s on a midgame position', function () {
       var S = E.initialState();
       // play out a handful of quick opening moves to reach a midgame-ish position
       var seq = [['e3', 'e4'], ['d6', 'd5'], ['e4', 'd5'], ['e6', 'e5'], ['g1', 'f3'], ['b8', 'c6']];
@@ -4543,7 +4763,7 @@
       var m2 = E.chooseAiMove(S, 5);
       var dt = Date.now() - t0;
       assert(m2, 'returned a move');
-      assert(dt < 2000, 'took ' + dt + ' ms (budget 2000)');
+      assert(dt < 3000, 'took ' + dt + ' ms (budget 2600)');
       results.push({ name: '    (level 5 search time: ' + dt + ' ms)', ok: true, info: true });
       pass--; // informational line, not a test
     });
@@ -18023,8 +18243,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.114';
+const APP_VERSION = '1.6.115';
 const WHATS_NEW = [
+  {
+    version: '1.6.115',
+    date: '2026-11-17',
+    title: { kh: 'កុំព្យូទ័រកម្រិត ៤ និង ៥ ខ្លាំងជាងមុន', en: 'Stronger computer levels 4 and 5' },
+    items: [
+      { kh: 'កម្រិត ៤ (ពិបាក) និង ៥ (ជំនាញ) ឥឡូវគិតបានជ្រៅជាងមុនច្រើន ក្នុងរយៈពេលដូចគ្នា ហើយវាយតម្លៃទីតាំងបានល្អជាងមុន (ចលនាកូនអុក ផ្លូវបើកសម្រាប់ទូក ត្រីដែលមានការពារ និងកូនអុកដែលគ្មានការពារ)។ កម្រិត ៥ គិតយូរជាងកម្រិត ៤ ហើយមើលទៅមុខឆ្ងាយជាង។',
+        en: 'Levels 4 (Hard) and 5 (Expert) now look much further ahead in the same time, and judge a position better (piece mobility, open files for the Tuuk, protected Trey and undefended pieces). Level 5 thinks longer than level 4 and looks further ahead.' },
+      { kh: 'ជួសជុល៖ ភ្ញៀវដែលជ្រើសកម្រិត ៤ ឬ ៥ (ដែលត្រូវការគណនី) ពីមុនអាចលេងកម្រិតដែលបានជ្រើសមុន ឧ. កម្រិត ០ ដោយមិនដឹងខ្លួន។ ឥឡូវ កម្រិត ៣ ដែលខ្លាំងបំផុតសម្រាប់ភ្ញៀវ ត្រូវបានជ្រើស ហើយសារប្រាប់យ៉ាងច្បាស់។',
+        en: 'Fix: a guest who picked level 4 or 5 (which need an account) could end up playing whatever level was selected before, even level 0, without noticing. Now level 3, the strongest open to guests, is selected, and the message says so plainly.' }
+    ]
+  },
   {
     version: '1.6.114',
     date: '2026-11-16',
@@ -19567,7 +19798,12 @@ function buildLevelButtons() {
     const b = document.createElement('button');
     b.innerHTML = n + '<span class="lockMark"></span><br>' + kh + '<br>' + en;
     b.dataset.level = lvl;
-    b.onclick = () => { if (isAiLevelLocked(lvl)) { showLockPopup(); return; } pendingAiLevel = lvl; markLevelButtons(); };
+    b.onclick = () => {
+      // a locked level: the strongest open one is selected instead (it used to leave the old pick -- level 0 for a
+      // new player -- so "Hard" quietly started the easiest game), and the pop-up says so
+      if (isAiLevelLocked(lvl)) { pendingAiLevel = GUEST_MAX_AI_LEVEL; markLevelButtons(); showLevelLockPopup(lvl, false); return; }
+      pendingAiLevel = lvl; markLevelButtons();
+    };
     holder.appendChild(b);
   });
   markLevelButtons(); // the lock marks are drawn by applyAccessTier() once the sign-in state is known
@@ -19869,7 +20105,12 @@ function openLevelMenu(anchor) {
 function setAiLevel(level) {
   closeLevelMenu();
   if (!/^ai\d$/.test(mode)) return;
-  if (isAiLevelLocked(level)) { showLockPopup(); return; }
+  if (isAiLevelLocked(level)) {
+    // mid-game: move up to the strongest open level (if the game is below it), and say why not the one tapped
+    if (+mode.slice(2) < GUEST_MAX_AI_LEVEL) setAiLevel(GUEST_MAX_AI_LEVEL);
+    showLevelLockPopup(level, true);
+    return;
+  }
   const from = +mode.slice(2);
   pendingAiLevel = level;
   if (level === from) return;
@@ -21878,6 +22119,18 @@ function refreshThemeCategoryUI() {
   });
 }
 function showLockPopup() { document.getElementById('lockPopupText').textContent = '🔒 Sign in to unlock all features'; openPopup('lockPopup'); }
+// a guest tapped computer level 4 or 5: say plainly which level they will play instead
+function showLevelLockPopup(level, inGame) {
+  const n = AI_LEVEL_NAMES[level] || ['', ''], m = AI_LEVEL_NAMES[GUEST_MAX_AI_LEVEL];
+  const kd = (x) => '០១២៣៤៥'[x];
+  document.getElementById('lockPopupText').innerHTML = '🔒 ' +
+    '<span class="t-kh">កម្រិត ' + kd(level) + ' (' + n[0] + ') ត្រូវការគណនីឥតគិតថ្លៃ។ ចូលគណនីដើម្បីលេងកម្រិតនេះ។ ' +
+    (inGame ? 'ល្បែងនេះបន្តនៅ' : 'មុននោះ អ្នកនឹងលេង') + 'កម្រិត ' + kd(GUEST_MAX_AI_LEVEL) + ' (' + m[0] + ') ដែលខ្លាំងបំផុតសម្រាប់ភ្ញៀវ។</span>' +
+    '<span class="t-sep"> </span><span class="t-en">Level ' + level + ' (' + n[1] + ') needs a free account: sign in to play it. ' +
+    (inGame ? 'This game carries on at' : 'Until then you will play') + ' level ' + GUEST_MAX_AI_LEVEL + ' (' + m[1] + '), the strongest open to guests.</span>';
+  trackEvent('ai_level_locked', { level, in_game: inGame ? 'yes' : 'no' });
+  openPopup('lockPopup');
+}
 document.getElementById('lockPopupClose').onclick = () => { document.getElementById('lockPopup').style.display = 'none'; };
 // Opens the login screen without disturbing whatever's currently on
 // screen (mode selection, an in-progress game, etc.) -- finishLogin()
