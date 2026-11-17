@@ -4281,7 +4281,7 @@
         if (sc > a) sc = -searchStrong(S, depth - 1, -Infinity, -a, 1 - color, 1);
       }
       unmakeMove(S, u);
-      sc = sc - pen + bonus;
+      sc = sc - pen + (Math.abs(sc) < MATE - 1000 ? bonus : 0); // (never blur how fast a mate is)
       m._r = sc;
       if (sc > bestScore) { bestScore = sc; best = m; if (sc > alpha) alpha = sc; }
     }
@@ -4297,7 +4297,7 @@
     var moves = legal.map(function (m) { var c = { from: m.from, to: m.to, special: m.special }; c._e = encMove(c); return c; });
     orderStrong(W, moves, -1, 0);
     var noise = null;
-    if (!S.captureOccurred) { // a little variety in the opening: the same position need not always get the same move
+    if (!S.captureOccurred && countPieces(S, WHITE) + countPieces(S, BLACK) >= 28) { // a little variety in the opening: the same position need not always get the same move
       noise = {};
       for (var k = 0; k < moves.length; k++) noise[moves[k]._e] = (Math.random() * 10) | 0;
     }
