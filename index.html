@@ -2378,6 +2378,10 @@
       <span>ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។ — Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
       <button type="button" class="iabCopyBtn">ចម្លងតំណ — Copy link</button>
     </div>
+    <div id="tgGoogleWait" class="iabHint" style="display:none">
+      <span><span class="t-kh">⏳ កម្មវិធីរុករកបានបើក៖ ចូលដោយ Google នៅទីនោះ រួចត្រឡប់មក Telegram វិញ។ ល្បែងនឹងចូលគណនីដោយខ្លួនឯង។</span><span class="t-sep"> — </span><span class="t-en">⏳ Your browser has opened: sign in with Google there, then come back to Telegram. The game signs you in by itself.</span></span><br>
+      <button type="button" id="tgGoogleCancel"><span class="t-kh">បោះបង់</span><span class="t-sep"> — </span><span class="t-en">Cancel</span></button>
+    </div>
     <div id="loginAccountPanel">
       <p class="loginAccountTitle"><span class="t-kh">ចុះឈ្មោះ / ចូលគណនី</span><span class="t-sep"> — </span><span class="t-en">Sign up / Sign in</span></p>
       <p class="loginHint loginAccountSub"><span class="t-kh">ឥតគិតថ្លៃ · លេងមិនកំណត់ · រក្សាទុកស្ថិតិរបស់អ្នក</span><span class="t-sep"> — </span><span class="t-en">Free · unlimited games · your stats are kept</span></p>
@@ -3444,6 +3448,64 @@
         // sign-in" API, so this is the correct implementation of that request.
         window.__oukAuth.signInApple = function () { return popupSignIn(new firebase.auth.OAuthProvider('apple.com'), 'Apple'); };
         window.__oukAuth.signInFacebook = function () { return popupSignIn(new firebase.auth.FacebookAuthProvider(), 'Facebook'); };
+        // ---- Google sign-in for the Telegram Mini App ----
+        // Google refuses to show its sign-in page inside an app's own web view (Telegram's included), so the Mini App
+        // opens the game in the phone's real browser with a one-time code (?tgsignin=CODE, 32 random characters).
+        // There the player signs in with Google, and the browser leaves Google's sign-in token in tgSignin/CODE; the
+        // Mini App, watching that one document, signs in with the token -- linking its guest account, so its stats
+        // carry over -- and deletes it. The token is Google's short-lived ID token (it expires within the hour); the
+        // database rules let a document be read or deleted only by its exact name, never listed (firestore.rules).
+        var tgDoc = function (code) { return (typeof db !== 'undefined' && db) ? db.collection('tgSignin').doc(code) : null; };
+        var leaveForMiniApp = function (code, res) {
+          var c = res && res.credential;
+          if (!c || !c.idToken) throw { code: 'auth/internal-error', message: 'no Google token' };
+          return tgDoc(code).set({ idToken: c.idToken, accessToken: c.accessToken || '', created: firebase.firestore.FieldValue.serverTimestamp() })
+            .then(function () { return res; });
+        };
+        // in the phone's browser: a popup where it can open, otherwise a full-page redirect (picked up on return by
+        // tgBridgeRedirectResult)
+        window.__oukAuth.tgBridgeSignIn = function (code) {
+          if (!tgDoc(code)) return Promise.reject({ code: 'auth/network-request-failed' });
+          var provider = new firebase.auth.GoogleAuthProvider();
+          return auth.signInWithPopup(provider).then(function (res) { return leaveForMiniApp(code, res); }, function (err) {
+            if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment')) {
+              try { sessionStorage.setItem('oukTgSigninCode', code); } catch (e) {}
+              return auth.signInWithRedirect(provider).then(function () { return new Promise(function () {}); }); // (the page leaves)
+            }
+            throw err;
+          });
+        };
+        window.__oukAuth.tgBridgeRedirectResult = function (code) {
+          return auth.getRedirectResult().then(function (res) { return res && res.credential ? leaveForMiniApp(code, res) : null; });
+        };
+        // in the Mini App: wait (up to 15 minutes) for the browser to leave the sign-in, then use it
+        window.__oukAuth.tgBridgeWait = function (code, cancelled) {
+          var ref = tgDoc(code);
+          if (!ref) return Promise.reject({ code: 'auth/network-request-failed' });
+          var t0 = Date.now();
+          return new Promise(function (resolve, reject) {
+            (function poll() {
+              if (cancelled()) { ref.delete().catch(function () {}); return reject({ code: 'auth/popup-closed-by-user' }); }
+              if (Date.now() - t0 > 15 * 60000) return reject({ code: 'auth/timeout' });
+              ref.get().then(function (snap) {
+                if (!snap.exists) { setTimeout(poll, 2000); return; }
+                var d = snap.data();
+                ref.delete().catch(function () {});
+                var cred = firebase.auth.GoogleAuthProvider.credential(d.idToken, d.accessToken || null);
+                var anon = currentAnon();
+                var p = anon
+                  ? anon.linkWithCredential(cred).then(announce).catch(function (err) {
+                      // that Google account already has its own player record: sign into it instead
+                      if (err && (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use' || err.code === 'auth/provider-already-linked'))
+                        return auth.signInWithCredential(err.credential || cred);
+                      throw err;
+                    })
+                  : auth.signInWithCredential(cred);
+                p.then(resolve, reject);
+              }, function () { setTimeout(poll, 3000); }); // (offline for a moment: keep trying)
+            })();
+          });
+        };
         window.__oukAuth.signUpEmail = function (email, password) {
           var anon = currentAnon();
           var p = anon
@@ -18269,8 +18331,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.117';
+const APP_VERSION = '1.6.118';
 const WHATS_NEW = [
+  {
+    version: '1.6.118',
+    date: '2026-11-21',
+    title: { kh: 'ចូលដោយ Google ក្នុង Telegram', en: 'Sign in with Google in Telegram' },
+    items: [
+      { kh: 'ក្នុង Telegram ឥឡូវអាចចូលដោយ Google បាន៖ ការចុច Google បើកកម្មវិធីរុករករបស់ទូរស័ព្ទមួយភ្លែត ដើម្បីចូលគណនី ហើយពេលត្រឡប់មក Telegram វិញ ល្បែងចូលគណនីដោយខ្លួនឯង។ ស្ថិតិដែលអ្នកលេងជាភ្ញៀវនៅដដែល។',
+        en: 'You can now sign in with Google in Telegram: tapping Google opens your phone\'s browser for a moment to sign in, and when you come back to Telegram the game signs you in by itself. The stats you played up as a guest are kept.' }
+    ]
+  },
   {
     version: '1.6.117',
     date: '2026-11-21',
@@ -21295,6 +21366,50 @@ function animateCameraTo(apply, ms) {
   camera.position.setFromSpherical(sa).add(controls.target); controls.update();
   viewAnimRaf = requestAnimationFrame(step);
 }
+// ---------- the browser end of the Mini App's Google sign-in (?tgsignin=CODE) ----------
+(function tgSigninPage() {
+  let code = null;
+  try { code = new URLSearchParams(location.search).get('tgsignin'); } catch (e) {}
+  let returning = false;
+  if (!code) { try { code = sessionStorage.getItem('oukTgSigninCode'); returning = !!code; } catch (e) {} } // (back from a redirect)
+  if (!code || !/^[0-9a-f]{32,64}$/.test(code) || window.__oukTgApp) return;
+  try { sessionStorage.removeItem('oukTgSigninCode'); } catch (e) {}
+  const ov = document.createElement('div');
+  ov.className = 'fullOverlay'; ov.id = 'tgSigninPage'; ov.style.zIndex = 40;
+  ov.innerHTML = '<div class="box" style="max-width:380px">' +
+    '<h1 style="font-size:22px"><span class="t-kh">ចូលគណនីសម្រាប់ Telegram</span><span class="t-sep"> — </span><span class="t-en">Sign in for Telegram</span></h1>' +
+    '<p id="tgsText"><span class="t-kh">ចុចប៊ូតុងខាងក្រោម ដើម្បីចូលដោយ Google។ ពេលឃើញពាក្យ «រួចរាល់» ត្រឡប់ទៅ Telegram វិញ។</span><span class="t-sep"> — </span><span class="t-en">Tap the button to sign in with Google. When it says Done, go back to Telegram.</span></p>' +
+    '<div class="btnrow" style="justify-content:center;margin-top:14px"><button id="tgsGo" class="primary" type="button"><span class="t-kh">ចូលដោយ Google</span><span class="t-sep"> — </span><span class="t-en">Sign in with Google</span></button></div>' +
+    '<p id="tgsStatus" class="loginHint" style="margin-top:12px"></p></div>';
+  document.body.appendChild(ov);
+  const status = (kh, en, ok) => { const st = ov.querySelector('#tgsStatus'); st.innerHTML = '<span class="t-kh">' + kh + '</span><span class="t-sep"> — </span><span class="t-en">' + en + '</span>'; st.style.color = ok ? 'var(--ok)' : ''; };
+  const done = () => {
+    ov.querySelector('#tgsGo').style.display = 'none';
+    ov.querySelector('#tgsText').innerHTML = '<span class="t-kh">✅ រួចរាល់! ត្រឡប់ទៅ Telegram វិញ៖ ល្បែងនៅទីនោះបានចូលគណនីរបស់អ្នកហើយ។ អ្នកអាចបិទទំព័រនេះបាន។</span><span class="t-sep"> — </span><span class="t-en">✅ Done! Go back to Telegram: the game there is now signed in. You can close this page.</span>';
+    if (TG_MINI_APP_LINK) {
+      ov.querySelector('.btnrow').innerHTML = '<button type="button" class="primary"><span class="t-kh">ត្រឡប់ទៅ Telegram</span><span class="t-sep"> — </span><span class="t-en">Back to Telegram</span></button>';
+      ov.querySelector('.btnrow button').onclick = () => { location.href = TG_MINI_APP_LINK; };
+    } else ov.querySelector('.btnrow').style.display = 'none';
+    status('', '');
+    funnel('tg_google_browser_done');
+  };
+  const fail = (err) => {
+    if (err && (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request')) { status('', ''); return; }
+    status('មិនបានសម្រេច។ សូមព្យាយាមម្ដងទៀត។', 'That did not work. Please try again. (' + ((err && err.code) || 'error') + ')');
+  };
+  const whenAuth = (fn) => { (function w(n) { if (window.__oukAuth.ready && window.__oukAuth.tgBridgeSignIn) fn(); else if (n < 150) setTimeout(() => w(n + 1), 100); else status('មិនអាចភ្ជាប់បានទេ។', 'Could not connect. Check your internet and reload.'); })(0); };
+  ov.querySelector('#tgsGo').onclick = () => {
+    const btn = ov.querySelector('#tgsGo'); btn.disabled = true;
+    status('⏳ កំពុងចូល…', '⏳ Signing in…');
+    if (!window.__oukAuth.tgBridgeSignIn) { btn.disabled = false; status('សូមរង់ចាំបន្តិច ហើយព្យាយាមម្ដងទៀត។', 'One moment, still loading: please try again.'); return; }
+    window.__oukAuth.tgBridgeSignIn(code).then(done, fail).finally(() => { btn.disabled = false; });
+  };
+  if (returning) whenAuth(() => { status('⏳ កំពុងចូល…', '⏳ Signing in…'); window.__oukAuth.tgBridgeRedirectResult(code).then((r) => (r ? done() : status('', '')), fail); });
+  // the Start pop-up stays underneath, out of the way
+  document.getElementById('startScreen').style.display = 'none';
+  try { const u = new URL(location.href); u.searchParams.delete('tgsignin'); window.history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
+})();
+
 // ---------- Telegram Mini App ----------
 // Set TG_MINI_APP_LINK to the Mini App's own link (from @BotFather, e.g. 'https://t.me/OukChatrangBot/play') and
 // invites made inside Telegram open the Mini App directly; left empty, they are ordinary web links.
@@ -21325,13 +21440,14 @@ function tgSetup(t) {
   // sign-in with Google or Facebook cannot work inside Telegram: those buttons go, and the hint's button opens the
   // game in the phone's own browser (playing as a guest, or with e-mail, works here)
   document.getElementById('signupFacebookBtn').style.display = 'none';
+  document.getElementById('signupGoogleBtn').style.display = '';
   document.querySelectorAll('.iabCopyBtn').forEach((b) => {
     b.innerHTML = '<span class="t-kh">បើកក្នុងកម្មវិធីរុករក</span><span class="t-sep"> — </span><span class="t-en">Open in browser</span>';
     b.onclick = () => { try { t.openLink(location.origin + '/'); } catch (e) {} };
   });
   const hintText = document.querySelector('#loginIabHint > span');
-  if (hintText) hintText.innerHTML = '<span class="t-kh">ការចូលដោយ Google ឬ Facebook មិនដំណើរការក្នុង Telegram ទេ។ អ្នកអាចចូលដោយអ៊ីមែល ឬលេងជាភ្ញៀវនៅទីនេះ ឬបើកល្បែងក្នុងកម្មវិធីរុករក។</span>' +
-    '<span class="t-sep"> — </span><span class="t-en">Google and Facebook sign-in do not work inside Telegram. Sign in with e-mail or play as a guest here, or open the game in your browser.</span>';
+  if (hintText) hintText.innerHTML = '<span class="t-kh">ការចូលដោយ Google បើកកម្មវិធីរុករករបស់ទូរស័ព្ទមួយភ្លែត។ Facebook មិនដំណើរការក្នុង Telegram ទេ។</span>' +
+    '<span class="t-sep"> — </span><span class="t-en">Signing in with Google opens your phone\'s browser for a moment. Facebook sign-in does not work inside Telegram.</span>';
   trackEvent('tg_app_open', { platform: t.platform || '', version: t.version || '' });
 }
 // the pop-ups the Back button closes, top-most first: [element, how to close it]
@@ -21692,6 +21808,7 @@ function friendlyAuthError(err) {
     'auth/wrong-password': 'លេខសម្ងាត់មិនត្រឹមត្រូវ។ — Incorrect password.',
     'auth/user-not-found': 'រកមិនឃើញគណនីនេះទេ។ — No account found with that email.',
     'auth/invalid-credential': 'អ៊ីមែល ឬ លេខសម្ងាត់មិនត្រឹមត្រូវ។ — Incorrect email or password.',
+    'auth/timeout': 'អស់ពេលរង់ចាំ។ សូមព្យាយាមម្ដងទៀត។ — Waited too long for the sign-in. Please try again.',
     'auth/popup-blocked': 'កម្មវិធីរុករករារផ្ទាំងលោត។ សូមអនុញ្ញាត popup។ — Your browser blocked the sign-in popup. Please allow it.',
     'auth/network-request-failed': 'បញ្ហាបណ្ដាញ។ — Network error. Check your connection.',
     'auth/unauthorized-domain': 'គេហទំព័រនេះមិនទាន់ត្រូវបានអនុញ្ញាតទេ។ សូមព្យាយាមម្ដងទៀតពេលក្រោយ។ — This website isn\'t authorized for sign-in yet. Please try again later.',
@@ -21812,7 +21929,24 @@ function handleOAuthSignup(btnId, signInPromiseFn, providerName) {
       .finally(() => { btn.disabled = false; });
   };
 }
-handleOAuthSignup('signupGoogleBtn', () => window.__oukAuth.signInGoogle(), 'google.com');
+handleOAuthSignup('signupGoogleBtn', () => (window.__oukTgApp ? tgGoogleSignIn() : window.__oukAuth.signInGoogle()), 'google.com');
+// Google in the Telegram Mini App: the sign-in happens in the phone's browser (see tgBridgeSignIn)
+let tgGoogleCancelled = false;
+function tgGoogleSignIn() {
+  if (!window.__oukAuth.tgBridgeWait) return Promise.reject({ code: 'auth/network-request-failed' }); // (sign-in service not loaded: offline)
+  const bytes = new Uint8Array(24); crypto.getRandomValues(bytes);
+  const code = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(''); // 48 hex characters
+  const url = location.origin + '/?tgsignin=' + code;
+  try { if (tgApp) tgApp.openLink(url); else window.open(url, '_blank'); } catch (e) {}
+  tgGoogleCancelled = false;
+  const wait = document.getElementById('tgGoogleWait'), hint = document.getElementById('loginIabHint');
+  wait.style.display = 'block'; hint.style.display = 'none';
+  funnel('tg_google_start');
+  return window.__oukAuth.tgBridgeWait(code, () => tgGoogleCancelled || document.getElementById('loginScreen').style.display === 'none')
+    .then((cred) => { funnel('tg_google_done'); return cred; })
+    .finally(() => { wait.style.display = 'none'; hint.style.display = 'block'; });
+}
+document.getElementById('tgGoogleCancel').onclick = () => { tgGoogleCancelled = true; };
 handleOAuthSignup('signupFacebookBtn', () => window.__oukAuth.signInFacebook(), 'facebook.com');
 
 // ---------- profile screen ----------

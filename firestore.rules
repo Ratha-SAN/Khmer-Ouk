@@ -37,6 +37,16 @@ service cloud.firestore {
         request.auth.uid == resource.data.players.black
       );
     }
+    // The Telegram Mini App's Google sign-in hand-off (see tgBridgeSignIn in index.html): the phone's browser,
+    // signed in with Google, leaves the sign-in token under a one-time 48-character random name; the Mini App
+    // reads it by that exact name and deletes it. Nobody can list these documents, so knowing the name is the key.
+    match /tgSignin/{code} {
+      allow create: if request.auth != null && code.size() >= 32 &&
+        request.resource.data.keys().hasOnly(['idToken', 'accessToken', 'created']) &&
+        request.resource.data.idToken is string && request.resource.data.idToken.size() < 8192;
+      allow get, delete: if code.size() >= 32;
+      allow list, update: if false;
+    }
     match /{document=**} {
       allow read, write: if false;
     }
