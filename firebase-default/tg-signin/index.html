@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sign in for Telegram — Ouk Chatrang</title>
+<!--
+  Google sign-in for the game in Telegram (the Mini App), done in the phone's own browser. Google will not show its
+  sign-in page inside Telegram, so the Mini App opens this page with a one-time code (?c=...). Here the player signs
+  in with Google in ONE tab (a redirect, no pop-up: on an iPhone the closing pop-up sent the player back to Telegram
+  before the sign-in was passed on), and the page leaves Google's sign-in token in the database under that code
+  (tgSignin/<code>); the Mini App picks it up, signs in and deletes it.
+  This page is served from the project's own Firebase address, which is the sign-in address Google already knows,
+  so the redirect works in Safari too (on another address Safari's storage rules break a redirect sign-in).
+-->
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #1a1108;
+    font-family: "Noto Sans Khmer", "Khmer OS", "Khmer MN", "Khmer Sangam MN", "Leelawadee UI", -apple-system, system-ui, sans-serif; /* (the game's own list: the phone's built-in Khmer font) */ color: #f3e7cf; }
+  .box { max-width: 380px; margin: 16px; padding: 28px 24px; background: #2a1b0e; border: 1px solid rgba(226,182,90,.65);
+    border-radius: 12px; box-shadow: inset 0 0 0 3px #2a1b0e, inset 0 0 0 4px rgba(226,182,90,.22); text-align: center; }
+  h1 { margin: 0 0 12px; font-size: 22px; color: #e2b65a; }
+  p { line-height: 1.5; margin: 10px 0; }
+  .kh { display: block; margin-bottom: 4px; }
+  .en { display: block; opacity: .85; }
+  button { margin-top: 14px; padding: 12px 20px; font-size: 16px; font-weight: 700; border: 0; border-radius: 10px;
+    background: #e2b65a; color: #2a1806; cursor: pointer; width: 100%; }
+  button:disabled { opacity: .6; }
+  #status { font-size: 14px; color: #dccdae; min-height: 1.2em; }
+  .err { color: #f08a72 !important; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>អុកចត្រង្គ · Ouk Chatrang</h1>
+  <p id="msg"><span class="kh">ចូលដោយ Google សម្រាប់ល្បែងក្នុង Telegram។</span><span class="en">Sign in with Google for the game in Telegram.</span></p>
+  <button id="go" type="button" style="display:none"><span class="kh">ចូលដោយ Google</span><span class="en">Sign in with Google</span></button>
+  <p id="status">⏳</p>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var say = function (kh, en, err) { $('status').innerHTML = (kh ? '<span class="kh">' + kh + '</span>' : '') + (en ? '<span class="en">' + en + '</span>' : ''); $('status').className = err ? 'err' : ''; };
+  var code = null;
+  try { code = new URLSearchParams(location.search).get('c'); } catch (e) {}
+  if (!code || !/^[0-9a-f]{32,64}$/.test(code)) {
+    say('តំណនេះមិនត្រឹមត្រូវ។ សូមចាប់ផ្ដើមម្ដងទៀតពី Telegram។', 'This link is not valid. Please start again from the game in Telegram.', true);
+    return;
+  }
+  if (!window.firebase) { say('មិនអាចភ្ជាប់បានទេ។ ពិនិត្យអ៊ីនធឺណិត ហើយផ្ទុកទំព័រឡើងវិញ។', 'Could not connect. Check your internet and reload this page.', true); return; }
+  firebase.initializeApp({
+    apiKey: "AIzaSyD_0A3MIkp4jRMFuyQZthgiZluMKmKJZlc",
+    authDomain: location.hostname === 'khmer-ouk-datacollection.web.app' ? 'khmer-ouk-datacollection.web.app' : 'khmer-ouk-datacollection.firebaseapp.com', // (always this page's own address)
+    projectId: "khmer-ouk-datacollection",
+    appId: "1:934007657564:web:fbbe5954d794c09f7cc299"
+  });
+  var auth = firebase.auth(), db = firebase.firestore();
+  var done = function () {
+    $('go').style.display = 'none';
+    $('msg').innerHTML = '<span class="kh">✅ រួចរាល់! ត្រឡប់ទៅ Telegram វិញ (ចុច ◀ Telegram នៅជ្រុងខាងលើ)៖ ល្បែងនៅទីនោះនឹងចូលគណនីដោយខ្លួនឯង។</span>' +
+      '<span class="en">✅ Done! Go back to Telegram (tap ◀ Telegram at the top left of the screen): the game there signs you in by itself.</span>';
+    say('', '');
+  };
+  var fail = function (err) {
+    $('go').style.display = ''; $('go').disabled = false;
+    say('មិនបានសម្រេច។ សូមព្យាយាមម្ដងទៀត។', 'That did not work. Please try again. (' + ((err && err.code) || 'error') + ')', true);
+  };
+  $('go').onclick = function () {
+    $('go').disabled = true;
+    say('⏳ កំពុងបើក Google…', '⏳ Opening Google…');
+    var provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    auth.signInWithRedirect(provider).catch(fail); // (the page leaves for Google and comes back here, code and all)
+  };
+  // back from Google: pass the sign-in on, then sign this browser out again (it was only borrowed)
+  auth.getRedirectResult().then(function (res) {
+    var c = res && res.credential;
+    if (!c || !c.idToken) { $('go').style.display = ''; say('', ''); return; }
+    say('⏳ កំពុងបញ្ជូនទៅ Telegram…', '⏳ Passing the sign-in to Telegram…');
+    return db.collection('tgSignin').doc(code).set({ idToken: c.idToken, accessToken: c.accessToken || '', created: firebase.firestore.FieldValue.serverTimestamp() })
+      .then(function () { done(); return auth.signOut(); });
+  }).catch(fail);
+})();
+</script>
+</body></html>

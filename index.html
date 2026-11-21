@@ -3462,34 +3462,13 @@
         window.__oukAuth.signInFacebook = function () { return popupSignIn(new firebase.auth.FacebookAuthProvider(), 'Facebook'); };
         // ---- Google sign-in for the Telegram Mini App ----
         // Google refuses to show its sign-in page inside an app's own web view (Telegram's included), so the Mini App
-        // opens the game in the phone's real browser with a one-time code (?tgsignin=CODE, 32 random characters).
-        // There the player signs in with Google, and the browser leaves Google's sign-in token in tgSignin/CODE; the
-        // Mini App, watching that one document, signs in with the token -- linking its guest account, so its stats
-        // carry over -- and deletes it. The token is Google's short-lived ID token (it expires within the hour); the
+        // opens a small sign-in page in the phone's real browser with a one-time code (TG_SIGNIN_PAGE?c=CODE, 48
+        // random characters; the page is firebase-default/tg-signin/index.html, served from the project's own
+        // Firebase address). There the player signs in with Google, and the page leaves Google's sign-in token in
+        // tgSignin/CODE; the Mini App, watching that one document, signs in with the token -- linking its guest
+        // account, so its stats carry over -- and deletes it. The token is Google's short-lived ID token (it expires within the hour); the
         // database rules let a document be read or deleted only by its exact name, never listed (firestore.rules).
         var tgDoc = function (code) { return (typeof db !== 'undefined' && db) ? db.collection('tgSignin').doc(code) : null; };
-        var leaveForMiniApp = function (code, res) {
-          var c = res && res.credential;
-          if (!c || !c.idToken) throw { code: 'auth/internal-error', message: 'no Google token' };
-          return tgDoc(code).set({ idToken: c.idToken, accessToken: c.accessToken || '', created: firebase.firestore.FieldValue.serverTimestamp() })
-            .then(function () { return res; });
-        };
-        // in the phone's browser: a popup where it can open, otherwise a full-page redirect (picked up on return by
-        // tgBridgeRedirectResult)
-        window.__oukAuth.tgBridgeSignIn = function (code) {
-          if (!tgDoc(code)) return Promise.reject({ code: 'auth/network-request-failed' });
-          var provider = new firebase.auth.GoogleAuthProvider();
-          return auth.signInWithPopup(provider).then(function (res) { return leaveForMiniApp(code, res); }, function (err) {
-            if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment')) {
-              try { sessionStorage.setItem('oukTgSigninCode', code); } catch (e) {}
-              return auth.signInWithRedirect(provider).then(function () { return new Promise(function () {}); }); // (the page leaves)
-            }
-            throw err;
-          });
-        };
-        window.__oukAuth.tgBridgeRedirectResult = function (code) {
-          return auth.getRedirectResult().then(function (res) { return res && res.credential ? leaveForMiniApp(code, res) : null; });
-        };
         // in the Mini App: wait (up to 15 minutes) for the browser to leave the sign-in, then use it
         window.__oukAuth.tgBridgeWait = function (code, cancelled) {
           var ref = tgDoc(code);
@@ -18343,8 +18322,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.119';
+const APP_VERSION = '1.6.120';
 const WHATS_NEW = [
+  {
+    version: '1.6.120',
+    date: '2026-11-21',
+    title: { kh: 'ជួសជុលការចូលដោយ Google ពី Telegram លើ iPhone', en: 'Fixed: Google sign-in from Telegram on iPhone' },
+    items: [
+      { kh: 'លើ iPhone ការចូលដោយ Google ពី Telegram ពីមុនត្រឡប់ទៅ Telegram វិញ មុនពេលចូលគណនីរួចរាល់។ ឥឡូវការចូលដំណើរការក្នុងផ្ទាំងតែមួយ ហើយបញ្ជាក់ «រួចរាល់» មុនពេលអ្នកត្រឡប់ទៅ Telegram។',
+        en: 'On iPhone, signing in with Google from Telegram used to jump back to Telegram before the sign-in had finished. It now happens in a single browser tab and says Done before you go back to Telegram.' }
+    ]
+  },
   {
     version: '1.6.119',
     date: '2026-11-21',
@@ -21387,48 +21375,16 @@ function animateCameraTo(apply, ms) {
   camera.position.setFromSpherical(sa).add(controls.target); controls.update();
   viewAnimRaf = requestAnimationFrame(step);
 }
-// ---------- the browser end of the Mini App's Google sign-in (?tgsignin=CODE) ----------
-(function tgSigninPage() {
+// ---------- the browser end of the Mini App's Google sign-in ----------
+// It is a page of its own on the project's Firebase address (firebase-default/tg-signin/index.html): there the Google
+// sign-in runs in one tab, by redirect, which Safari allows only on that address. (Up to 1.6.119 it was part of this
+// page, at ?tgsignin=CODE, with a pop-up that sent iPhone players back to Telegram before the sign-in was passed on:
+// such links are sent on to the new page.)
+const TG_SIGNIN_PAGE = 'https://khmer-ouk-datacollection.firebaseapp.com/tg-signin/';
+(function () {
   let code = null;
   try { code = new URLSearchParams(location.search).get('tgsignin'); } catch (e) {}
-  let returning = false;
-  if (!code) { try { code = sessionStorage.getItem('oukTgSigninCode'); returning = !!code; } catch (e) {} } // (back from a redirect)
-  if (!code || !/^[0-9a-f]{32,64}$/.test(code) || window.__oukTgApp) return;
-  try { sessionStorage.removeItem('oukTgSigninCode'); } catch (e) {}
-  const ov = document.createElement('div');
-  ov.className = 'fullOverlay'; ov.id = 'tgSigninPage'; ov.style.zIndex = 40;
-  ov.innerHTML = '<div class="box" style="max-width:380px">' +
-    '<h1 style="font-size:22px"><span class="t-kh">ចូលគណនីសម្រាប់ Telegram</span><span class="t-sep"> — </span><span class="t-en">Sign in for Telegram</span></h1>' +
-    '<p id="tgsText"><span class="t-kh">ចុចប៊ូតុងខាងក្រោម ដើម្បីចូលដោយ Google។ ពេលឃើញពាក្យ «រួចរាល់» ត្រឡប់ទៅ Telegram វិញ។</span><span class="t-sep"> — </span><span class="t-en">Tap the button to sign in with Google. When it says Done, go back to Telegram.</span></p>' +
-    '<div class="btnrow" style="justify-content:center;margin-top:14px"><button id="tgsGo" class="primary" type="button"><span class="t-kh">ចូលដោយ Google</span><span class="t-sep"> — </span><span class="t-en">Sign in with Google</span></button></div>' +
-    '<p id="tgsStatus" class="loginHint" style="margin-top:12px"></p></div>';
-  document.body.appendChild(ov);
-  const status = (kh, en, ok) => { const st = ov.querySelector('#tgsStatus'); st.innerHTML = '<span class="t-kh">' + kh + '</span><span class="t-sep"> — </span><span class="t-en">' + en + '</span>'; st.style.color = ok ? 'var(--ok)' : ''; };
-  const done = () => {
-    ov.querySelector('#tgsGo').style.display = 'none';
-    ov.querySelector('#tgsText').innerHTML = '<span class="t-kh">✅ រួចរាល់! ត្រឡប់ទៅ Telegram វិញ៖ ល្បែងនៅទីនោះបានចូលគណនីរបស់អ្នកហើយ។ អ្នកអាចបិទទំព័រនេះបាន។</span><span class="t-sep"> — </span><span class="t-en">✅ Done! Go back to Telegram: the game there is now signed in. You can close this page.</span>';
-    if (TG_MINI_APP_LINK) {
-      ov.querySelector('.btnrow').innerHTML = '<button type="button" class="primary"><span class="t-kh">ត្រឡប់ទៅ Telegram</span><span class="t-sep"> — </span><span class="t-en">Back to Telegram</span></button>';
-      ov.querySelector('.btnrow button').onclick = () => { location.href = TG_MINI_APP_LINK; };
-    } else ov.querySelector('.btnrow').style.display = 'none';
-    status('', '');
-    funnel('tg_google_browser_done');
-  };
-  const fail = (err) => {
-    if (err && (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request')) { status('', ''); return; }
-    status('មិនបានសម្រេច។ សូមព្យាយាមម្ដងទៀត។', 'That did not work. Please try again. (' + ((err && err.code) || 'error') + ')');
-  };
-  const whenAuth = (fn) => { (function w(n) { if (window.__oukAuth.ready && window.__oukAuth.tgBridgeSignIn) fn(); else if (n < 150) setTimeout(() => w(n + 1), 100); else status('មិនអាចភ្ជាប់បានទេ។', 'Could not connect. Check your internet and reload.'); })(0); };
-  ov.querySelector('#tgsGo').onclick = () => {
-    const btn = ov.querySelector('#tgsGo'); btn.disabled = true;
-    status('⏳ កំពុងចូល…', '⏳ Signing in…');
-    if (!window.__oukAuth.tgBridgeSignIn) { btn.disabled = false; status('សូមរង់ចាំបន្តិច ហើយព្យាយាមម្ដងទៀត។', 'One moment, still loading: please try again.'); return; }
-    window.__oukAuth.tgBridgeSignIn(code).then(done, fail).finally(() => { btn.disabled = false; });
-  };
-  if (returning) whenAuth(() => { status('⏳ កំពុងចូល…', '⏳ Signing in…'); window.__oukAuth.tgBridgeRedirectResult(code).then((r) => (r ? done() : status('', '')), fail); });
-  // the Start pop-up stays underneath, out of the way
-  document.getElementById('startScreen').style.display = 'none';
-  try { const u = new URL(location.href); u.searchParams.delete('tgsignin'); window.history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
+  if (code && /^[0-9a-f]{32,64}$/.test(code) && !window.__oukTgApp) location.replace(TG_SIGNIN_PAGE + '?c=' + code);
 })();
 
 // ---------- Telegram Mini App ----------
@@ -21951,7 +21907,7 @@ function handleOAuthSignup(btnId, signInPromiseFn, providerName) {
   };
 }
 handleOAuthSignup('signupGoogleBtn', () => (window.__oukTgApp ? tgGoogleSignIn() : window.__oukAuth.signInGoogle()), 'google.com');
-// Google in the Telegram Mini App: the sign-in happens in the phone's browser (see tgBridgeSignIn)
+// Google in the Telegram Mini App: the sign-in happens in the phone's browser (see TG_SIGNIN_PAGE and tgBridgeWait)
 let tgGoogleCancelled = false;
 // Which browser: Telegram (Mini Apps 7.6+) can be asked for a particular one; Safari only exists on an iPhone or iPad.
 // The last choice is remembered and marked. Without that support the phone's default browser opens.
@@ -21985,7 +21941,7 @@ function tgGoogleSignIn() {
 function tgGoogleOpen(browser) {
   const bytes = new Uint8Array(24); crypto.getRandomValues(bytes);
   const code = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(''); // 48 hex characters
-  const url = location.origin + '/?tgsignin=' + code;
+  const url = TG_SIGNIN_PAGE + '?c=' + code;
   try { tgOpenInBrowser(url, browser); } catch (e) {}
   funnel('tg_google_browser', { browser: browser || 'default' });
   tgGoogleCancelled = false;
