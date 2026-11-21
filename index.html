@@ -937,6 +937,9 @@
     border: 1px solid var(--accent); background: var(--surface-2); color: var(--panel-fg); text-align: left;
   }
   .iabHint button { margin-top: 6px; font-size: 13px; padding: 6px 12px; }
+  .tgBrowserBtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .tgBrowserBtns button.last { outline: 2px solid var(--accent); }
+  .tgBrowserCancel { background: none !important; box-shadow: none !important; text-decoration: underline; padding: 4px 6px !important; }
   #startScreen .box .iabHint button { font-size: 13px; padding: 6px 12px; background: var(--accent); color: var(--on-accent); box-shadow: none; }
   /* the computer-level reminder: a chip under the board title, plus a short toast when such a game starts */
   /* it sits on the computer's player card (tickHud places it): no box, just its text with a soft glow, which
@@ -2377,6 +2380,15 @@
     <div class="iabHint" id="loginIabHint">
       <span>ការចូលដោយ Google មិនដំណើរការក្នុងកម្មវិធីនេះទេ។ សូមបើកតំណក្នុង Chrome ឬ Safari ។ — Google sign-in does not work inside this app. Open this link in Chrome or Safari.</span><br>
       <button type="button" class="iabCopyBtn">ចម្លងតំណ — Copy link</button>
+    </div>
+    <div id="tgBrowserPick" class="iabHint" style="display:none">
+      <span><span class="t-kh">បើកការចូលដោយ Google ក្នុង៖</span><span class="t-sep"> — </span><span class="t-en">Sign in with Google in:</span></span>
+      <div class="tgBrowserBtns">
+        <button type="button" data-browser="safari">🧭 Safari</button>
+        <button type="button" data-browser="chrome">🌐 Chrome</button>
+        <button type="button" data-browser=""><span class="t-kh">កម្មវិធីរុករកលំនាំដើម</span><span class="t-sep"> — </span><span class="t-en">Default browser</span></button>
+      </div>
+      <button type="button" id="tgBrowserCancel" class="tgBrowserCancel"><span class="t-kh">បោះបង់</span><span class="t-sep"> — </span><span class="t-en">Cancel</span></button>
     </div>
     <div id="tgGoogleWait" class="iabHint" style="display:none">
       <span><span class="t-kh">⏳ កម្មវិធីរុករកបានបើក៖ ចូលដោយ Google នៅទីនោះ រួចត្រឡប់មក Telegram វិញ។ ល្បែងនឹងចូលគណនីដោយខ្លួនឯង។</span><span class="t-sep"> — </span><span class="t-en">⏳ Your browser has opened: sign in with Google there, then come back to Telegram. The game signs you in by itself.</span></span><br>
@@ -18331,8 +18343,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.118';
+const APP_VERSION = '1.6.119';
 const WHATS_NEW = [
+  {
+    version: '1.6.119',
+    date: '2026-11-21',
+    title: { kh: 'ជ្រើសកម្មវិធីរុករក សម្រាប់ចូលដោយ Google ក្នុង Telegram', en: 'Choose the browser for Google sign-in in Telegram' },
+    items: [
+      { kh: 'ក្នុង Telegram ពេលចុចចូលដោយ Google អ្នកអាចជ្រើសបើកក្នុង Safari (iPhone) Chrome ឬកម្មវិធីរុករកលំនាំដើម។ ល្បែងចាំជម្រើសរបស់អ្នក។',
+        en: 'In Telegram, signing in with Google now lets you choose where it opens: Safari (on iPhone), Chrome or your default browser. The game remembers your choice.' }
+    ]
+  },
   {
     version: '1.6.118',
     date: '2026-11-21',
@@ -20525,7 +20546,7 @@ document.getElementById('startLearnBtn').onclick = () => {
 // there, so hide that button and say how to get out to a real browser.
 if (IN_APP_BROWSER) {
   document.getElementById('signupGoogleBtn').style.display = 'none';
-  document.querySelectorAll('.iabHint').forEach((h) => { if (!(window.__oukTgApp && h.id === 'startIabHint')) h.style.display = 'block'; });
+  document.querySelectorAll('#loginIabHint, #startIabHint').forEach((h) => { if (!(window.__oukTgApp && h.id === 'startIabHint')) h.style.display = 'block'; }); // (not the Telegram sign-in boxes, which share the look)
   document.querySelectorAll('.iabCopyBtn').forEach((b) => {
     b.onclick = () => {
       const done = () => { b.textContent = '✓'; };
@@ -21443,7 +21464,7 @@ function tgSetup(t) {
   document.getElementById('signupGoogleBtn').style.display = '';
   document.querySelectorAll('.iabCopyBtn').forEach((b) => {
     b.innerHTML = '<span class="t-kh">បើកក្នុងកម្មវិធីរុករក</span><span class="t-sep"> — </span><span class="t-en">Open in browser</span>';
-    b.onclick = () => { try { t.openLink(location.origin + '/'); } catch (e) {} };
+    b.onclick = () => { try { tgOpenInBrowser(location.origin + '/', tgSavedBrowser() || ''); } catch (e) {} };
   });
   const hintText = document.querySelector('#loginIabHint > span');
   if (hintText) hintText.innerHTML = '<span class="t-kh">ការចូលដោយ Google បើកកម្មវិធីរុករករបស់ទូរស័ព្ទមួយភ្លែត។ Facebook មិនដំណើរការក្នុង Telegram ទេ។</span>' +
@@ -21932,12 +21953,41 @@ function handleOAuthSignup(btnId, signInPromiseFn, providerName) {
 handleOAuthSignup('signupGoogleBtn', () => (window.__oukTgApp ? tgGoogleSignIn() : window.__oukAuth.signInGoogle()), 'google.com');
 // Google in the Telegram Mini App: the sign-in happens in the phone's browser (see tgBridgeSignIn)
 let tgGoogleCancelled = false;
+// Which browser: Telegram (Mini Apps 7.6+) can be asked for a particular one; Safari only exists on an iPhone or iPad.
+// The last choice is remembered and marked. Without that support the phone's default browser opens.
+const TG_BROWSER_KEY = 'oukTgBrowser';
+function tgOpenInBrowser(url, browser) {
+  if (!tgApp) { window.open(url, '_blank'); return; }
+  const opts = browser && tgOk('7.6') ? { try_browser: browser } : undefined;
+  tgApp.openLink(url, opts);
+}
+function tgSavedBrowser() { try { return localStorage.getItem(TG_BROWSER_KEY); } catch (e) { return null; } } // (null: never chosen)
+function tgPickBrowser(onPick) {
+  const pick = document.getElementById('tgBrowserPick'), hint = document.getElementById('loginIabHint');
+  const ios = tgApp ? tgApp.platform === 'ios' : /iPhone|iPad|iPod/.test(navigator.userAgent || '');
+  const saved = tgSavedBrowser();
+  pick.querySelectorAll('.tgBrowserBtns button').forEach((b) => {
+    b.style.display = (b.dataset.browser === 'safari' && !ios) || (b.dataset.browser && !tgOk('7.6')) ? 'none' : '';
+    b.classList.toggle('last', b.dataset.browser === saved);
+  });
+  pick.style.display = 'block'; hint.style.display = 'none';
+  return new Promise((resolve, reject) => {
+    const close = () => { pick.style.display = 'none'; hint.style.display = 'block'; };
+    // onPick runs inside the tap itself (Telegram opens links only in answer to a tap), and its promise is passed on
+    pick.querySelectorAll('.tgBrowserBtns button').forEach((b) => { b.onclick = () => { close(); try { localStorage.setItem(TG_BROWSER_KEY, b.dataset.browser); } catch (e) {} resolve(onPick(b.dataset.browser)); }; });
+    document.getElementById('tgBrowserCancel').onclick = () => { close(); reject({ code: 'auth/popup-closed-by-user' }); };
+  });
+}
 function tgGoogleSignIn() {
   if (!window.__oukAuth.tgBridgeWait) return Promise.reject({ code: 'auth/network-request-failed' }); // (sign-in service not loaded: offline)
+  return tgPickBrowser(tgGoogleOpen);
+}
+function tgGoogleOpen(browser) {
   const bytes = new Uint8Array(24); crypto.getRandomValues(bytes);
   const code = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(''); // 48 hex characters
   const url = location.origin + '/?tgsignin=' + code;
-  try { if (tgApp) tgApp.openLink(url); else window.open(url, '_blank'); } catch (e) {}
+  try { tgOpenInBrowser(url, browser); } catch (e) {}
+  funnel('tg_google_browser', { browser: browser || 'default' });
   tgGoogleCancelled = false;
   const wait = document.getElementById('tgGoogleWait'), hint = document.getElementById('loginIabHint');
   wait.style.display = 'block'; hint.style.display = 'none';
