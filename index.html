@@ -2930,6 +2930,8 @@
     <p class="loginHint" style="text-align:left;margin-top:4px">ប្រើរាល់ពេលអ្នកចូលគណនី — used every time you sign in. New accounts start on Classic Wood until you choose one.</p>
     <p id="profileMeta" class="loginHint" style="text-align:center;margin-top:10px"></p>
     <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
+      <button id="profileSignInBtn" type="button" class="primary" style="display:none"><span class="t-kh">🔑 ចូលគណនី / បង្កើតគណនី</span><span class="t-sep"> — </span><span class="t-en">🔑 Sign in / Create account</span></button>
+      <p id="profileSignInNote" class="loginHint" style="display:none;text-align:center;margin:-4px 0 0"><span class="t-kh">ឥតគិតថ្លៃ · ស្ថិតិរបស់អ្នកនៅដដែល · លេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free · keeps your stats · unlimited games</span></p>
       <button id="profileSaveBtn">រក្សាទុក ▸ Save</button>
       <button id="profileSignOutBtn" type="button">ចាកចេញ Sign Out</button>
       <button id="profileCloseBtn" type="button">បិទ Close</button>
@@ -18267,8 +18269,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.116';
+const APP_VERSION = '1.6.117';
 const WHATS_NEW = [
+  {
+    version: '1.6.117',
+    date: '2026-11-21',
+    title: { kh: 'ចូលគណនីពីទំព័រប្រវត្តិរូប', en: 'Sign in from your profile' },
+    items: [
+      { kh: 'ទំព័រប្រវត្តិរូបរបស់ភ្ញៀវ ឥឡូវមានប៊ូតុង «ចូលគណនី / បង្កើតគណនី»។ ស្ថិតិដែលអ្នកលេងជាភ្ញៀវនៅដដែល។ ប៊ូតុង «ចាកចេញ» មិនបង្ហាញសម្រាប់ភ្ញៀវទៀតទេ ព្រោះវានឹងលុបស្ថិតិរបស់ភ្ញៀវចោល។',
+        en: 'A guest\'s profile now has a "Sign in / Create account" button, and the stats you played up as a guest are kept. Sign Out is no longer shown to guests, since it would only throw their stats away.' }
+    ]
+  },
   {
     version: '1.6.116',
     date: '2026-11-21',
@@ -21892,6 +21903,12 @@ function openProfileScreen() {
   fillProfileThemeSelect();
   document.getElementById('profileDisplayName').value = currentProfile.displayName || '';
   document.getElementById('profileMeta').textContent = 'ចូលតាមរយៈ — Signed in via ' + providerLabel(currentProfile);
+  // a guest: offer to sign in (the guest account is linked to the new one, so its stats carry over); Sign Out
+  // would only throw the guest's stats away, so it is not offered to a guest
+  const guestP = accessTier === 'guest';
+  document.getElementById('profileSignInBtn').style.display = guestP ? '' : 'none';
+  document.getElementById('profileSignInNote').style.display = guestP ? '' : 'none';
+  document.getElementById('profileSignOutBtn').style.display = guestP ? 'none' : '';
   document.getElementById('profileStatus').style.display = 'none';
   const grid = document.getElementById('profileGradientGrid');
   Array.from(grid.children).forEach((c) => c.classList.toggle('selected', c.dataset.gradient === currentProfile.avatarGradient && !currentProfile.avatarPhoto));
@@ -22014,6 +22031,11 @@ document.getElementById('profileSaveBtn').onclick = () => {
     ? 'រក្សាទុករួច Saved — but 🔒 that theme needs a full account, so your default theme was not changed. Sign in to keep it.'
     : 'រក្សាទុករួច Saved!';
   status.style.display = 'block';
+};
+document.getElementById('profileSignInBtn').onclick = () => {
+  funnel('profile_signin_click');
+  closeProfileScreen();
+  openMidSessionLogin();
 };
 document.getElementById('profileSignOutBtn').onclick = () => {
   Promise.resolve(window.__oukAuth.signOut()).catch(() => {}).finally(() => {
