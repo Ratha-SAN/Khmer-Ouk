@@ -20,7 +20,7 @@ const VAL = (/var VAL = \[([^\]]*)\]/.exec(engineSrc)[1]).split(',').map((x) => 
 const ART = JSON.parse(fs.readFileSync(path.join(__dirname, 'pages', 'art-meta.json'), 'utf8'));
 const CONTACT = process.env.CONTACT_EMAIL || 'support@oukkhmer.com'; // the public contact address shown on the pages
 const SITE = 'https://oukkhmer.com';
-const UPDATED = '2026-11-17';
+const UPDATED = '2026-11-21';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // ---------- board diagrams ----------

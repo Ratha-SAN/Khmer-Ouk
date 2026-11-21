@@ -16,6 +16,22 @@
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<script>
+  // Opened as a Telegram Mini App? Telegram starts the page with #tgWebAppData=...&tgWebAppVersion=... in the
+  // address (and the game remembers it for this tab, since a reload can lose the hash). Only then is Telegram's own
+  // script loaded: other visitors never fetch anything from telegram.org. The rest of the game reads
+  // window.__oukTgApp (see "Telegram Mini App" in the game script).
+  (function () {
+    var tg = /tgWebApp(Data|Version|Platform)=/.test(location.hash || '');
+    try { if (tg) sessionStorage.setItem('oukTgApp', '1'); else tg = sessionStorage.getItem('oukTgApp') === '1'; } catch (e) {}
+    window.__oukTgApp = tg;
+    if (!tg) return;
+    document.documentElement.classList.add('tg-app');
+    var sc = document.createElement('script');
+    sc.src = 'https://telegram.org/js/telegram-web-app.js';
+    document.head.appendChild(sc);
+  })();
+</script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com">
 <title>អុកចត្រង្គ — Ouk Chatrang (Khmer Chess)</title>
@@ -2463,8 +2479,8 @@
       if (o && o.d === k) left = Math.max(0, 3 - (o.n | 0)); } catch (e) {}
     var els = document.querySelectorAll('#guestGamesNote .ggLeft'); for (var i = 0; i < els.length; i++) els[i].textContent = left;
     // a friend's invite link, and a social app's own browser, each add a line: show it from the first frame too
-    if (/[?#&]join=[A-Za-z0-9]{6}\b/.test(location.search + location.hash)) document.getElementById('startInviteNote').style.display = 'block';
-    if (/FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '')) document.getElementById('startIabHint').style.display = 'block';
+    if (/[?#&](join|tgWebAppStartParam)=[A-Za-z0-9]{6}\b/.test(location.search + location.hash)) document.getElementById('startInviteNote').style.display = 'block';
+    if (!window.__oukTgApp && /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '')) document.getElementById('startIabHint').style.display = 'block';
   })();
   // The Start pop-up's coming-back items, all read from this device's storage: the daily puzzle's done mark, the day
   // streak, and Add to Home Screen.
@@ -2501,7 +2517,7 @@
     note.style.display = alive ? 'block' : 'none';
     var installed = (window.matchMedia && matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches) || navigator.standalone === true;
     var ios = /iPhone|iPad|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    var iab = /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '');
+    var iab = window.__oukTgApp || /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(navigator.userAgent || '');
     window.__oukCanInstall = !installed && !iab && !!(ios || window.__oukInstallReady);
   };
   window.__oukRetentionUI();
@@ -13562,7 +13578,14 @@ function playMoveSound(kind, delaySecs) {
 // a short buzz in the hand as a piece lands (phones that support it; follows the sound switch)
 function moveHaptic(kind) {
   try {
-    if (!navigator.vibrate || !document.getElementById('sfxChk').checked) return;
+    if (!document.getElementById('sfxChk').checked) return;
+    const th = tgHaptics();
+    if (th) {
+      if (kind === 'win') th.notificationOccurred('success');
+      else th.impactOccurred(kind === 'capture' ? 'medium' : 'light');
+      return;
+    }
+    if (!navigator.vibrate) return;
     navigator.vibrate(kind === 'capture' ? [14, 30, 22] : kind === 'win' ? [20, 60, 20, 60, 40] : 8);
   } catch (e) {}
 }
@@ -18244,8 +18267,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.115';
+const APP_VERSION = '1.6.116';
 const WHATS_NEW = [
+  {
+    version: '1.6.116',
+    date: '2026-11-21',
+    title: { kh: 'លេងក្នុង Telegram', en: 'Play inside Telegram' },
+    items: [
+      { kh: 'អុកចត្រង្គអាចបើកជាកម្មវិធីតូច (Mini App) ក្នុង Telegram៖ វាពេញអេក្រង់ ប៊ូតុងថយក្រោយបិទផ្ទាំងលេចឡើង ការអូសចុះក្រោមលើក្ដារមិនបិទល្បែង ទូរស័ព្ទញ័រតិចៗពេលដើរ ហើយ Telegram សួរមុនពេលបិទល្បែងដែលកំពុងលេង។',
+        en: 'Ouk Chatrang can open as a Mini App inside Telegram: it fills the screen, the back button closes pop-ups, swiping down on the board does not close the game, the phone gives a light tap on each move, and Telegram asks before closing a game in progress.' },
+      { kh: 'ក្នុង Telegram អ្នកអាចលេងជាភ្ញៀវ ឬចូលដោយអ៊ីមែល។ ការចូលដោយ Google ឬ Facebook ត្រូវការកម្មវិធីរុករក ហើយប៊ូតុង «បើកក្នុងកម្មវិធីរុករក» នាំអ្នកទៅទីនោះ។',
+        en: 'In Telegram you can play as a guest or sign in with e-mail. Google or Facebook sign-in needs a browser, and an "Open in browser" button takes you there.' }
+    ]
+  },
   {
     version: '1.6.115',
     date: '2026-11-17',
@@ -19863,6 +19897,7 @@ function parseInviteCode(search, hash) {
   try {
     raw = new URLSearchParams(search || '').get('join');
     if (!raw && hash) raw = new URLSearchParams(String(hash).replace(/^#/, '')).get('join');
+    if (!raw && hash) raw = new URLSearchParams(String(hash).replace(/^#/, '')).get('tgWebAppStartParam'); // a Telegram Mini App link
   } catch (e) { raw = null; }
   const code = (raw || '').trim().toUpperCase();
   return INVITE_CODE_RE.test(code) ? code : null;
@@ -19998,6 +20033,7 @@ function guestGameAllowed() {
 // Every event carries the UI language, a coarse device class and whether the page runs inside a social app's
 // own browser (where Google sign-in is blocked), so the funnel can be split by those.
 function inAppBrowserName() {
+  if (window.__oukTgApp) return 'tgapp'; // the game opened as a Telegram Mini App (not just a link opened in Telegram)
   const ua = navigator.userAgent || '';
   if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook';
   if (/Instagram/i.test(ua)) return 'instagram';
@@ -20407,7 +20443,7 @@ document.getElementById('startLearnBtn').onclick = () => {
 // there, so hide that button and say how to get out to a real browser.
 if (IN_APP_BROWSER) {
   document.getElementById('signupGoogleBtn').style.display = 'none';
-  document.querySelectorAll('.iabHint').forEach((h) => { h.style.display = 'block'; });
+  document.querySelectorAll('.iabHint').forEach((h) => { if (!(window.__oukTgApp && h.id === 'startIabHint')) h.style.display = 'block'; });
   document.querySelectorAll('.iabCopyBtn').forEach((b) => {
     b.onclick = () => {
       const done = () => { b.textContent = '✓'; };
@@ -20584,6 +20620,7 @@ document.getElementById('onlineJoinCodeBtn').onclick = () => {
 // already entered (see consumePendingInvite), one tap from joining.
 let currentInviteCode = null;
 function buildInviteUrl(code) {
+  if (window.__oukTgApp && TG_MINI_APP_LINK) return TG_MINI_APP_LINK + '?startapp=' + code; // opens the Mini App, code and all
   const u = new URL(location.href);
   u.search = ''; u.hash = '';
   u.searchParams.set('join', code);
@@ -21247,7 +21284,76 @@ function animateCameraTo(apply, ms) {
   camera.position.setFromSpherical(sa).add(controls.target); controls.update();
   viewAnimRaf = requestAnimationFrame(step);
 }
+// ---------- Telegram Mini App ----------
+// Set TG_MINI_APP_LINK to the Mini App's own link (from @BotFather, e.g. 'https://t.me/OukChatrangBot/play') and
+// invites made inside Telegram open the Mini App directly; left empty, they are ordinary web links.
+const TG_MINI_APP_LINK = '';
+var tgApp = null; // (var: tickHud may run before this line) Telegram.WebApp once its script has loaded and the game has set it up
+function tgOk(v) { try { return !!tgApp && tgApp.isVersionAtLeast(v); } catch (e) { return false; } }
+function tgHaptics() { return tgOk('6.1') ? tgApp.HapticFeedback : null; }
+function tgSetup(t) {
+  tgApp = t;
+  try { t.ready(); t.expand(); } catch (e) {}
+  // a downward swipe on the board turns the camera, it must not pull the Mini App closed
+  try { if (tgOk('7.7')) t.disableVerticalSwipes(); } catch (e) {}
+  try { if (tgOk('6.1')) { t.setHeaderColor('#221a12'); t.setBackgroundColor('#221a12'); } } catch (e) {}
+  try { if (tgOk('7.10')) t.setBottomBarColor('#221a12'); } catch (e) {}
+  // Back (Android's back key, or Telegram's own ‹ button) closes the top pop-up instead of the whole game
+  try { if (tgOk('6.1')) t.BackButton.onClick(tgBack); } catch (e) {}
+  // links that would open a new tab (the guides, Terms, Privacy) open in Telegram's browser above the game, which
+  // stays as it is underneath; Telegram's own t.me links (an invite shared to a chat) stay inside Telegram
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (!a || !tgOk('6.1')) return;
+    const href = a.getAttribute('href') || '';
+    if (/^(mailto|sms|tel):/i.test(href)) return;
+    const url = new URL(href, location.href);
+    if (/^https:\/\/t\.me\//i.test(url.href)) { e.preventDefault(); t.openTelegramLink(url.href); return; }
+    if (a.target === '_blank' || url.origin !== location.origin) { e.preventDefault(); t.openLink(url.href); }
+  }, true);
+  // sign-in with Google or Facebook cannot work inside Telegram: those buttons go, and the hint's button opens the
+  // game in the phone's own browser (playing as a guest, or with e-mail, works here)
+  document.getElementById('signupFacebookBtn').style.display = 'none';
+  document.querySelectorAll('.iabCopyBtn').forEach((b) => {
+    b.innerHTML = '<span class="t-kh">បើកក្នុងកម្មវិធីរុករក</span><span class="t-sep"> — </span><span class="t-en">Open in browser</span>';
+    b.onclick = () => { try { t.openLink(location.origin + '/'); } catch (e) {} };
+  });
+  const hintText = document.querySelector('#loginIabHint > span');
+  if (hintText) hintText.innerHTML = '<span class="t-kh">ការចូលដោយ Google ឬ Facebook មិនដំណើរការក្នុង Telegram ទេ។ អ្នកអាចចូលដោយអ៊ីមែល ឬលេងជាភ្ញៀវនៅទីនេះ ឬបើកល្បែងក្នុងកម្មវិធីរុករក។</span>' +
+    '<span class="t-sep"> — </span><span class="t-en">Google and Facebook sign-in do not work inside Telegram. Sign in with e-mail or play as a guest here, or open the game in your browser.</span>';
+  trackEvent('tg_app_open', { platform: t.platform || '', version: t.version || '' });
+}
+// the pop-ups the Back button closes, top-most first: [element, how to close it]
+function tgOpenLayers() {
+  const shown = (id) => { const e = document.getElementById(id); return e && e.style.display !== 'none' && getComputedStyle(e).display !== 'none'; };
+  const L = [];
+  if (document.getElementById('levelMenu').style.display === 'block') L.push(() => closeLevelMenu());
+  ['lockPopup', 'homeScreenPopup', 'onlineEndConfirmPopup', 'profileScreen', 'whatsNewModal', 'modal'].forEach((id) => { if (shown(id)) L.push(() => { document.getElementById(id).style.display = 'none'; }); });
+  if (shown('modePopup')) L.push(() => document.getElementById('modePopupClose').click());
+  if (document.body.classList.contains('is-mobile') && !document.body.classList.contains('panel-hidden')) L.push(() => toggleSettingsPanel());
+  return L;
+}
+function tgBack() { const L = tgOpenLayers(); if (L.length) L[0](); tgSync(); }
+var tgBackShown = false, tgGuardOn = false;
+function tgSync() {
+  if (!tgApp) return;
+  try {
+    const back = tgOpenLayers().length > 0;
+    if (back !== tgBackShown && tgOk('6.1')) { tgBackShown = back; back ? tgApp.BackButton.show() : tgApp.BackButton.hide(); }
+    // a game in progress: closing the Mini App asks first (the game is autosaved either way)
+    const guard = uiMode === 'play' && !gameOver && moveEntries.length > 0;
+    if (guard !== tgGuardOn && tgOk('6.2')) { tgGuardOn = guard; guard ? tgApp.enableClosingConfirmation() : tgApp.disableClosingConfirmation(); }
+  } catch (e) {}
+}
+if (window.__oukTgApp) {
+  (function wait(n) {
+    const t = window.Telegram && window.Telegram.WebApp;
+    if (t) tgSetup(t); else if (n < 200) setTimeout(() => wait(n + 1), 50); // (its script loads in parallel with the game)
+  })(0);
+}
+
 function tickHud() {
+  tgSync();
   updateAiChip();
   updateTopViewBtn();
   updatePuzzleCard();
@@ -23031,12 +23137,12 @@ document.getElementById('settingsBtn').onclick = () => toggleSettingsPanel();
 (function () {
   const btn = document.getElementById('fullscreenBtn');
   const installed = window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
-  if (installed) { btn.style.display = 'none'; return; }
+  if (installed || window.__oukTgApp) { btn.style.display = 'none'; return; } // (a Telegram Mini App already fills the screen: see tgSetup)
   const supported = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
   if (!supported) {
     const ua = navigator.userAgent || '';
     const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const iab = /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(ua);
+    const iab = window.__oukTgApp || /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Telegram|\bLine\/|MicroMessenger|Zalo/i.test(ua);
     if (!ios || iab) { btn.style.display = 'none'; return; }
     btn.onclick = () => { trackEvent('fullscreen_btn', { supported, guide: true }); openPopup('homeScreenPopup'); };
     return;
