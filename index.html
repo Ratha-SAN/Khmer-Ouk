@@ -937,6 +937,7 @@
     border: 1px solid var(--accent); background: var(--surface-2); color: var(--panel-fg); text-align: left;
   }
   .iabHint button { margin-top: 6px; font-size: 13px; padding: 6px 12px; }
+  .signupHelp { margin: 10px 0 0; } .signupHelp a { color: var(--accent); font-weight: 600; }
   .tgBrowserBtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
   .tgBrowserBtns button.last { outline: 2px solid var(--accent); }
   .tgBrowserCancel { background: none !important; box-shadow: none !important; text-decoration: underline; padding: 4px 6px !important; }
@@ -2403,6 +2404,7 @@
         <button id="signupEmailBtn" class="accountBtn" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span><span class="t-kh">ចុះឈ្មោះដោយអ៊ីមែល</span><span class="t-sep"> — </span><span class="t-en">Sign up with email</span></span></button>
         <button id="signinEmailBtn" class="accountBtn" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg><span><span class="t-kh">ចូលដោយអ៊ីមែល</span><span class="t-sep"> — </span><span class="t-en">Sign in with email</span></span></button>
       </div>
+      <p class="loginHint signupHelp"><a href="/account/" target="_blank" rel="noopener">❓ <span class="t-kh">របៀបចុះឈ្មោះ (មានរូបភាព)</span><span class="t-sep"> — </span><span class="t-en">How to sign up (with pictures)</span></a></p>
       <p class="loginHint legalNote"><span class="t-kh">ការបន្តមានន័យថាអ្នកយល់ព្រមតាម <a href="/terms/" target="_blank" rel="noopener">លក្ខខណ្ឌប្រើប្រាស់</a> និង <a href="/privacy/" target="_blank" rel="noopener">គោលការណ៍ឯកជនភាព</a>។</span><span class="t-sep"> — </span><span class="t-en">By continuing you agree to the <a href="/terms/" target="_blank" rel="noopener">Terms of Use</a> and the <a href="/privacy/" target="_blank" rel="noopener">Privacy Policy</a>.</span></p>
       <button id="loginAccountBackBtn" type="button">← <span class="t-kh">ត្រឡប់</span><span class="t-sep"> — </span><span class="t-en">Back</span></button>
     </div>
@@ -2784,7 +2786,7 @@
     </div>
   </details>
 
-  <p class="siteLinks panelLinks"><a href="/how-to-play/" target="_blank" rel="noopener"><span class="t-kh">វិធីលេង</span><span class="t-sep"> — </span><span class="t-en">How to play</span></a> · <a href="/strategy/" target="_blank" rel="noopener"><span class="t-kh">យុទ្ធសាស្ត្រ</span><span class="t-sep"> — </span><span class="t-en">Strategy</span></a> · <a href="/checkmate-patterns/" target="_blank" rel="noopener"><span class="t-kh">លំនាំអុកងាប់</span><span class="t-sep"> — </span><span class="t-en">Checkmate patterns</span></a> · <a href="/counting-rules/" target="_blank" rel="noopener"><span class="t-kh">ច្បាប់ការរាប់</span><span class="t-sep"> — </span><span class="t-en">Counting rules</span></a> · <a href="/glossary/" target="_blank" rel="noopener"><span class="t-kh">វាក្យសព្ទ</span><span class="t-sep"> — </span><span class="t-en">Glossary</span></a> · <a href="/history/" target="_blank" rel="noopener"><span class="t-kh">ប្រវត្តិ</span><span class="t-sep"> — </span><span class="t-en">History</span></a><br><a href="/about/" target="_blank" rel="noopener"><span class="t-kh">អំពី</span><span class="t-sep"> — </span><span class="t-en">About</span></a> · <a href="/privacy/" target="_blank" rel="noopener"><span class="t-kh">ឯកជនភាព</span><span class="t-sep"> — </span><span class="t-en">Privacy</span></a> · <a href="/terms/" target="_blank" rel="noopener"><span class="t-kh">លក្ខខណ្ឌ</span><span class="t-sep"> — </span><span class="t-en">Terms</span></a></p>
+  <p class="siteLinks panelLinks"><a href="/how-to-play/" target="_blank" rel="noopener"><span class="t-kh">វិធីលេង</span><span class="t-sep"> — </span><span class="t-en">How to play</span></a> · <a href="/strategy/" target="_blank" rel="noopener"><span class="t-kh">យុទ្ធសាស្ត្រ</span><span class="t-sep"> — </span><span class="t-en">Strategy</span></a> · <a href="/checkmate-patterns/" target="_blank" rel="noopener"><span class="t-kh">លំនាំអុកងាប់</span><span class="t-sep"> — </span><span class="t-en">Checkmate patterns</span></a> · <a href="/counting-rules/" target="_blank" rel="noopener"><span class="t-kh">ច្បាប់ការរាប់</span><span class="t-sep"> — </span><span class="t-en">Counting rules</span></a> · <a href="/glossary/" target="_blank" rel="noopener"><span class="t-kh">វាក្យសព្ទ</span><span class="t-sep"> — </span><span class="t-en">Glossary</span></a> · <a href="/history/" target="_blank" rel="noopener"><span class="t-kh">ប្រវត្តិ</span><span class="t-sep"> — </span><span class="t-en">History</span></a> · <a href="/account/" target="_blank" rel="noopener"><span class="t-kh">បង្កើតគណនី</span><span class="t-sep"> — </span><span class="t-en">Create an account</span></a><br><a href="/about/" target="_blank" rel="noopener"><span class="t-kh">អំពី</span><span class="t-sep"> — </span><span class="t-en">About</span></a> · <a href="/privacy/" target="_blank" rel="noopener"><span class="t-kh">ឯកជនភាព</span><span class="t-sep"> — </span><span class="t-en">Privacy</span></a> · <a href="/terms/" target="_blank" rel="noopener"><span class="t-kh">លក្ខខណ្ឌ</span><span class="t-sep"> — </span><span class="t-en">Terms</span></a></p>
 </div>
 
 <!-- Change Mode: a pop-up (opened from the panel's 🎮 button, or by anything that asks to change the mode) -->
@@ -2855,6 +2857,7 @@
   <div class="box" style="max-width:340px">
     <p id="verifyPopupText"></p>
     <p id="verifyPopupStatus" class="loginHint" style="min-height:1.2em"></p>
+    <p class="loginHint signupHelp"><a href="/account/#step4" target="_blank" rel="noopener">❓ <span class="t-kh">មើលរបៀបធ្វើ (មានរូបភាព)</span><span class="t-sep"> — </span><span class="t-en">See how (with pictures)</span></a></p>
     <div class="btnrow" style="flex-direction:column;gap:8px;margin-top:10px">
       <button id="verifyCheckBtn" type="button" class="primary"><span class="t-kh">✅ ខ្ញុំបានបញ្ជាក់រួចហើយ</span><span class="t-sep"> — </span><span class="t-en">✅ I've confirmed it</span></button>
       <button id="verifyResendBtn" type="button"><span class="t-kh">📧 ផ្ញើអ៊ីមែលម្ដងទៀត</span><span class="t-sep"> — </span><span class="t-en">📧 Resend the e-mail</span></button>
@@ -18363,8 +18366,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.121';
+const APP_VERSION = '1.6.122';
 const WHATS_NEW = [
+  {
+    version: '1.6.122',
+    date: '2026-11-22',
+    title: { kh: 'សៀវភៅណែនាំបង្កើតគណនី មានរូបភាព', en: 'A pictured guide to creating an account' },
+    items: [
+      { kh: 'ទំព័រថ្មី «បង្កើតគណនី» បង្ហាញជាជំហានៗ ជាមួយរូបភាព៖ ចុះឈ្មោះដោយអ៊ីមែល បញ្ជាក់អ៊ីមែល ចូលគណនីលើទូរស័ព្ទផ្សេង និងកំណត់លេខសម្ងាត់ថ្មី។ តំណ «❓ របៀបចុះឈ្មោះ» នៅលើទំព័រចូលគណនី។',
+        en: 'A new "Create an account" page shows, step by step with pictures, how to sign up with e-mail, confirm the address, sign in on another phone and reset a password. The sign-in screen links to it ("❓ How to sign up").' }
+    ]
+  },
   {
     version: '1.6.121',
     date: '2026-11-22',

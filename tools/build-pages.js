@@ -172,6 +172,7 @@ const GUIDES = [
   { file: 'checkmate-patterns', kh: 'លំនាំអុកងាប់', en: 'Checkmate patterns', d: 'Eight mating patterns with diagrams: the box, the ladder, the back rank, the smothered mate and more.' },
   { file: 'counting-rules', kh: 'ច្បាប់ការរាប់', en: 'Counting rules', d: "Board's Honor and Piece's Honor explained, with the limits table and worked examples." },
   { file: 'glossary', kh: 'វាក្យសព្ទ', en: 'Glossary', d: 'Khmer chess terms with their English meanings: pieces, board, check, checkmate, counting.' },
+  { file: 'account', kh: 'បង្កើតគណនី', en: 'Create an account', d: 'Step by step, with pictures: sign up with e-mail, confirm your address, sign in on another phone, and reset a forgotten password.' },
   { file: 'history', kh: 'ប្រវត្តិ', en: 'History and origins', d: 'Where Ouk Chatrang comes from, the names of its pieces and how it relates to Makruk and international chess.' }
 ];
 function guideCards(except) {
@@ -234,6 +235,10 @@ body.lang-kh .card h3 .tr{display:none}
 figure{text-align:center}
 figcaption{font-size:14px;color:var(--muted);margin-top:4px}
 .puzfig{margin:16px auto;max-width:420px}
+.shots{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;margin:10px 0 16px}
+.shot{margin:0;flex:0 1 270px;max-width:100%}
+.shotimg{display:block;width:100%;max-width:270px;height:auto;margin:0 auto;border-radius:14px;border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.shot figcaption{font-size:15px;color:var(--text);margin-top:8px;line-height:1.5}
 .guides{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0}
 @media(min-width:640px){.guides{grid-template-columns:1fr 1fr}}
 a.guide{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--text);text-decoration:none}
@@ -316,12 +321,29 @@ ${body}
 </html>
 `;
 }
+// {{SHOT:file}}: a screenshot from account/img, shown at half its pixel size (they are taken at 2x), with its size set
+// so the page does not jump while it loads
+function jpegSize(file) {
+  const d = fs.readFileSync(file); let i = 2;
+  while (i < d.length) {
+    if (d[i] !== 0xFF) { i++; continue; }
+    const m = d[i + 1], L = d.readUInt16BE(i + 2);
+    if (m >= 0xC0 && m <= 0xC2) return { h: d.readUInt16BE(i + 5), w: d.readUInt16BE(i + 7) };
+    i += 2 + L;
+  }
+  throw new Error('not a JPEG: ' + file);
+}
+function shotImg(f) {
+  const s = jpegSize(path.join(ROOT, 'account', 'img', f));
+  return `<img class="shotimg" src="/account/img/${f}" width="${Math.round(s.w / 2)}" height="${Math.round(s.h / 2)}" alt="" loading="lazy">`;
+}
 function transform(s) {
   return s.replace(/<kh>/g, '<span class="kh">').replace(/<\/kh>/g, '</span>').replace(/<en>/g, '<span class="en">').replace(/<\/en>/g, '</span>')
     .replace(/\{\{CONTACT\}\}/g, `<a href="mailto:${CONTACT}">${CONTACT}</a>`).replace(/\{\{CONTACTADDR\}\}/g, CONTACT).replace(/\{\{UPDATED\}\}/g, UPDATED)
     .replace(/\{\{BOARD:start\}\}/g, () => startBoard()).replace(/\{\{PIECES\}\}/g, () => pieceCards())
     .replace(/\{\{PUZ:([a-z0-9@]+)\}\}/g, (_, k) => puzzleFig(k)).replace(/\{\{VALUES\}\}/g, () => valuesTable()).replace(/\{\{COUNTTABLE\}\}/g, () => countTable())
-    .replace(/\{\{GUIDES\}\}/g, () => guideCards());
+    .replace(/\{\{GUIDES\}\}/g, () => guideCards())
+    .replace(/\{\{SHOT:([a-z0-9-]+\.jpg)\}\}/g, (_, f) => shotImg(f));
 }
 function read(f) { return fs.readFileSync(path.join(__dirname, 'pages', f), 'utf8'); }
 const PAGES = [
@@ -337,6 +359,8 @@ const PAGES = [
     desc: 'Khmer chess vocabulary for Ouk Chatrang: the six pieces, board terms, check, checkmate, stalemate, promotion and the counting rules, in Khmer and English.', prio: '0.6' },
   { file: 'history', src: 'history.html', title: 'History and origins of Ouk Chatrang, Cambodian chess — ប្រវត្តិអុកចត្រង្គ',
     desc: 'A short overview of where Ouk Chatrang comes from: the chaturanga family, the names of the pieces, and how it relates to Thai Makruk and international chess.', prio: '0.6' },
+  { file: 'account', src: 'account.html', title: 'How to create an Ouk Chatrang account with e-mail — របៀបបង្កើតគណនី',
+    desc: 'Step-by-step pictures in Khmer and English: create a free Ouk Chatrang account with your e-mail, confirm the address, sign in on another phone or in Telegram, and reset a forgotten password.', prio: '0.6' },
   { file: 'about', src: 'about.html', title: 'About Ouk Chatrang (oukkhmer.com) — អំពីអុកចត្រង្គ',
     desc: 'About the free Ouk Chatrang web game: what you can do, how the computer opponent works, languages, accounts, and how to contact us.', prio: '0.5' },
   { file: 'privacy', src: 'privacy.html', legal: true, title: 'Privacy Policy — Ouk Chatrang', desc: 'How Ouk Chatrang (oukkhmer.com and ouk.bykhmer.com) collects, uses and protects your information, and the choices you have.', prio: '0.3' },
