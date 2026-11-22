@@ -2440,6 +2440,7 @@
       </div>
       <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
         <button id="loginEmailSubmitBtn">បង្កើតគណនី ▸ Create Account</button>
+        <button id="loginForgotBtn" type="button" style="display:none;background:none;box-shadow:none;text-decoration:underline;padding:2px"><span class="t-kh">ភ្លេចលេខសម្ងាត់?</span><span class="t-sep"> — </span><span class="t-en">Forgot password?</span></button>
         <button id="loginEmailToggleModeBtn" type="button">មានគណនីរួចហើយ? ចូល — Already have an account? Sign in</button>
         <button id="loginEmailBackBtn" type="button">← ត្រឡប់ Back</button>
       </div>
@@ -2850,6 +2851,17 @@
     </div>
   </div>
 </div>
+<div id="verifyPopup" class="fullOverlay" style="display:none;z-index:25">
+  <div class="box" style="max-width:340px">
+    <p id="verifyPopupText"></p>
+    <p id="verifyPopupStatus" class="loginHint" style="min-height:1.2em"></p>
+    <div class="btnrow" style="flex-direction:column;gap:8px;margin-top:10px">
+      <button id="verifyCheckBtn" type="button" class="primary"><span class="t-kh">✅ ខ្ញុំបានបញ្ជាក់រួចហើយ</span><span class="t-sep"> — </span><span class="t-en">✅ I've confirmed it</span></button>
+      <button id="verifyResendBtn" type="button"><span class="t-kh">📧 ផ្ញើអ៊ីមែលម្ដងទៀត</span><span class="t-sep"> — </span><span class="t-en">📧 Resend the e-mail</span></button>
+      <button id="verifyCloseBtn" type="button"><span class="t-kh">បិទ</span><span class="t-sep"> — </span><span class="t-en">Close</span></button>
+    </div>
+  </div>
+</div>
 <div id="lockPopup" class="fullOverlay" style="display:none;z-index:25">
   <div class="box" style="max-width:320px">
     <p id="lockPopupText">🔒 Sign in to unlock all features</p>
@@ -2946,6 +2958,10 @@
     <p class="loginHint" style="text-align:left;margin-top:4px">ប្រើរាល់ពេលអ្នកចូលគណនី — used every time you sign in. New accounts start on Classic Wood until you choose one.</p>
     <p id="profileMeta" class="loginHint" style="text-align:center;margin-top:10px"></p>
     <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
+      <div id="profileVerifyRow" style="display:none;text-align:center">
+        <p class="loginHint" style="color:#f0a83c;margin:0 0 6px"><span class="t-kh">📧 អ៊ីមែលមិនទាន់បានបញ្ជាក់ទេ៖ គណនីលេងនៅកម្រិតភ្ញៀវ</span><span class="t-sep"> — </span><span class="t-en">📧 E-mail not confirmed: the account plays at guest level</span></p>
+        <button id="profileVerifyBtn" type="button" class="primary"><span class="t-kh">បញ្ជាក់អ៊ីមែល</span><span class="t-sep"> — </span><span class="t-en">Confirm my e-mail</span></button>
+      </div>
       <button id="profileSignInBtn" type="button" class="primary" style="display:none"><span class="t-kh">🔑 ចូលគណនី / បង្កើតគណនី</span><span class="t-sep"> — </span><span class="t-en">🔑 Sign in / Create account</span></button>
       <p id="profileSignInNote" class="loginHint" style="display:none;text-align:center;margin:-4px 0 0"><span class="t-kh">ឥតគិតថ្លៃ · ស្ថិតិរបស់អ្នកនៅដដែល · លេងមិនកំណត់</span><span class="t-sep"> — </span><span class="t-en">Free · keeps your stats · unlimited games</span></p>
       <button id="profileSaveBtn">រក្សាទុក ▸ Save</button>
@@ -3411,16 +3427,26 @@
         // Upgrade the persistent window.__oukAuth in place (see the stub
         // above): only its sign-in methods and state source change, so
         // onChange subscribers registered before this point keep working.
-        auth.onAuthStateChanged(function (user) {
-          window.__oukAuth._setState(user ? {
+        // An e-mail account is a full account only once its address has been confirmed (the link in the e-mail
+        // sendEmailVerification sends); until then it plays at guest level. Google, Facebook and Apple confirm their
+        // own addresses, so an account that has any of them never waits.
+        var needsVerify = function (u) {
+          return !!u && !u.isAnonymous && !u.emailVerified && u.providerData.length > 0 &&
+            u.providerData.every(function (pd) { return pd && pd.providerId === 'password'; });
+        };
+        // Firebase marks anonymous auth with isAnonymous; Google/Apple sign-ins carry a providerId on their
+        // providerData entry.
+        var stateOf = function (u) {
+          return u ? {
             signedIn: true,
-            // Firebase marks anonymous auth with isAnonymous; Google/Apple
-            // sign-ins carry a providerId on their providerData entry.
-            method: user.isAnonymous ? 'guest' : ((user.providerData[0] && user.providerData[0].providerId) || 'unknown'),
-            uid: user.uid,
-            tier: user.isAnonymous ? 'guest' : 'full'
-          } : { signedIn: false, method: null, uid: null, tier: 'guest' });
-        });
+            method: u.isAnonymous ? 'guest' : ((u.providerData[0] && u.providerData[0].providerId) || 'unknown'),
+            uid: u.uid,
+            tier: (u.isAnonymous || needsVerify(u)) ? 'guest' : 'full',
+            unverified: needsVerify(u),
+            email: u.email || null
+          } : { signedIn: false, method: null, uid: null, tier: 'guest' };
+        };
+        auth.onAuthStateChanged(function (user) { window.__oukAuth._setState(stateOf(user)); });
         window.__oukAuth.ready = true;
         window.__oukAuth.signInGuest = function () {
           return auth.signInAnonymously().catch(function (err) {
@@ -3432,13 +3458,7 @@
         // link keeps the user object, so onAuthStateChanged does not fire: announce() pushes the new state itself.
         var currentAnon = function () { return auth.currentUser && auth.currentUser.isAnonymous ? auth.currentUser : null; };
         var announce = function (cred) {
-          var u = cred.user;
-          window.__oukAuth._setState({
-            signedIn: true,
-            method: (u.providerData[0] && u.providerData[0].providerId) || 'unknown',
-            uid: u.uid,
-            tier: u.isAnonymous ? 'guest' : 'full'
-          });
+          window.__oukAuth._setState(stateOf(cred.user));
           return cred;
         };
         var popupSignIn = function (provider, label) {
@@ -3497,15 +3517,36 @@
             })();
           });
         };
+        // the link in the confirmation (and password-reset) e-mail leads back to the game, at the address in use
+        var backToGame = function () { return { url: location.origin + '/' }; };
         window.__oukAuth.signUpEmail = function (email, password) {
           var anon = currentAnon();
           var p = anon
             ? anon.linkWithCredential(firebase.auth.EmailAuthProvider.credential(email, password)).then(announce)
             : auth.createUserWithEmailAndPassword(email, password);
-          return p.catch(function (err) {
+          return p.then(function (cred) {
+            // the account exists either way; a confirmation e-mail that fails to go out can be resent from the profile
+            return cred.user.sendEmailVerification(backToGame()).catch(function (err) { console.warn('Verification e-mail failed:', err); })
+              .then(function () { return cred; });
+          }, function (err) {
             console.warn('Email sign-up failed:', err); throw err;
           });
         };
+        window.__oukAuth.sendVerification = function () {
+          var u = auth.currentUser;
+          return u ? u.sendEmailVerification(backToGame()) : Promise.reject({ code: 'auth/no-current-user' });
+        };
+        // has the address been confirmed (in another app or browser) since? Reloads the account and, if so, the
+        // fresh state unlocks the game. Resolves true once confirmed.
+        window.__oukAuth.refreshVerification = function () {
+          var u = auth.currentUser;
+          if (!u) return Promise.resolve(false);
+          return u.reload().then(function () { return auth.currentUser.getIdToken(true); }).then(function () {
+            window.__oukAuth._setState(stateOf(auth.currentUser));
+            return !needsVerify(auth.currentUser);
+          });
+        };
+        window.__oukAuth.resetPassword = function (email) { return auth.sendPasswordResetEmail(email, backToGame()); };
         window.__oukAuth.signInEmail = function (email, password) {
           return auth.signInWithEmailAndPassword(email, password).catch(function (err) {
             console.warn('Email sign-in failed:', err); throw err;
@@ -16834,7 +16875,7 @@ function updateScoreboard() {
     // actually playing, without having to back out to check.
     const tierEl = card.querySelector('.ptier');
     const isGuest = accessTier === 'guest';
-    tierEl.textContent = isOwnCard ? (isGuest ? 'ភ្ញៀវ — Guest' : 'គណនី — Account') : '';
+    tierEl.textContent = isOwnCard ? (authUnverified() ? '📧 មិនទាន់បញ្ជាក់ — Unconfirmed' : isGuest ? 'ភ្ញៀវ — Guest' : 'គណនី — Account') : '';
     tierEl.classList.toggle('tier-guest', isOwnCard && isGuest);
     tierEl.classList.toggle('tier-full', isOwnCard && !isGuest);
     // Online opponent whose presence heartbeat has gone stale: gray the
@@ -18278,7 +18319,7 @@ undoBtn.onclick = () => {
 // top of the settings sheet. Closing a popup is unaffected: it's still
 // just `getElementById(id).style.display = 'none'` at each call site,
 // same as before -- only opening needed this shared choke point.
-const POPUP_IDS = ['modal', 'whatsNewModal', 'lockPopup', 'onlineEndConfirmPopup', 'profileScreen', 'homeScreenPopup'];
+const POPUP_IDS = ['modal', 'whatsNewModal', 'lockPopup', 'verifyPopup', 'onlineEndConfirmPopup', 'profileScreen', 'homeScreenPopup'];
 function openPopup(id) {
   POPUP_IDS.forEach((pid) => { if (pid !== id) document.getElementById(pid).style.display = 'none'; });
   if (document.body.classList.contains('is-mobile') && !document.body.classList.contains('panel-hidden')) {
@@ -18322,8 +18363,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.120';
+const APP_VERSION = '1.6.121';
 const WHATS_NEW = [
+  {
+    version: '1.6.121',
+    date: '2026-11-22',
+    title: { kh: 'បញ្ជាក់អ៊ីមែល និងភ្លេចលេខសម្ងាត់', en: 'E-mail confirmation and Forgot password' },
+    items: [
+      { kh: 'គណនីអ៊ីមែលត្រូវបញ្ជាក់អាសយដ្ឋានមុន៖ បន្ទាប់ពីចុះឈ្មោះ យើងផ្ញើតំណមួយទៅអ៊ីមែលរបស់អ្នក។ រហូតដល់អ្នកចុចតំណនោះ គណនីលេងនៅកម្រិតភ្ញៀវ។ ពេលអ្នកត្រឡប់មកល្បែងវិញ វាដោះសោដោយខ្លួនឯង។ គណនី Google, Facebook និង Apple មិនពាក់ព័ន្ធទេ។',
+        en: 'E-mail accounts now confirm their address: after you sign up we send a link to your e-mail, and until you tap it the account plays at guest level. When you come back to the game it unlocks by itself. Google, Facebook and Apple accounts are not affected.' },
+      { kh: 'ថ្មី៖ «ភ្លេចលេខសម្ងាត់?» នៅលើទំព័រចូលដោយអ៊ីមែល ផ្ញើតំណដើម្បីកំណត់លេខសម្ងាត់ថ្មី។',
+        en: 'New: "Forgot password?" on the e-mail sign-in screen sends you a link to set a new password.' }
+    ]
+  },
   {
     version: '1.6.120',
     date: '2026-11-21',
@@ -21432,7 +21484,7 @@ function tgOpenLayers() {
   const shown = (id) => { const e = document.getElementById(id); return e && e.style.display !== 'none' && getComputedStyle(e).display !== 'none'; };
   const L = [];
   if (document.getElementById('levelMenu').style.display === 'block') L.push(() => closeLevelMenu());
-  ['lockPopup', 'homeScreenPopup', 'onlineEndConfirmPopup', 'profileScreen', 'whatsNewModal', 'modal'].forEach((id) => { if (shown(id)) L.push(() => { document.getElementById(id).style.display = 'none'; }); });
+  ['lockPopup', 'verifyPopup', 'homeScreenPopup', 'onlineEndConfirmPopup', 'profileScreen', 'whatsNewModal', 'modal'].forEach((id) => { if (shown(id)) L.push(() => { document.getElementById(id).style.display = 'none'; }); });
   if (shown('modePopup')) L.push(() => document.getElementById('modePopupClose').click());
   if (document.body.classList.contains('is-mobile') && !document.body.classList.contains('panel-hidden')) L.push(() => toggleSettingsPanel());
   return L;
@@ -21635,6 +21687,14 @@ function showLoginError(msg) {
   funnel('login_error', { msg: String(msg).slice(0, 60) });
   const el = document.getElementById('loginError');
   el.textContent = msg;
+  el.style.color = '';
+  el.style.display = 'block';
+}
+// a good-news line in the same place (e.g. "the reset e-mail is on its way")
+function showLoginNote(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.color = 'var(--ok)';
   el.style.display = 'block';
 }
 function clearLoginError() { document.getElementById('loginError').style.display = 'none'; }
@@ -21786,6 +21846,8 @@ function friendlyAuthError(err) {
     'auth/user-not-found': 'រកមិនឃើញគណនីនេះទេ។ — No account found with that email.',
     'auth/invalid-credential': 'អ៊ីមែល ឬ លេខសម្ងាត់មិនត្រឹមត្រូវ។ — Incorrect email or password.',
     'auth/timeout': 'អស់ពេលរង់ចាំ។ សូមព្យាយាមម្ដងទៀត។ — Waited too long for the sign-in. Please try again.',
+    'auth/too-many-requests': 'ព្យាយាមច្រើនដងពេក។ សូមរង់ចាំពីរបីនាទី។ — Too many tries: please wait a few minutes.',
+    'auth/missing-email': 'សូមវាយអ៊ីមែលរបស់អ្នក។ — Please type your e-mail.',
     'auth/popup-blocked': 'កម្មវិធីរុករករារផ្ទាំងលោត។ សូមអនុញ្ញាត popup។ — Your browser blocked the sign-in popup. Please allow it.',
     'auth/network-request-failed': 'បញ្ហាបណ្ដាញ។ — Network error. Check your connection.',
     'auth/unauthorized-domain': 'គេហទំព័រនេះមិនទាន់ត្រូវបានអនុញ្ញាតទេ។ សូមព្យាយាមម្ដងទៀតពេលក្រោយ។ — This website isn\'t authorized for sign-in yet. Please try again later.',
@@ -21816,6 +21878,7 @@ function applyEmailAuthMode() {
     ? L('បង្កើតគណនីអ៊ីមែល', 'Create an email account')
     : L('ចូលដោយអ៊ីមែល', 'Sign in with email');
   document.getElementById('loginEmailSubmitBtn').innerHTML = isSignup ? L('បង្កើតគណនី ▸', 'Create Account', ' ') : L('ចូល ▸', 'Sign In', ' ');
+  document.getElementById('loginForgotBtn').style.display = isSignup ? 'none' : '';
   document.getElementById('loginEmailToggleModeBtn').innerHTML = isSignup
     ? L('មានគណនីរួចហើយ? ចូល', 'Already have an account? Sign in')
     : L('មិនទាន់មានគណនី? បង្កើតថ្មី', 'Need an account? Create one');
@@ -21856,9 +21919,23 @@ document.getElementById('loginEmailSubmitBtn').onclick = () => {
       email: email,
       provider: 'password'
     }))
-    .then((profile) => { rememberUsername(profile.displayName); finishLogin(); })
+    .then((profile) => {
+      rememberUsername(profile.displayName); finishLogin();
+      if (authUnverified()) setTimeout(() => openVerifyPopup(emailAuthMode === 'signup' ? 'signup' : 'profile'), 400);
+    })
     .catch((err) => showLoginError(friendlyAuthError(err)))
     .finally(() => { btn.disabled = false; });
+};
+document.getElementById('loginForgotBtn').onclick = () => {
+  clearLoginError();
+  const email = document.getElementById('loginEmail').value.trim();
+  if (!email) { showLoginError('សូមវាយអ៊ីមែលរបស់អ្នកខាងលើជាមុនសិន។ — Type your e-mail above first.'); document.getElementById('loginEmail').focus(); return; }
+  if (!window.__oukAuth.resetPassword) { showLoginError(friendlyAuthError({ code: 'auth/network-request-failed' })); return; }
+  const b = document.getElementById('loginForgotBtn'); b.disabled = true;
+  window.__oukAuth.resetPassword(email)
+    .then(() => { showLoginNote('📧 បើមានគណនីសម្រាប់ ' + email + ' យើងបានផ្ញើតំណកំណត់លេខសម្ងាត់ថ្មីទៅហើយ (មើលក្នុង Spam ផងដែរ)។ — If there is an account for ' + email + ', a link to set a new password is on its way (check Spam too).'); funnel('password_reset_sent'); })
+    .catch((err) => showLoginError(friendlyAuthError(err)))
+    .finally(() => { b.disabled = false; });
 };
 document.getElementById('loginEmailPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('loginEmailSubmitBtn').click();
@@ -21984,7 +22061,7 @@ function refreshTierBadge() {
   const el = document.getElementById('modeProfileTier');
   if (!el) return;
   const isGuest = accessTier === 'guest';
-  el.textContent = isGuest ? 'ភ្ញៀវ — Guest' : 'គណនី — Account';
+  el.textContent = authUnverified() ? '📧 មិនទាន់បញ្ជាក់ — Unconfirmed' : isGuest ? 'ភ្ញៀវ — Guest' : 'គណនី — Account';
   el.classList.toggle('tier-guest', isGuest);
   el.classList.toggle('tier-full', !isGuest);
 }
@@ -21996,7 +22073,7 @@ document.getElementById('modeProfileChip').onclick = openProfileScreen;
 ['scoreW', 'scoreB'].forEach((id) => {
   document.querySelector('#' + id + ' .ptier').addEventListener('click', (e) => {
     e.stopPropagation();
-    openMidSessionLogin();
+    if (authUnverified()) openVerifyPopup('profile'); else openMidSessionLogin();
   });
 });
 // Pending avatar edits (photo/gradient) live here until Save is clicked,
@@ -22045,7 +22122,9 @@ function openProfileScreen() {
   document.getElementById('profileMeta').textContent = 'ចូលតាមរយៈ — Signed in via ' + providerLabel(currentProfile);
   // a guest: offer to sign in (the guest account is linked to the new one, so its stats carry over); Sign Out
   // would only throw the guest's stats away, so it is not offered to a guest
-  const guestP = accessTier === 'guest';
+  const unv = authUnverified(), guestP = accessTier === 'guest' && !unv; // (an unconfirmed e-mail account is signed in)
+  document.getElementById('profileVerifyRow').style.display = unv ? '' : 'none';
+  if (unv) document.getElementById('profileMeta').textContent = 'ចូលតាមរយៈ — Signed in via ' + providerLabel(currentProfile) + ' · ' + (window.__oukAuth.getState().email || '');
   document.getElementById('profileSignInBtn').style.display = guestP ? '' : 'none';
   document.getElementById('profileSignInNote').style.display = guestP ? '' : 'none';
   document.getElementById('profileSignOutBtn').style.display = guestP ? 'none' : '';
@@ -22172,6 +22251,7 @@ document.getElementById('profileSaveBtn').onclick = () => {
     : 'រក្សាទុករួច Saved!';
   status.style.display = 'block';
 };
+document.getElementById('profileVerifyBtn').onclick = () => openVerifyPopup('profile');
 document.getElementById('profileSignInBtn').onclick = () => {
   funnel('profile_signin_click');
   closeProfileScreen();
@@ -22387,9 +22467,69 @@ function refreshThemeCategoryUI() {
     });
   });
 }
-function showLockPopup() { document.getElementById('lockPopupText').textContent = '🔒 Sign in to unlock all features'; openPopup('lockPopup'); }
+function showLockPopup() {
+  if (authUnverified()) { openVerifyPopup('locked'); return; } // (signed in, only the e-mail is not confirmed yet)
+  document.getElementById('lockPopupText').textContent = '🔒 Sign in to unlock all features'; openPopup('lockPopup');
+}
+function escapeHtml(t) { return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+// ---- confirming an e-mail account ----
+// An e-mail account plays at guest level until its address is confirmed (see needsVerify in the auth layer).
+function authUnverified() { const st = window.__oukAuth.getState(); return !!(st && st.signedIn && st.unverified); }
+function openVerifyPopup(why) {
+  const st = window.__oukAuth.getState(), em = (st && st.email) || '';
+  const S = (kh, en) => '<span class="t-kh">' + kh + '</span><span class="t-sep"> — </span><span class="t-en">' + en + '</span>';
+  const lead = why === 'signup'
+    ? S('📧 យើងបានផ្ញើតំណបញ្ជាក់ទៅ <b>' + escapeHtml(em) + '</b>។', '📧 We have sent a confirmation link to <b>' + escapeHtml(em) + '</b>.')
+    : why === 'locked'
+      ? S('🔒 សូមបញ្ជាក់អ៊ីមែលរបស់អ្នកជាមុនសិន ដើម្បីដោះសោមុខងារនេះ។', '🔒 Confirm your e-mail first to unlock this.')
+      : S('📧 អ៊ីមែល <b>' + escapeHtml(em) + '</b> មិនទាន់បានបញ្ជាក់ទេ។', '📧 Your e-mail <b>' + escapeHtml(em) + '</b> is not confirmed yet.');
+  document.getElementById('verifyPopupText').innerHTML = lead + '<br><br>' +
+    S('បើកអ៊ីមែល ហើយចុចតំណនោះ (មើលក្នុង Spam ផងដែរ)។ រហូតដល់ពេលនោះ គណនីរបស់អ្នកលេងនៅកម្រិតភ្ញៀវ។',
+      'Open the e-mail and tap the link in it (check Spam too). Until then your account plays at guest level.');
+  document.getElementById('verifyPopupStatus').textContent = '';
+  openPopup('verifyPopup');
+  funnel('verify_popup', { why: why || 'profile' });
+}
+function verifyStatus(kh, en, ok) {
+  const el = document.getElementById('verifyPopupStatus');
+  el.innerHTML = '<span class="t-kh">' + kh + '</span><span class="t-sep"> — </span><span class="t-en">' + en + '</span>';
+  el.style.color = ok ? 'var(--ok)' : '';
+}
+let verifyChecking = false;
+function checkVerification(quiet) {
+  if (verifyChecking || !authUnverified() || !window.__oukAuth.refreshVerification) return Promise.resolve(false);
+  verifyChecking = true;
+  return window.__oukAuth.refreshVerification().then((ok) => {
+    if (ok) {
+      document.getElementById('verifyPopup').style.display = 'none';
+      showToast('<span class="t-kh">✅ អ៊ីមែលត្រូវបានបញ្ជាក់។ គ្រប់យ៉ាងត្រូវបានដោះសោហើយ!</span><span class="t-sep"> — </span><span class="t-en">✅ E-mail confirmed: everything is unlocked!</span>', 5000);
+      funnel('verify_done');
+    } else if (!quiet) verifyStatus('មិនទាន់បានបញ្ជាក់ទេ។ ចុចតំណក្នុងអ៊ីមែលសិន។', 'Not confirmed yet: tap the link in the e-mail first.');
+    return ok;
+  }).catch(() => { if (!quiet) verifyStatus('មិនអាចពិនិត្យបានទេ។ ពិនិត្យអ៊ីនធឺណិត។', 'Could not check: check your internet connection.'); return false; })
+    .finally(() => { verifyChecking = false; });
+}
+document.getElementById('verifyCheckBtn').onclick = () => checkVerification(false);
+document.getElementById('verifyCloseBtn').onclick = () => { document.getElementById('verifyPopup').style.display = 'none'; };
+document.getElementById('verifyResendBtn').onclick = () => {
+  const b = document.getElementById('verifyResendBtn'); b.disabled = true;
+  window.__oukAuth.sendVerification()
+    .then(() => verifyStatus('📧 បានផ្ញើម្ដងទៀត។', '📧 Sent again.', true))
+    .catch((err) => verifyStatus('មិនអាចផ្ញើបានទេ។ សូមរង់ចាំបន្តិច រួចព្យាយាមម្ដងទៀត។', 'Could not send it' + (err && err.code === 'auth/too-many-requests' ? ' (too many tries: wait a few minutes)' : '') + '. Please try again later.'))
+    .finally(() => { setTimeout(() => { b.disabled = false; }, 20000); }); // (Firebase limits how often it sends)
+};
+// coming back to the game (from the mail app or the browser) checks at once; a check at most every 5 s
+let verifyLastAuto = 0;
+function verifyAutoCheck() {
+  if (!authUnverified() || document.visibilityState !== 'visible' || Date.now() - verifyLastAuto < 5000) return;
+  verifyLastAuto = Date.now();
+  checkVerification(true);
+}
+document.addEventListener('visibilitychange', verifyAutoCheck);
+window.addEventListener('focus', verifyAutoCheck);
 // a guest tapped computer level 4 or 5: say plainly which level they will play instead
 function showLevelLockPopup(level, inGame) {
+  if (authUnverified()) { openVerifyPopup('locked'); return; }
   const n = AI_LEVEL_NAMES[level] || ['', ''], m = AI_LEVEL_NAMES[GUEST_MAX_AI_LEVEL];
   const kd = (x) => '០១២៣៤៥'[x];
   document.getElementById('lockPopupText').innerHTML = '🔒 ' +
